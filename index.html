@@ -1,0 +1,89 @@
+<!-- 0.1.11 | Rule: minor.major.build. build++ on full regen -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FM адаптер</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="brand">
+                <div class="logo">FM</div>
+                <div class="title">адаптер <span class="version" id="appVersion"></span></div>
+            </div>
+            <div class="actions">
+                <button id="helpBtn" class="btn-icon" title="Инструкция">?</button>
+                <button id="shareBtn" class="btn-icon" title="Поделиться">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                </button>
+            </div>
+        </header>
+
+        <div id="helpModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Как пользоваться?</h2>
+                    <button class="btn-close" id="closeHelpBtn">&times;</button>
+                </div>
+                <div class="intro">
+                    <b>О приложении:</b> Решает проблему прослушивания местных FM-радиостанций на автомобилях с нестандартным диапазоном магнитолы (например, JDM). Приложение подбирает необходимый FM-адаптер (сдвиг частоты), чтобы все местные станции попадали в диапазон вашего ГУ, и показывает, на какой частоте их искать.<br>
+                    Данные предоставлены сайтом <a href="https://radiopedia.fandom.com/ru/" target="_blank" rel="noopener">radiopedia.fandom.com</a>.
+                </div>
+                <ol class="manual">
+                    <li>Выберите <b>Город</b> и <b>Диапазон ГУ</b> (магнитолы).</li>
+                    <li>Если ГУ не поддерживает местные частоты, под таблицей появится блок <b>FM-Адаптер</b>.</li>
+                    <li>Цвета кнопок адаптера (цифра = сдвиг в МГц):
+                        <ul>
+                            <li><span class="dot best"></span> Ярко-зеленый: лучший сдвиг (кратный 10).</li>
+                            <li><span class="dot full"></span> Белый: все станции доступны.</li>
+                            <li><span class="dot partial-grad"></span> От желтого к красному: частичное покрытие (зависит от количества доступных станций).</li>
+                            <li><span class="dot none"></span> Розовый: станции недоступны.</li>
+                        </ul>
+                    </li>
+                    <li>В таблице частоты, попадающие в диапазон ГУ, подсвечены <span style="color:var(--green);font-weight:bold;">зеленым</span>, а недоступные — <span style="color:var(--pink);font-weight:bold;">красным</span>.</li>
+                </ol>
+                <div class="repo-link">
+                    <a href="https://github.com/tabookot/AutoFMShift" target="_blank" rel="noopener">GitHub репозиторий</a>
+                </div>
+            </div>
+        </div>
+
+        <main class="content">
+            <section class="panel control-panel">
+                <div class="control-row">
+                    <div class="select-wrapper">
+                        <select id="citySelect"><option>Загрузка...</option></select>
+                        <button id="geoBtn" class="btn-icon mini" title="Автоопределение">&#9873;</button>
+                    </div>
+                    <div class="dropdown">
+                        <button id="templatesBtn" class="btn-text" title="Шаблоны ГУ">RU/EU</button>
+                        <div id="templatesMenu" class="dropdown-menu"></div>
+                    </div>
+                    <input type="number" id="minFreq" step="0.1" min="64" max="108" title="Мин. частота ГУ">
+                    <input type="number" id="maxFreq" step="0.1" min="76" max="110" title="Макс. частота ГУ">
+                </div>
+            </section>
+
+            <section class="panel adapter-panel" id="adapterPanel" style="display: none;">
+                <div class="panel-title">FM-Адаптер (Сдвиг, МГц) <span class="hint" data-tip="Сдвиг частоты вычитается из частоты станции для попадания в диапазон ГУ.">?</span></div>
+                <div class="chips-container" id="adapterChips"></div>
+            </section>
+
+            <section class="panel stations-panel">
+                <div class="error-msg" id="errorMsg"></div>
+                <div class="stations-header">
+                    <span class="col-freq">Частота</span>
+                    <span class="col-name">Станция</span>
+                    <span class="col-shifted">На ГУ</span>
+                </div>
+                <div class="stations-list" id="stationsList"></div>
+            </section>
+        </main>
+    </div>
+    <div id="toast" class="toast"></div>
+    <script src="app.js"></script>
+</body>
+</html>
