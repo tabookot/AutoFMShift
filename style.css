@@ -1,4 +1,4 @@
-/* 0.1.11 | Rule: minor.major.build. build++ on full regen */
+/* 0.1.18 | Rule: minor.major.build. build++ on full regen */
 :root {
     --bg: #0f1115;
     --panel: #181c23;
@@ -79,6 +79,8 @@ body {
     border-radius: 4px;
     font-size: 11px;
     box-shadow: 0 0 12px var(--accent-glow);
+    cursor: pointer;
+    user-select: none;
 }
 .title { font-weight: 600; letter-spacing: 0.5px; font-size: 14px; text-transform: lowercase; }
 .version { font-size: 10px; color: var(--text-dim); font-weight: normal; margin-left: 4px; }
@@ -266,14 +268,17 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px v
 }
 .station-item:hover { background: var(--panel-light); }
 
-.freq { font-family: 'Courier New', monospace; font-weight: 600; width: 50px; font-size: 12px; }
-.name { flex: 1; margin-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
-.shifted-freq { width: 50px; text-align: right; font-family: 'Courier New', monospace; font-weight: 600; font-size: 12px; }
+.freq { font-family: 'Courier New', monospace; font-weight: 600; width: 50px; font-size: 12px; color: var(--text); }
+.name { flex: 1; margin-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: var(--text); }
+.shifted-freq { width: 50px; text-align: right; font-family: 'Courier New', monospace; font-weight: 600; font-size: 12px; color: var(--text); }
 
-.freq.ok { color: var(--green); }
-.freq.err { color: var(--pink); }
-.shifted-freq.ok { color: var(--green); }
-.shifted-freq.err { color: var(--pink); opacity: 0.8; }
+.station-item.unavailable .freq,
+.station-item.unavailable .name { 
+    color: var(--text-dim); 
+    opacity: 0.7; 
+}
+.station-item .shifted-freq.ok { color: var(--green); }
+.station-item .shifted-freq.err { color: var(--pink); opacity: 0.8; }
 
 .error-msg { color: var(--danger); font-size: 14px; text-align: center; padding: 20px 0; display: none; }
 
@@ -349,9 +354,10 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px v
     border-radius: 50%;
     margin-right: 4px;
     vertical-align: middle;
+    box-sizing: border-box;
 }
 .dot.best { background: var(--green); }
-.dot.full { background: var(--text); }
+.dot.full { background: #ffffff; border: 1px solid #000000; }
 .dot.partial-grad { background: linear-gradient(135deg, var(--yellow), var(--pink)); }
 .dot.none { background: var(--pink); }
 

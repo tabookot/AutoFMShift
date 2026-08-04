@@ -1,4 +1,4 @@
-<!-- 0.1.11 | Rule: minor.major.build. build++ on full regen -->
+<!-- 0.1.18 | Rule: minor.major.build. build++ on full regen -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -11,7 +11,7 @@
     <div class="app-container">
         <header class="app-header">
             <div class="brand">
-                <div class="logo">FM</div>
+                <div class="logo" id="logoBtn" title="Тройной клик для сброса">FM</div>
                 <div class="title">адаптер <span class="version" id="appVersion"></span></div>
             </div>
             <div class="actions">
@@ -43,7 +43,10 @@
                             <li><span class="dot none"></span> Розовый: станции недоступны.</li>
                         </ul>
                     </li>
-                    <li>В таблице частоты, попадающие в диапазон ГУ, подсвечены <span style="color:var(--green);font-weight:bold;">зеленым</span>, а недоступные — <span style="color:var(--pink);font-weight:bold;">красным</span>.</li>
+                    <li>В таблице колонка «На ГУ» подсвечивает доступные частоты <span style="color:var(--green);font-weight:bold;">зеленым</span>, а недоступные — <span style="color:var(--pink);font-weight:bold;">красным</span>. Оригинальные частоты и названия недоступных станций слегка затемнены.</li>
+                    <li>Приложение автоматически сохраняет ваши настройки (город, диапазон, адаптер) в локальном кэше браузера для быстрого восстановления при повторном входе.</li>
+                    <li>Кнопка «Поделиться» копирует в буфер обмена прямую ссылку с текущими параметрами (город, диапазон, сдвиг) для передачи на другое устройство.</li>
+                    <li>Кнопка автоопределения города (в виде флажка) пытается определить вашу геопозицию по IP и найти ближайший крупный город в радиусе 50 км. Срабатывает при первом входе, если в ссылке не был указан город, или при нажатии на кнопку.</li>
                 </ol>
                 <div class="repo-link">
                     <a href="https://github.com/tabookot/AutoFMShift" target="_blank" rel="noopener">GitHub репозиторий</a>
@@ -84,6 +87,7 @@
         </main>
     </div>
     <div id="toast" class="toast"></div>
+    <script src="cities.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

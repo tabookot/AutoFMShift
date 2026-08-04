@@ -1,5 +1,5 @@
-// 0.1.11 | Rule: minor.major.build. build++ on full regen
-const VERSION = "0.1.11";
+// 0.1.18 | Rule: minor.major.build. build++ on full regen
+const VERSION = "0.1.18";
 const API_URL = "https://radiopedia.fandom.com/ru/api.php";
 const MAIN_PAGE = "Частотные планы радиостанций в городах России";
 const LS_KEY = "fm_adapter_calc_v6";
@@ -16,7 +16,7 @@ const TEMPLATES = [
 const SHIFTS = [0, 10, 12, 14, 16, 18, 20, 24, 28, 30];
 const EASY_SHIFTS = [0, 10, 20, 30, 12, 24, 14, 16, 18, 28];
 
-let state = {
+const DEFAULT_STATE = {
     city: "Москва",
     template: "Россия / Европа",
     min: 87.5,
@@ -25,6 +25,7 @@ let state = {
     stations: []
 };
 
+let state = { ...DEFAULT_STATE };
 let citiesMap = {};
 
 // API & PARSING
@@ -34,7 +35,9 @@ async function fetchPage(title) {
         const res = await fetch(url);
         const data = await res.json();
         return data.parse?.text?.["*"] || null;
-    } catch { return null; }
+    } catch { 
+        return null; 
+    }
 }
 
 function parseCities(html) {
@@ -43,8 +46,8 @@ function parseCities(html) {
     doc.querySelectorAll("a[title]").forEach(a => {
         const title = a.getAttribute("title");
         if (title.startsWith(MAIN_PAGE + "/")) {
-            const city = title.split("/").pop();
-            if (city && !["Сводная_таблица", "Россия"].includes(city)) {
+            const city = title.split("/").pop().replace(/_/g, " ").trim();
+            if (city && !["Сводная таблица", "Россия"].includes(city)) {
                 cities[city] = title;
             }
         }
@@ -65,7 +68,7 @@ function parseStations(html) {
             cols.forEach(col => {
                 const a = col.querySelector("a");
                 if (a && a.getAttribute('title') && !name) {
-                    name = a.getAttribute('title');
+                    name = a.getAttribute('title').replace(/_/g, " ").trim();
                 }
                 
                 const text = col.textContent.trim();
@@ -208,9 +211,11 @@ function renderStations() {
         const isAvail = isAvailable(st.freq);
         const freqClass = isAvail ? 'ok' : 'err';
         
+        if (!isAvail) item.classList.add("unavailable");
+        
         if (isStandard) {
             item.innerHTML = `
-                <div class="freq ${freqClass}">${st.freq.toFixed(2).replace(".", ",")}</div>
+                <div class="freq">${st.freq.toFixed(2).replace(".", ",")}</div>
                 <div class="name">${st.name}</div>
             `;
         } else {
@@ -227,9 +232,11 @@ function renderStations() {
 function render() {
     const minInput = document.getElementById("minFreq");
     const maxInput = document.getElementById("maxFreq");
+    const citySelect = document.getElementById("citySelect");
     
     if (document.activeElement !== minInput) minInput.value = state.min;
     if (document.activeElement !== maxInput) maxInput.value = state.max;
+    if (citySelect.value !== state.city) citySelect.value = state.city;
     
     const tmpl = TEMPLATES.find(t => t.name === state.template) || TEMPLATES.find(t => t.name === "Свой вариант");
     document.getElementById("templatesBtn").textContent = tmpl ? tmpl.short : "свой";
@@ -280,6 +287,31 @@ function loadFromLS() {
     }
 }
 
+function resetAll() {
+    localStorage.removeItem(LS_KEY);
+    localStorage.removeItem("geo_checked");
+    history.replaceState(null, "", window.location.pathname);
+    state = { ...DEFAULT_STATE, stations: [] };
+    document.getElementById('minFreq').value = state.min;
+    document.getElementById('maxFreq').value = state.max;
+    document.getElementById("citySelect").value = state.city;
+    showToast("Состояние сброшено");
+    loadCity(state.city).then(() => checkGeo(true));
+}
+
+// Haversine formula to calculate distance between two coordinates
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; 
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
 // EVENTS
 async function init() {
     document.getElementById('appVersion').textContent = 'v' + VERSION;
@@ -302,7 +334,7 @@ async function init() {
     });
 
     loadFromLS();
-    loadFromUrl();
+    const hasUrl = loadFromUrl();
 
     const html = await fetchPage(MAIN_PAGE);
     if (!html) {
@@ -312,18 +344,24 @@ async function init() {
     }
 
     citiesMap = parseCities(html);
+    
     citySelect.innerHTML = "";
     Object.keys(citiesMap).sort().forEach(c => {
         const opt = document.createElement("option");
         opt.value = c; opt.textContent = c;
-        if (c === state.city) opt.selected = true;
         citySelect.appendChild(opt);
     });
+
+    if (!citiesMap[state.city]) {
+        state.city = DEFAULT_STATE.city;
+    }
 
     await loadCity(state.city);
     render();
 
-    if (!localStorage.getItem("geo_checked")) checkGeo();
+    if (!hasUrl && !localStorage.getItem("geo_checked")) {
+        checkGeo(false);
+    }
 }
 
 async function loadCity(city) {
@@ -347,16 +385,50 @@ async function loadCity(city) {
     }
 }
 
-async function checkGeo() {
+async function checkGeo(isManual = false) {
+    const hasUrlCity = location.hash.includes("city=");
+    
     try {
         const res = await fetch("https://get.geojs.io/v1/ip/geo.json");
+        if (!res.ok) throw new Error("Network response was not ok");
+        
         const data = await res.json();
-        if (data.city && citiesMap[data.city] && !location.hash.includes("city=")) {
-            state.city = data.city;
-            document.getElementById("citySelect").value = data.city;
-            await loadCity(data.city);
+        const lat = parseFloat(data.latitude);
+        const lon = parseFloat(data.longitude);
+        
+        if (!isNaN(lat) && !isNaN(lon) && typeof CITY_CENTERS !== 'undefined') {
+            let closestCity = null;
+            let minDist = Infinity;
+            
+            CITY_CENTERS.forEach(c => {
+                const dist = getDistance(lat, lon, c.lat, c.lon);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestCity = c;
+                }
+            });
+            
+            if (closestCity) {
+                if (minDist <= 50) {
+                    if (citiesMap[closestCity.name]) {
+                        if (isManual || !hasUrlCity) {
+                            state.city = closestCity.name;
+                            await loadCity(state.city);
+                            showToast(`Автоопределение: ${closestCity.name} (${Math.round(minDist)} км)`);
+                        }
+                    } else {
+                        showToast(`Автоопределение: ${closestCity.name} нет в базе`);
+                    }
+                } else {
+                    showToast("Автоопределение: ближайший город слишком далеко");
+                }
+            }
+        } else {
+            showToast("Автоопределение: координаты не получены");
         }
-    } catch (e) {}
+    } catch (e) {
+        showToast("Автоопределение: ошибка сети");
+    }
     localStorage.setItem("geo_checked", "1");
 }
 
@@ -377,6 +449,21 @@ document.getElementById("templatesBtn").addEventListener("click", (e) => {
 document.addEventListener("click", () => {
     document.getElementById("templatesMenu").classList.remove("show");
 });
+
+(function() {
+    let clickCount = 0;
+    let clickTimer = null;
+    document.getElementById('logoBtn').addEventListener('click', () => {
+        clickCount++;
+        if (clickCount === 1) {
+            clickTimer = setTimeout(() => clickCount = 0, 600);
+        } else if (clickCount === 3) {
+            clearTimeout(clickTimer);
+            clickCount = 0;
+            resetAll();
+        }
+    });
+})();
 
 function setupFreqInput(id, isMin) {
     const el = document.getElementById(id);
@@ -425,8 +512,7 @@ document.getElementById("shareBtn").addEventListener("click", () => {
 });
 
 document.getElementById("geoBtn").addEventListener("click", () => {
-    localStorage.removeItem("geo_checked");
-    checkGeo();
+    checkGeo(true);
 });
 
 document.getElementById("helpBtn").addEventListener("click", () => {
