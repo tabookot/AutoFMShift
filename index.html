@@ -19,6 +19,16 @@
             <div class="actions">
                 <button id="themeBtn" class="btn-icon" title="Сменить тему"></button>
                 <button id="helpBtn" class="btn-icon" title="Инструкция">?</button>
+                <div class="dropdown">
+                    <button id="downloadBtn" class="btn-icon" title="Скачать">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    </button>
+                    <div id="downloadMenu" class="dropdown-menu">
+                        <div class="dropdown-item" data-format="png">PNG</div>
+                        <div class="dropdown-item" data-format="pdf">PDF</div>
+                        <div class="dropdown-item" data-format="xlsx">XLSX</div>
+                    </div>
+                </div>
                 <button id="shareBtn" class="btn-icon" title="Поделиться">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
                 </button>
@@ -50,6 +60,7 @@
                     <li>Приложение автоматически сохраняет ваши настройки (город, диапазон, адаптер) в локальном кэше браузера для быстрого восстановления при повторном входе.</li>
                     <li>Кнопка «Поделиться» копирует в буфер обмена прямую ссылку с текущими параметрами (город, диапазон, сдвиг) для передачи на другое устройство.</li>
                     <li>Кнопка автоопределения города (в виде флажка) пытается определить вашу геопозицию по IP и найти ближайший крупный город в радиусе 50 км. Срабатывает при первом входе, если в ссылке не был указан город, или при нажатии на кнопку.</li>
+                    <li>Кнопка скачивания (стрелка вниз) позволяет экспортировать таблицу в форматы PNG, PDF или XLSX.</li>
                 </ol>
                 <div class="repo-link">
                     <a href="https://github.com/tabookot/AutoFMShift" target="_blank" rel="noopener">GitHub репозиторий</a>
@@ -95,6 +106,9 @@
         </main>
     </div>
     <div id="toast" class="toast"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="cities.js"></script>
     <script src="app.js"></script>
 </body>

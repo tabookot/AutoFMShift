@@ -210,7 +210,7 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px v
     border-radius: var(--radius);
     padding: 4px;
     z-index: 20;
-    min-width: 150px;
+    min-width: 80px;
     display: none;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
@@ -220,7 +220,7 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px v
     cursor: pointer;
     border-radius: var(--radius-sm);
     font-size: 13px;
-    text-transform: capitalize;
+    text-transform: uppercase;
 }
 .dropdown-item:hover { background: var(--panel-light); }
 
@@ -261,7 +261,7 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px v
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: var(--space);
-    overflow: hidden;
+    /* overflow: hidden удален, чтобы хинты и выпадающие списки не обрезались */
 }
 
 .adapter-panel::before, .stations-panel::before {
@@ -291,11 +291,23 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px v
     position: absolute;
     top: 0;
     right: 0;
-    width: 30%;
-    min-width: 80px;
+    width: 80px;
     height: 100%;
-    z-index: 4;
+    z-index: 2; 
     cursor: help;
+}
+
+/* Specificity overrides to fix click block issue */
+.adapter-panel .hover-trigger {
+    z-index: 1;
+}
+.adapter-panel .chips-container {
+    z-index: 2;
+    pointer-events: none; 
+}
+.adapter-panel .chip {
+    z-index: 3;
+    pointer-events: auto; 
 }
 
 .chips-container {
@@ -402,7 +414,7 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px v
 .hint:hover::after {
     content: attr(data-tip);
     position: absolute;
-    bottom: 100%;
+    top: 100%;
     left: 50%;
     transform: translateX(-50%);
     background: var(--text);
@@ -412,10 +424,10 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px v
     white-space: normal;
     width: 180px;
     text-align: center;
-    margin-bottom: 5px;
+    margin-top: 5px;
     font-size: 11px;
     font-weight: normal;
-    z-index: 10;
+    z-index: 100;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
