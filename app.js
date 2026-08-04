@@ -1,8 +1,9 @@
-// 0.1.18 | Rule: minor.major.build. build++ on full regen
-const VERSION = "0.1.18";
+// 0.1.28 | Rule: minor.major.build. build++ on full regen
+const VERSION = "0.1.28";
 const API_URL = "https://radiopedia.fandom.com/ru/api.php";
 const MAIN_PAGE = "Частотные планы радиостанций в городах России";
 const LS_KEY = "fm_adapter_calc_v6";
+const LS_THEME_KEY = "fm_adapter_theme";
 
 const TEMPLATES = [
     { name: "Россия / Европа", short: "ru/eu", range: [87.5, 108.0] },
@@ -27,6 +28,39 @@ const DEFAULT_STATE = {
 
 let state = { ...DEFAULT_STATE };
 let citiesMap = {};
+
+// THEME
+function initTheme() {
+    const savedTheme = localStorage.getItem(LS_THEME_KEY);
+    if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+    updateThemeIcon();
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const isDarkDefault = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    let newTheme;
+    if (currentTheme) {
+        newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    } else {
+        newTheme = isDarkDefault ? 'light' : 'dark';
+    }
+    
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem(LS_THEME_KEY, newTheme);
+    updateThemeIcon();
+}
+
+function updateThemeIcon() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const isDarkDefault = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = currentTheme ? currentTheme === 'dark' : isDarkDefault;
+    
+    document.getElementById('themeBtn').textContent = isDark ? '☀' : '☾';
+}
 
 // API & PARSING
 async function fetchPage(title) {
@@ -314,6 +348,7 @@ function getDistance(lat1, lon1, lat2, lon2) {
 
 // EVENTS
 async function init() {
+    initTheme();
     document.getElementById('appVersion').textContent = 'v' + VERSION;
     const citySelect = document.getElementById("citySelect");
     const templatesMenu = document.getElementById("templatesMenu");
@@ -332,6 +367,19 @@ async function init() {
         };
         templatesMenu.appendChild(item);
     });
+
+    // Hover trigger logic for background image
+    const hoverTrigger = document.getElementById('hoverTrigger');
+    const bgBandit = document.getElementById('bgBandit');
+    if (hoverTrigger && bgBandit) {
+        const showBg = () => bgBandit.classList.add('hovered');
+        const hideBg = () => bgBandit.classList.remove('hovered');
+        hoverTrigger.addEventListener('mouseenter', showBg);
+        hoverTrigger.addEventListener('mouseleave', hideBg);
+        hoverTrigger.addEventListener('touchstart', (e) => { e.preventDefault(); showBg(); }, { passive: false });
+        hoverTrigger.addEventListener('touchend', hideBg);
+        hoverTrigger.addEventListener('touchcancel', hideBg);
+    }
 
     loadFromLS();
     const hasUrl = loadFromUrl();
@@ -438,6 +486,8 @@ function showToast(msg) {
     toast.classList.add("show");
     setTimeout(() => toast.classList.remove("show"), 2000);
 }
+
+document.getElementById("themeBtn").addEventListener("click", toggleTheme);
 
 document.getElementById("citySelect").addEventListener("change", (e) => loadCity(e.target.value));
 

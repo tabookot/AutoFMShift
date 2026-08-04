@@ -1,20 +1,23 @@
-<!-- 0.1.18 | Rule: minor.major.build. build++ on full regen -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FM адаптер</title>
+    <title>AutoFMShift</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="app-container">
         <header class="app-header">
             <div class="brand">
-                <div class="logo" id="logoBtn" title="Тройной клик для сброса">FM</div>
-                <div class="title">адаптер <span class="version" id="appVersion"></span></div>
+                <div id="logoBtn" class="logo-img" title="Тройной клик для сброса"></div>
+                <div class="title">
+                    <span class="logo-text">Auto<span class="accent-text">FM</span>Shift</span>
+                    <a class="version" id="appVersion" href="https://github.com/tabookot/AutoFMShift" target="_blank" rel="noopener"></a>
+                </div>
             </div>
             <div class="actions">
+                <button id="themeBtn" class="btn-icon" title="Сменить тему"></button>
                 <button id="helpBtn" class="btn-icon" title="Инструкция">?</button>
                 <button id="shareBtn" class="btn-icon" title="Поделиться">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
@@ -70,20 +73,25 @@
                 </div>
             </section>
 
-            <section class="panel adapter-panel" id="adapterPanel" style="display: none;">
-                <div class="panel-title">FM-Адаптер (Сдвиг, МГц) <span class="hint" data-tip="Сдвиг частоты вычитается из частоты станции для попадания в диапазон ГУ.">?</span></div>
-                <div class="chips-container" id="adapterChips"></div>
-            </section>
+            <div class="content-wrapper">
+                <div class="bg-bandit" id="bgBandit"></div>
+                
+                <section class="panel adapter-panel" id="adapterPanel" style="display: none;">
+                    <div class="panel-title">FM-Адаптер (Сдвиг, МГц) <span class="hint" data-tip="Сдвиг частоты вычитается из частоты станции для попадания в диапазон ГУ.">?</span></div>
+                    <div class="chips-container" id="adapterChips"></div>
+                    <div class="hover-trigger" id="hoverTrigger" title="Наведите или удерживайте для подсказки"></div>
+                </section>
 
-            <section class="panel stations-panel">
-                <div class="error-msg" id="errorMsg"></div>
-                <div class="stations-header">
-                    <span class="col-freq">Частота</span>
-                    <span class="col-name">Станция</span>
-                    <span class="col-shifted">На ГУ</span>
-                </div>
-                <div class="stations-list" id="stationsList"></div>
-            </section>
+                <section class="panel stations-panel">
+                    <div class="error-msg" id="errorMsg"></div>
+                    <div class="stations-header">
+                        <span class="col-freq">Частота</span>
+                        <span class="col-name">Станция</span>
+                        <span class="col-shifted">На ГУ</span>
+                    </div>
+                    <div class="stations-list" id="stationsList"></div>
+                </section>
+            </div>
         </main>
     </div>
     <div id="toast" class="toast"></div>

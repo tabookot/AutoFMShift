@@ -1,10 +1,12 @@
-# AutoFMShift (Выбор FM адаптера в авто)
+# AutoFMShift
+
+> **Псс парень... ловишь шипение? Заставь иномарку петь по-русски без регистрации и СМС, подобрав правильный FM-адаптер для своего города**
 
 Веб-приложение для расчета оптимального сдвига частот (FM-адаптера) для автомобильных магнитол с нестандартным диапазоном частот (например, JDM).
 
 <a href="https://tabookot.github.io/AutoFMShift/" style="display: inline-block; padding: 10px 24px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: #1d9bf0; text-decoration: none; border-radius: 8px;">🚀 Открыть AutoFMShift</a>
 
-## 📻 Проблематика
+## 📻 Проблема
 
 Владельцы автомобилей, привезенных из Японии (JDM — Japanese Domestic Market) или США, часто сталкиваются с проблемой прослушивания местного FM-радио. 
 
@@ -37,7 +39,7 @@
 
 ## 🛠 Технический стек
 
-Проект написан на чистом **HTML5**, **CSS3** и **Vanilla JS (ES6+)** без использования фреймворков, сборщиков (Webpack/Vite) и сторонних зависимостей. 
+Проект написан на чистом **HTML5**, **CSS3** и **Vanilla JS (ES6+)** без использования фреймворков, сборщиков (Webpack/Vite) и сторонних зависимостей с GLM 5.2. 
 
 * **CSS:** Использование CSS Variables для поддержки светлой и темной темы (автовыбор через `prefers-color-scheme`), Flexbox/Grid для адаптивной верстки.
 * **JS:** Асинхронные запросы (Fetch API), парсинг HTML через DOMParser, работа с LocalStorage и History API.
