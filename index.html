@@ -58,9 +58,11 @@
                     </li>
                     <li>В таблице колонка «На ГУ» подсвечивает доступные частоты <span style="color:var(--green);font-weight:bold;">зеленым</span>, а недоступные — <span style="color:var(--pink);font-weight:bold;">красным</span>. Оригинальные частоты и названия недоступных станций слегка затемнены.</li>
                     <li>Приложение автоматически сохраняет ваши настройки (город, диапазон, адаптер) в локальном кэше браузера для быстрого восстановления при повторном входе.</li>
-                    <li>Кнопка «Поделиться» копирует в буфер обмена прямую ссылку с текущими параметрами (город, диапазон, сдвиг) для передачи на другое устройство.</li>
+                    <li>Кнопка «Поделиться» копирует в буфер обмена прямую ссылку с текущими параметрами (город, диапазон, сдвиг, статусы и кнопки) для передачи на другое устройство.</li>
                     <li>Кнопка автоопределения города (в виде флажка) пытается определить вашу геопозицию по IP и найти ближайший крупный город в радиусе 50 км. Срабатывает при первом входе, если в ссылке не был указан город, или при нажатии на кнопку.</li>
                     <li>Кнопка скачивания (стрелка вниз) позволяет экспортировать таблицу в форматы PNG, PDF или XLSX.</li>
+                    <li>Кнопка <b>🔧 (Настройки ГУ)</b> в строке ввода частот открывает режим редактирования. Вы можете указать количество бэндов и кнопок магнитолы, а затем кликать по иконкам в таблице (♥/★/✖), чтобы отмечать избранное, интересное или мусор, и назначать номера кнопок. Если название станции обрезано, кликните по нему, чтобы увидеть полное имя.</li>
+                    <li><b>Подсказка для мобильных:</b> Чтобы изменить число в полях ввода, касайтесь поля и ведите палец вверх или вниз — сработает ролик!</li>
                 </ol>
                 <div class="repo-link">
                     <a href="https://github.com/tabookot/AutoFMShift" target="_blank" rel="noopener">GitHub репозиторий</a>
@@ -68,19 +70,46 @@
             </div>
         </div>
 
+        <div id="guestModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Гостевой режим</h2>
+                </div>
+                <div class="intro">
+                    Вы открыли ссылку с настройками. Желаете перезаписать свои сохраненные данные этими параметрами, или вернуться к своим прежним настройкам?
+                    <br><br>
+                    <b>Данные ссылки:</b> <span id="linkDate">-</span><br>
+                    <b>Ваш кэш:</b> <span id="cacheDate">-</span>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:center; margin-top: 20px;">
+                    <button id="overwriteBtn" class="btn-text" style="flex:1; background: var(--accent); color: var(--bg); border-color: var(--accent);">Перезаписать</button>
+                    <button id="restoreBtn" class="btn-text" style="flex:1;">Вернуться к своим</button>
+                </div>
+            </div>
+        </div>
+
         <main class="content">
             <section class="panel control-panel">
                 <div class="control-row">
-                    <div class="select-wrapper">
-                        <select id="citySelect"><option>Загрузка...</option></select>
-                        <button id="geoBtn" class="btn-icon mini" title="Автоопределение">&#9873;</button>
+                    <div class="select-group">
+                        <div class="select-wrapper">
+                            <select id="citySelect"><option>Загрузка...</option></select>
+                            <button id="geoBtn" class="btn-icon mini" title="Автоопределение">&#9873;</button>
+                        </div>
+                        <div class="dropdown">
+                            <button id="templatesBtn" class="btn-text" title="Шаблоны ГУ">RU/EU</button>
+                            <div id="templatesMenu" class="dropdown-menu"></div>
+                        </div>
                     </div>
-                    <div class="dropdown">
-                        <button id="templatesBtn" class="btn-text" title="Шаблоны ГУ">RU/EU</button>
-                        <div id="templatesMenu" class="dropdown-menu"></div>
+                    <div class="input-group">
+                        <input type="number" id="minFreq" step="0.1" min="64" max="110" title="Мин. частота ГУ">
+                        <input type="number" id="maxFreq" step="0.1" min="64" max="110" title="Макс. частота ГУ">
+                        <input type="number" id="bands" min="1" max="5" value="1" title="Кол-во бэндов ГУ" style="display: none;">
+                        <input type="number" id="presets" min="1" max="18" value="6" title="Кнопок в бэнде" style="display: none;">
+                        <button id="settingsBtn" class="btn-icon" title="Настройки ГУ">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                        </button>
                     </div>
-                    <input type="number" id="minFreq" step="0.1" min="64" max="108" title="Мин. частота ГУ">
-                    <input type="number" id="maxFreq" step="0.1" min="76" max="110" title="Макс. частота ГУ">
                 </div>
             </section>
 
@@ -97,6 +126,7 @@
                     <div class="error-msg" id="errorMsg"></div>
                     <div class="stations-header">
                         <span class="col-freq">Частота</span>
+                        <span class="col-status" id="statusHeader" style="display: none;">Статус</span>
                         <span class="col-name">Станция</span>
                         <span class="col-shifted">На ГУ</span>
                     </div>
