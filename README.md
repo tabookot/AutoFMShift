@@ -80,6 +80,7 @@
 Айтишникам - можно запустить локальный сервер (например, через Live Server в VS Code или `python -m http.server`) для корректной работы GeoIP, шрифтов и API запросов (избегание CORS-проблем при открытии через `file://`).
 
 ## 📁 Положняк
+<img src="img/bandit.png" width="250" align="right" style="opacity: 0.15; filter: grayscale(100%); margin-left: 15px; border-radius: 8px;">
 
 * `index.html` — разметка UI.
 * `style.css` — стили, темы, анимации, пасхалки.
