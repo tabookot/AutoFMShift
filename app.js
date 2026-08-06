@@ -223,13 +223,13 @@ function isPresetVisible(presetIndex) {
 }
 
 function assignPreset(name, presetIndex) {
+    const data = ensureStationData(name); // Сначала гарантируем, что структура города и станции создана
     const cityStations = state.cityData[state.city].stations;
     if (presetIndex) {
         Object.keys(cityStations).forEach(n => {
             if (cityStations[n].presetIndex === presetIndex && n !== name) cityStations[n].presetIndex = null;
         });
     }
-    const data = ensureStationData(name);
     data.presetIndex = data.presetIndex === presetIndex ? null : presetIndex;
     commitState();
     render();
@@ -353,7 +353,8 @@ function generateCanvas() {
     const half = cols === 1 ? sorted.length : Math.ceil(sorted.length / 2);
     const parts = cols === 1 ? [sorted] : [sorted.slice(0, half), sorted.slice(half)];
     
-    const instructionText = generateSetupInstruction(validStations);
+    // Генерация инструкции (только в режиме настроек)
+    const instructionText = state.settingsMode ? generateSetupInstruction(validStations) : "";
     
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
@@ -573,7 +574,8 @@ function exportPDF() {
         const p1 = sorted.slice(0, half);
         const p2 = sorted.slice(half);
         
-        const instructionText = generateSetupInstruction(validStations);
+        // Генерация инструкции (только в режиме настроек)
+        const instructionText = state.settingsMode ? generateSetupInstruction(validStations) : "";
         
         const headers = isStandard ? ["Пометки", "Частота", "Станция"] : ["Пометки", "Частота", "Станция", "На ГУ"];
         const headerRow = [...headers, '', ...headers];
@@ -728,7 +730,8 @@ async function exportXLSX() {
     const p1 = sorted.slice(0, half);
     const p2 = sorted.slice(half);
     
-    const instructionText = generateSetupInstruction(validStations);
+    // Генерация инструкции (только в режиме настроек)
+    const instructionText = state.settingsMode ? generateSetupInstruction(validStations) : "";
     const hasInstruction = instructionText.length > 0;
     
     const workbook = new ExcelJS.Workbook();
