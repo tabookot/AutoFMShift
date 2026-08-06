@@ -48,7 +48,7 @@
     <div class="app-container">
         <header class="app-header">
             <div class="brand">
-                <div id="logoBtn" class="logo-img" title="Тройной клик для полного сброса кэша и настроек" role="button" tabindex="0" aria-label="Сброс настроек"></div>
+                <div class="logo-img" title="AutoFMShift" aria-label="Логотип"></div>
                 <div class="title">
                     <span class="logo-text">Auto<span class="accent-text">FM</span>Shift</span>
                     <a class="version" id="appVersion" href="https://github.com/tabookot/AutoFMShift" target="_blank" rel="noopener"></a>
@@ -63,22 +63,14 @@
                         <div class="dropdown-item" data-format="png">PNG</div>
                         <div class="dropdown-item" data-format="pdf">PDF</div>
                         <div class="dropdown-item" data-format="xlsx">XLSX</div>
+                        <div class="dropdown-item" data-format="json">JSON</div>
                     </div>
                 </div>
                 <button id="shareBtn" class="btn-icon" title="Поделиться" aria-label="Поделиться">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                 </button>
                 <button id="themeBtn" class="btn-icon" title="Сменить тему" aria-pressed="false"></button>
                 <button id="helpBtn" class="btn-icon" title="Инструкция" aria-label="Инструкция">?</button>
-                <div class="dropdown">
-                    <button id="resetBtn" class="btn-icon" title="Сброс">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
-                    </button>
-                    <div id="resetMenu" class="dropdown-menu">
-                        <div class="dropdown-item" data-reset="city">Сброс текущего города</div>
-                        <div class="dropdown-item" data-reset="all">Полный сброс</div>
-                    </div>
-                </div>
                 <div class="dropdown" id="menuBtnWrapper" style="display: none;">
                     <button id="menuBtn" class="btn-icon" title="Меню">☰</button>
                     <div id="menuDropdown" class="dropdown-menu" style="right: 0; left: auto;"></div>
@@ -90,7 +82,24 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h2>Как пользоваться?</h2>
-                    <button class="btn-close" id="closeHelpBtn">&times;</button>
+                    <div class="actions" style="gap: 6px;">
+                        <button id="importBtn" class="btn-icon" title="Импорт настроек (JSON)" aria-label="Импорт">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        </button>
+                        <input type="file" id="importFileInput" accept=".json" style="display: none;">
+                        <div class="dropdown">
+                            <button id="resetBtn" class="btn-icon" title="Сброс">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                            </button>
+                            <div id="resetMenu" class="dropdown-menu">
+                                <div class="dropdown-item" data-reset="city">Сброс текущего города</div>
+                                <div class="dropdown-item" data-reset="all">Полный сброс</div>
+                            </div>
+                        </div>
+                        <button id="closeHelpBtn" class="btn-icon" title="Закрыть">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="intro">
                     <b>О приложении:</b> Решает проблему прослушивания местных FM-радиостанций на автомобилях с нестандартным диапазоном магнитолы (например, JDM). Приложение подбирает необходимый FM-адаптер (сдвиг частоты), чтобы все местные станции попадали в диапазон вашего ГУ, и показывает, на какой частоте их искать.<br>
@@ -109,30 +118,16 @@
                     </li>
                     <li>В таблице колонка «На ГУ» подсвечивает доступные частоты <span style="color:var(--green);font-weight:bold;">зеленым</span>, а недоступные — <span style="color:var(--pink);font-weight:bold;">красным</span>. Оригинальные частоты и названия недоступных станций слегка затемнены.</li>
                     <li>Приложение автоматически сохраняет ваши настройки (город, диапазон, адаптер) в локальном кэше браузера для быстрого восстановления при повторном входе.</li>
-                    <li>Кнопка «Поделиться» копирует в буфер обмена прямую ссылку с текущими параметрами (город, диапазон, сдвиг, статусы и кнопки) для передачи на другое устройство.</li>
-                    <li>Кнопка автоопределения города (в виде флажка) пытается определить вашу геопозицию по IP и найти ближайший крупный город в радиусе 50 км. Срабатывает при первом входе, если в ссылке не был указан город, или при нажатии на кнопку.</li>
+                    <li>Кнопка «Поделиться» копирует в буфер обмена прямую ссылку с текущими параметрами для передачи на другое устройство.</li>
+                    <li>Кнопка автоопределения города (в виде флажка) пытается определить вашу геопозицию по IP и найти ближайший крупный город в радиусе 50 км.</li>
                     <li>Кнопка скачивания (стрелка вниз) позволяет экспортировать таблицу в форматы PNG, PDF или XLSX.</li>
                     <li>Кнопка <b>🔧 (Настройки ГУ)</b> в строке ввода частот открывает режим редактирования. Вы можете указать количество бэндов и кнопок магнитолы, а затем кликать по иконкам в таблице (♥/★/✖), чтобы отмечать избранное, интересное или мусор, и назначать номера кнопок. Если название станции обрезано, кликните по нему, чтобы увидеть полное имя.</li>
-                    <li><b>Подсказка для мобильных:</b> Чтобы изменить число в полях ввода, касайтесь поля и ведите палец вверх или вниз — сработает ролик!</li>
+                    <li><b>Копирование настроек:</b> В режиме настроек ГУ появляется кнопка копирования. Она позволяет скопировать статусы и номера кнопок из другого города в текущий. Приложение само найдет совпадающие станции по названиям, не удаляя настройки в городе-источнике.</li>
+                    <li><b>Экспорт / Импорт (JSON):</b> Позволяет сделать резервную копию ваших настроек и списка станций для всех городов в один файл. Это полезно для переноса настроек между браузерами/устройствами или создания бэкапа. Формат файла универсален и хранит коды-названия станций, что позволит приложению работать даже если изменится API или пропадет интернет (Офлайн-режим).</li>
+                    <li><b>Подсказка для ввода:</b> Чтобы изменить число в полях ввода, прокручивайте колесо мыши вверх или вниз, а на мобильных — касайтесь поля и ведите палец вверх или вниз.</li>
                 </ol>
                 <div class="repo-link">
                     <a href="https://github.com/tabookot/AutoFMShift" target="_blank" rel="noopener">GitHub репозиторий</a>
-                </div>
-            </div>
-        </div>
-
-        <div id="cacheModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Обновление приложения</h2>
-                </div>
-                <div class="intro">
-                    Версия сохраненных данных устарела и несовместима с новой версией приложения. <br><br>
-                    Необходимо сделать полный сброс. Все текущие локальные настройки (города, статусы, кнопки) будут удалены.<br><br>
-                    Вы согласны продолжить?
-                </div>
-                <div style="display:flex; gap:10px; justify-content:center; margin-top: 20px;">
-                    <button id="cacheResetBtn" class="btn-text" style="flex:1; background: var(--danger); color: #fff; border-color: var(--danger);">Сбросить и продолжить</button>
                 </div>
             </div>
         </div>
@@ -155,6 +150,67 @@
             </div>
         </div>
 
+        <div id="cacheModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Обновление приложения</h2>
+                </div>
+                <div class="intro">
+                    Версия сохраненных данных устарела и несовместима с новой версией приложения. <br><br>
+                    Необходимо сделать полный сброс. Все текущие локальные настройки (города, статусы, кнопки) будут удалены.<br><br>
+                    Вы согласны продолжить?
+                </div>
+                <div style="display:flex; gap:10px; justify-content:center; margin-top: 20px;">
+                    <button id="cacheResetBtn" class="btn-text" style="flex:1; background: var(--danger); color: #fff; border-color: var(--danger);">Сбросить и продолжить</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="transferModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Копирование настроек</h2>
+                    <button class="btn-close" id="closeTransferBtn">&times;</button>
+                </div>
+                <div class="intro">
+                    Выберите город-источник для копирования статусов и кнопок в текущий город:
+                    <div id="transferCityList" class="custom-select-menu show" style="position:relative; max-height:250px; margin-top:10px; border-color:var(--border);"></div>
+                    <div style="display:flex; gap:20px; margin-top:15px; justify-content: center;">
+                        <label class="checkbox-wrap">
+                            <input type="checkbox" id="transferStatuses" checked>
+                            <span class="checkbox-custom"></span> Статусы
+                        </label>
+                        <label class="checkbox-wrap">
+                            <input type="checkbox" id="transferPresets" checked>
+                            <span class="checkbox-custom"></span> Номера кнопок
+                        </label>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:center; margin-top: 20px;">
+                    <button id="doTransferBtn" class="btn-text" style="flex:1; background: var(--accent); color: var(--bg); border-color: var(--accent);">Копировать</button>
+                    <button id="cancelTransferBtn" class="btn-text" style="flex:1;">Отмена</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="exportModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Экспорт настроек (JSON)</h2>
+                    <button class="btn-close" id="closeExportBtn">&times;</button>
+                </div>
+                <div class="intro">
+                    Отметьте города, настройки которых вы хотите выгрузить в файл бэкапа:
+                    <button id="toggleAllExportBtn" class="btn-text" style="margin-top:10px; width:100%;">Выделить все</button>
+                    <div id="exportCityList" class="custom-select-menu show" style="position:relative; max-height:280px; margin-top:5px; border-color:var(--border); overflow-y: auto;"></div>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:center; margin-top: 20px;">
+                    <button id="doExportBtn" class="btn-text" style="flex:1; background: var(--accent); color: var(--bg); border-color: var(--accent);">Экспортировать</button>
+                    <button id="cancelExportBtn" class="btn-text" style="flex:1;">Отмена</button>
+                </div>
+            </div>
+        </div>
+
         <main class="content">
             <section class="panel control-panel">
                 <div class="control-row">
@@ -172,7 +228,9 @@
                         </div>
                     </div>
                     <div class="input-group">
-                        <button id="transferBtn" class="btn-icon mini" title="Перенести настройки от другого города" style="display: none;">⇄</button>
+                        <button id="transferBtn" class="btn-icon mini" title="Скопировать настройки от другого города" style="display: none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        </button>
                         <input type="number" id="minFreq" step="0.1" min="64" max="110" title="Мин. частота ГУ">
                         <input type="number" id="maxFreq" step="0.1" min="64" max="110" title="Макс. частота ГУ">
                         <input type="number" id="bands" min="1" max="5" value="1" title="Кол-во бэндов (диапазонов) ГУ" style="display: none;">
@@ -206,34 +264,6 @@
             </div>
         </main>
     </div>
-
-    <div id="transferModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Перенос настроек</h2>
-                <button class="btn-close" id="closeTransferBtn">&times;</button>
-            </div>
-            <div class="intro">
-                Выберите город-источник для копирования статусов и кнопок в текущий город:
-                <div id="transferCityList" class="custom-select-menu show" style="position:relative; max-height:250px; margin-top:10px; border-color:var(--border);"></div>
-                <div style="display:flex; gap:20px; margin-top:15px; justify-content: center;">
-                    <label class="checkbox-wrap">
-                        <input type="checkbox" id="transferStatuses" checked>
-                        <span class="checkbox-custom"></span> Статусы
-                    </label>
-                    <label class="checkbox-wrap">
-                        <input type="checkbox" id="transferPresets" checked>
-                        <span class="checkbox-custom"></span> Номера кнопок
-                    </label>
-                </div>
-            </div>
-            <div style="display:flex; gap:10px; justify-content:center; margin-top: 20px;">
-                <button id="doTransferBtn" class="btn-text" style="flex:1; background: var(--accent); color: var(--bg); border-color: var(--accent);">Перенести</button>
-                <button id="cancelTransferBtn" class="btn-text" style="flex:1;">Отмена</button>
-            </div>
-        </div>
-    </div>    
-    
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
@@ -241,6 +271,5 @@
     <script src="cities.js"></script>
     <script src="fmuse.js"></script>
     <script src="app.js"></script>
-
 </body>
 </html>

@@ -84,7 +84,7 @@ body {
 .version { font-size: 10px; color: var(--text-dim); font-weight: normal; margin-top: 2px; text-decoration: none; cursor: pointer; }
 .version:hover { color: var(--accent); text-decoration: underline; }
 
-.actions { display: flex; gap: 6px; flex-shrink: 0; }
+.actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
 .content { flex: 1; padding: var(--space); display: flex; flex-direction: column; gap: var(--space); }
 
 .panel { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space); }
@@ -96,37 +96,7 @@ body {
 
 .select-wrapper { display: flex; gap: 4px; flex: 1 1 60%; min-width: 0; }
 .select-wrapper select { flex: 1; }
-.dropdown { position: relative; flex: 1 1 40%; min-width: 0; }
-
-.custom-select { position: relative; flex: 1 1 120px; min-width: 100px; }
-.custom-select-trigger {
-    background: var(--panel-light); border: 1px solid var(--border); color: var(--text);
-    padding: 7px 9px; border-radius: var(--radius-sm); font-size: 13px; width: 100%; outline: none;
-    transition: border-color var(--transition); -webkit-appearance: none; appearance: none; min-width: 0;
-    cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.custom-select-trigger:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
-.custom-select-menu {
-    position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%; width: max-content; max-width: calc(100vw - 20px); background: var(--panel);
-    border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; z-index: 20;
-    max-height: 300px; overflow-y: auto; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-.custom-select-menu.show { display: block; }
-.custom-select-option {
-    display: flex; justify-content: space-between; align-items: center; gap: 15px;
-    padding: 3px 8px; cursor: pointer; border-radius: var(--radius-sm); font-size: 13px;
-    white-space: nowrap;
-}
-.custom-select-option:hover { background: var(--panel-light); }
-.custom-select-option.active { background: var(--accent); color: var(--bg); font-weight: bold; }
-.custom-select-option .city-name { overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
-.custom-select-option .city-stats { flex-shrink: 0; text-align: right; }
-
-/* Touchscreen */
-@media (hover: none) and (pointer: coarse) {
-    .custom-select-menu { max-height: 250px; }
-    .custom-select-option { font-size: 14px; padding: 8px 12px; }
-}
+.dropdown { position: relative; flex: 1 1 40%; min-width: 0; display: flex; }
 
 input, select {
     background: var(--panel-light); border: 1px solid var(--border); color: var(--text);
@@ -177,7 +147,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .dropdown-menu {
     position: absolute; top: calc(100% + 4px); right: 0; background: var(--panel);
     border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; z-index: 20;
-    min-width: 100px; /* Уменьшена минимальная ширина */
+    min-width: 100px; 
     display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 .dropdown-menu.show { display: block; }
@@ -289,6 +259,48 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--text); color: var(--bg); padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 2000; opacity: 0; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.3); pointer-events: none; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* Custom Select */
+.custom-select { position: relative; flex: 1 1 120px; min-width: 100px; }
+.custom-select-trigger {
+    background: var(--panel-light); border: 1px solid var(--border); color: var(--text);
+    padding: 7px 9px; border-radius: var(--radius-sm); font-size: 13px; width: 100%; outline: none;
+    transition: border-color var(--transition); -webkit-appearance: none; appearance: none; min-width: 0;
+    cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.custom-select-trigger:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+.custom-select-menu {
+    position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%; width: max-content; max-width: calc(100vw - 20px); background: var(--panel);
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; z-index: 20;
+    max-height: 300px; overflow-y: auto; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.custom-select-menu.show { display: block; }
+.custom-select-option {
+    display: flex; justify-content: space-between; align-items: center; gap: 15px;
+    padding: 3px 8px; cursor: pointer; border-radius: var(--radius-sm); font-size: 13px;
+    white-space: nowrap;
+}
+.custom-select-option:hover { background: var(--panel-light); }
+.custom-select-option.active { background: var(--accent); color: var(--bg); font-weight: bold; }
+.custom-select-option .city-name { overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+.custom-select-option .city-stats { flex-shrink: 0; text-align: right; }
+
+/* Mobile Menu & Checkboxes */
+.app-header .actions .dropdown { flex: 0 0 auto; }
+#menuBtnWrapper { display: none; }
+@media (max-width: 420px) {
+    .app-header .actions > *:not(#menuBtnWrapper) { display: none !important; }
+    #menuBtnWrapper { display: block !important; }
+}
+
+.checkbox-wrap { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; user-select: none; }
+.checkbox-wrap input { position: absolute; opacity: 0; width: 0; height: 0; }
+.checkbox-custom { width: 18px; height: 18px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel-light); display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
+.checkbox-wrap input:checked + .checkbox-custom { background: var(--accent); border-color: var(--accent); }
+.checkbox-wrap input:checked + .checkbox-custom::after { content: '✓'; color: var(--bg); font-size: 14px; font-weight: bold; line-height: 1; }
+
+.export-city-item { padding: 8px; border-bottom: 1px solid var(--border); }
+.export-city-item:last-child { border-bottom: none; }
+
 /* Touchscreen UI Enhancements */
 @media (hover: none) and (pointer: coarse) {
     #minFreq, #maxFreq, #bands, #presets {
@@ -313,24 +325,4 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     .btn-text { height: 40px; font-size: 13px; }
     input, select { font-size: 15px; padding: 10px 12px; }
     .station-item { padding: 6px 4px; }
-}
-
-@keyframes blink {
-    0%, 100% { opacity: 1; border-color: var(--accent); box-shadow: 0 0 5px var(--accent); }
-    50% { opacity: 0.3; border-color: transparent; box-shadow: none; }
-}
-.btn-icon.blink { animation: blink 1s infinite; border-color: var(--accent); }    
-
-.app-header .actions .dropdown { flex: 0 0 auto; }
-#menuBtnWrapper { display: none; }
-@media (max-width: 420px) {
-    .app-header .actions > *:not(#menuBtnWrapper) { display: none !important; }
-    #menuBtnWrapper { display: block !important; }
-}
-
-/* Кастомные чекбоксы */
-.checkbox-wrap { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; user-select: none; }
-.checkbox-wrap input { position: absolute; opacity: 0; width: 0; height: 0; }
-.checkbox-custom { width: 18px; height: 18px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel-light); display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
-.checkbox-wrap input:checked + .checkbox-custom { background: var(--accent); border-color: var(--accent); }
-.checkbox-wrap input:checked + .checkbox-custom::after { content: '✓'; color: var(--bg); font-size: 14px; font-weight: bold; line-height: 1; }
+} 

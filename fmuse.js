@@ -136,5 +136,11 @@ const FMUse = {
         if (matchRate >= 0.5 && avgScore >= 0.5) return 3;   
         if (matchRate >= 0.2) return 2;                      
         return 1; 
+    },
+
+    // Генерация код-названия (slug)
+    generateCodeName(name) {
+        if (!name) return '';
+        return this.tokenizeAndClean(name).primary.join('_').substring(0, 25);
     }
 };

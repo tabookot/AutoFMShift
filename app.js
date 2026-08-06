@@ -1,8 +1,8 @@
-// 0.4.1 | Rule: minor.major.build. build++ on full regen
-const VERSION = "0.4.1";
-const CACHE_VERSION = "4"; // Версия структуры кэша
+// 0.4.24 | Rule: minor.major.build. build++ on full regen
+const VERSION = "0.4.24";
+const CACHE_VERSION = "4"; 
 const API_URL = "https://radiopedia.fandom.com/ru/api.php";
-const MAIN_PAGE = "Частотные планы радиостанций в городах России";
+const MAIN_PAGE = "Расчет сдвига частот (FM-адаптера) для автомагнитол";
 const LS_KEY = "fm_adapter_calc_v10"; 
 const LS_THEME_KEY = "fm_adapter_theme";
 
@@ -47,7 +47,7 @@ const DEFAULT_STATE = {
 };
 
 let state = { ...DEFAULT_STATE };
-let citiesMap = {};
+let citiesMap = JSON.parse(localStorage.getItem("fm_cities_map") || "{}");
 let activePresetMenu = null;
 let saveStateTimer = null;
 let selectedTransferCity = null;
@@ -875,17 +875,17 @@ function pluralize(num, one, few, many) {
 }
 function updateCityStats(city) {
     if (!state.cityData[city]) state.cityData[city] = { stations: {} };
+    if (!state.cityData[city].allStations && state.city === city && state.stations.length > 0) {
+        state.cityData[city].allStations = state.stations.map(s => ({ name: s.name, freq: s.freq }));
+    }
     if (state.city === city && state.stations.length > 0) {
         state.cityData[city].totalStations = state.stations.length;
     }
-    
     const cityStations = state.cityData[city].stations || {};
     const cleanStations = {};
     let fav = 0, cand = 0, trash = 0, presets = 0;
-    
     Object.keys(cityStations).forEach(name => {
         const s = cityStations[name];
-        // Сохраняем только если есть реальный статус или кнопка
         if (s.type !== 'normal' || s.presetIndex) {
             cleanStations[name] = s;
             if (s.type === 'fav') fav++;
@@ -894,7 +894,6 @@ function updateCityStats(city) {
             if (s.presetIndex && isPresetVisible(s.presetIndex)) presets++;
         }
     });
-    
     state.cityData[city].stations = cleanStations;
     state.cityData[city].stats = {
         total: state.cityData[city].totalStations || 0,
@@ -925,13 +924,54 @@ function formatCityStatsHTML(stats) {
     return parts.join(' ');
 }
 
+function renderCitySelectMenu() {
+    const citySelectMenu = document.getElementById("citySelectMenu");
+    const citySelectTrigger = document.getElementById("citySelectTrigger");
+    if (!citySelectMenu || !citySelectTrigger) return;
+    
+    citySelectMenu.innerHTML = "";
+    const allCities = new Set([...Object.keys(citiesMap), ...Object.keys(state.cityData)]);
+    Array.from(allCities).sort().forEach(c => {
+        const item = document.createElement("div");
+        item.className = "custom-select-option";
+        item.dataset.value = c;
+        if (c === state.city) item.classList.add('active');
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "city-name";
+        nameSpan.textContent = c;
+        nameSpan.title = c; 
+        item.appendChild(nameSpan);
+        const statsSpan = document.createElement("span");
+        statsSpan.className = "city-stats";
+        const statsInit = state.cityData[c]?.stats;
+        statsSpan.innerHTML = formatCityStatsHTML(statsInit);
+        statsSpan.title = getStatsTooltip(statsInit);
+        item.appendChild(statsSpan);
+        item.onclick = (e) => {
+            e.stopPropagation();
+            state.city = c;
+            commitState();
+            loadCity(c);
+            citySelectMenu.classList.remove('show');
+        };
+        citySelectMenu.appendChild(item);
+    });
+
+    // Гарантируем, что обработчик клика всегда привязан, даже если init() прервался из-за ошибки сети
+    citySelectTrigger.onclick = (e) => {
+        e.stopPropagation();
+        citySelectMenu.classList.toggle('show');
+        const activeItem = citySelectMenu.querySelector('.active');
+        if (activeItem) activeItem.scrollIntoView({ block: 'center' });
+    };
+}
+
 function render() {
     const minInput = document.getElementById("minFreq");
     const maxInput = document.getElementById("maxFreq");
     const citySelectTrigger = document.getElementById("citySelectTrigger");
     const citySelectMenu = document.getElementById("citySelectMenu");
     const transferBtn = document.getElementById('transferBtn');
-    const settingsBtn = document.getElementById('settingsBtn');
     
     if (document.activeElement !== minInput) minInput.value = state.min;
     if (document.activeElement !== maxInput) maxInput.value = state.max;
@@ -959,11 +999,10 @@ function render() {
     renderAdapters(); 
     renderStations();
     
-    // Transfer button logic
     if (state.settingsMode) {
         transferBtn.style.display = 'flex';
         transferBtn.classList.remove('blink');
-        transferBtn.title = "Перенести настройки от другого города";
+        transferBtn.title = "Скопировать настройки от другого города";
     } else {
         transferBtn.style.display = 'none';
         transferBtn.classList.remove('blink');
@@ -974,12 +1013,12 @@ function render() {
 function commitState() {
     state.lastModified = Date.now();
     
-    // Постоянное правило: не храним в кэше города без настроек
     const cleanCityData = {};
     Object.keys(state.cityData).forEach(c => {
         const stats = state.cityData[c]?.stats;
         const hasData = stats && (stats.statused > 0 || stats.presets > 0);
-        if (hasData) {
+        const hasStations = state.cityData[c]?.allStations?.length > 0;
+        if (hasData || hasStations) {
             cleanCityData[c] = state.cityData[c];
         }
     });
@@ -1071,12 +1110,23 @@ function loadFromLS() {
     try { state = { ...state, ...JSON.parse(ls) }; return true; } catch { return false; }
 }
 function resetAll() {
-    const keysToRemove = ["fm_adapter_calc", "fm_adapter_calc_v2", "fm_adapter_calc_v3", "fm_adapter_calc_v4", "fm_adapter_calc_v5", "fm_adapter_calc_v6", "fm_adapter_calc_v7", "fm_adapter_calc_v8", "fm_adapter_calc_v9", LS_KEY, LS_THEME_KEY, "geo_checked"];
+    const keysToRemove = ["fm_adapter_calc", "fm_adapter_calc_v2", "fm_adapter_calc_v3", "fm_adapter_calc_v4", "fm_adapter_calc_v5", "fm_adapter_calc_v6", "fm_adapter_calc_v7", "fm_adapter_calc_v8", "fm_adapter_calc_v9", LS_KEY, LS_THEME_KEY, "geo_checked", "fm_cities_map"];
     keysToRemove.forEach(k => localStorage.removeItem(k));
     localStorage.setItem("fm_cache_version", CACHE_VERSION);
     history.replaceState(null, "", window.location.pathname);
     showToast("Полный сброс выполнен");
     setTimeout(() => window.location.reload(), 600);
+}
+function resetCurrentCity() {
+    const city = state.city;
+    if (!citiesMap[city]) return;
+    if (state.cityData[city]) {
+        state.cityData[city].stations = {};
+    }
+    commitState(); 
+    showToast("Сброс станций текущего города...");
+    loadCity(city);
+    document.getElementById("helpModal").classList.remove("show");
 }
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; 
@@ -1156,7 +1206,7 @@ function doTransfer() {
     const targetNames = state.stations.map(s => s.name);
     
     if (sourceNames.length === 0 || targetNames.length === 0) {
-        showToast("Нет данных для переноса");
+        showToast("Нет данных для копирования");
         return;
     }
     
@@ -1186,17 +1236,186 @@ function doTransfer() {
     document.getElementById('transferModal').classList.remove('show');
     
     if (transferredCount > 0) {
-        showToast(`Перенесено: ${transferredCount} из ${matches.length} пар`);
+        showToast(`Скопировано: ${transferredCount} из ${matches.length} пар`);
     } else if (matches.length > 0) {
-        showToast(`Совпадений: ${matches.length}, но нет настроек для переноса`);
+        showToast(`Совпадений: ${matches.length}, но нет настроек для копирования`);
     } else {
         showToast("Совпадающих станций не найдено");
     }
 }
 
+// EXPORT / IMPORT JSON
+function openExportModal() {
+    const list = document.getElementById('exportCityList');
+    list.innerHTML = '';
+    
+    let citiesWithStats = [];
+    Object.keys(state.cityData).forEach(c => {
+        const stats = state.cityData[c]?.stats;
+        const hasData = stats && (stats.statused > 0 || stats.presets > 0);
+        if (hasData) {
+            citiesWithStats.push({ name: c, time: state.cityData[c]?.lastModified || 0 });
+        }
+    });
+    citiesWithStats.sort((a, b) => b.time - a.time);
+    
+    if (citiesWithStats.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-dim);">Нет городов с сохраненными настройками</div>';
+    } else {
+        citiesWithStats.forEach(cityObj => {
+            const c = cityObj.name;
+            const item = document.createElement("div");
+            item.className = "export-city-item";
+            
+            const label = document.createElement("label");
+            label.className = "checkbox-wrap";
+            
+            const input = document.createElement("input");
+            input.type = "checkbox";
+            input.value = c;
+            if (c === state.city) input.checked = true;
+            else if (citiesWithStats.length > 0 && c === citiesWithStats[0].name) input.checked = true;
+            
+            const customSpan = document.createElement("span");
+            customSpan.className = "checkbox-custom";
+            
+            const nameSpan = document.createElement("span");
+            nameSpan.textContent = c;
+            
+            label.appendChild(input);
+            label.appendChild(customSpan);
+            label.appendChild(nameSpan);
+            item.appendChild(label);
+            list.appendChild(item);
+        });
+    }
+    document.getElementById('toggleAllExportBtn').textContent = 'Выделить все';
+    document.getElementById('exportModal').classList.add('show');
+}
+
+function doExport() {
+    const selectedCheckboxes = document.querySelectorAll('#exportCityList input[type="checkbox"]:checked');
+    if (selectedCheckboxes.length === 0) {
+        showToast("Выберите хотя бы один город");
+        return;
+    }
+    
+    const exportData = {
+        appVersion: VERSION,
+        exportDate: Date.now(),
+        source: "AutoFMShift User Backup",
+        cities: {}
+    };
+    
+    selectedCheckboxes.forEach(cb => {
+        const c = cb.value;
+        const cityData = state.cityData[c];
+        if (!cityData) return;
+        
+        let allStations = (c === state.city) 
+            ? state.stations.map(s => ({ name: s.name, freq: s.freq })) 
+            : (cityData.allStations || []);
+            
+        allStations.sort((a, b) => a.freq - b.freq);
+        
+        const stationsExport = allStations.map(st => {
+            const sData = cityData.stations[st.name] || {};
+            return {
+                name: st.name,
+                freq: st.freq,
+                type: sData.type || 'normal',
+                presetIndex: sData.presetIndex || null
+            };
+        });
+        
+        exportData.cities[FMUse.generateCodeName(c)] = {
+            name: c,
+            lastModified: cityData.lastModified || Date.now(),
+            stations: stationsExport
+        };
+    });
+    
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const dateStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    downloadBlob(blob, `AutoFMShift_Backup_${dateStr}.json`);
+    document.getElementById('exportModal').classList.remove('show');
+    showToast("Экспорт завершен");
+}
+
+async function handleFileImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!data.cities) throw new Error("Invalid format");
+            
+            if (!confirm('Импорт перезапишет настройки для городов, найденных в файле. Продолжить?')) return;
+            
+            Object.keys(data.cities).forEach(citySlug => {
+                const impCity = data.cities[citySlug];
+                const cityName = impCity.name || citySlug;
+                
+                if (!state.cityData[cityName]) state.cityData[cityName] = { stations: {} };
+                
+                const newSettings = {};
+                const newAllStations = [];
+                
+                const impStations = Array.isArray(impCity.stations) 
+                    ? impCity.stations 
+                    : Object.values(impCity.stations);
+                    
+                impStations.forEach(st => {
+                    if (st.freq) newAllStations.push({ name: st.name, freq: st.freq });
+                    if (st.type !== 'normal' || st.presetIndex) {
+                        newSettings[st.name] = {
+                            type: st.type || 'normal',
+                            presetIndex: st.presetIndex || null
+                        };
+                    }
+                });
+                
+                state.cityData[cityName].stations = newSettings;
+                state.cityData[cityName].allStations = newAllStations;
+                state.cityData[cityName].lastModified = impCity.lastModified || Date.now();
+                updateCityStats(cityName);
+            });
+            
+            Object.keys(data.cities).forEach(citySlug => {
+                const impCity = data.cities[citySlug];
+                const cityName = impCity.name || citySlug;
+                if (!citiesMap[cityName]) citiesMap[cityName] = cityName;
+            });
+            localStorage.setItem("fm_cities_map", JSON.stringify(citiesMap));
+            
+            document.getElementById("errorMsg").style.display = "none";
+            
+            if (!state.cityData[state.city]) {
+                const firstCitySlug = Object.keys(data.cities)[0];
+                state.city = data.cities[firstCitySlug].name || firstCitySlug;
+            }
+            
+            commitState();
+            renderCitySelectMenu();
+            await loadCity(state.city);
+            render();
+            showToast("Импорт успешно завершен");
+            document.getElementById("helpModal").classList.remove("show");
+        } catch (err) {
+            showToast("Ошибка чтения файла JSON");
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = ''; 
+}
+
 // EVENTS
 async function init() {
-    // Проверка версии кэша
     const savedCacheVersion = localStorage.getItem("fm_cache_version");
     if (savedCacheVersion !== CACHE_VERSION) {
         document.getElementById('cacheModal').classList.add('show');
@@ -1258,10 +1477,26 @@ async function init() {
             if (format === 'png') exportPNG();
             if (format === 'pdf') exportPDF();
             if (format === 'xlsx') exportXLSX();
+            if (format === 'json') openExportModal();
             document.getElementById("downloadMenu").classList.remove("show");
         });
     });
     
+    document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFileInput').click());
+    document.getElementById('importFileInput').addEventListener('change', handleFileImport);
+    
+    document.getElementById('toggleAllExportBtn').addEventListener('click', () => {
+        const checkboxes = document.querySelectorAll('#exportCityList input[type="checkbox"]');
+        const btn = document.getElementById('toggleAllExportBtn');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        checkboxes.forEach(cb => cb.checked = !allChecked);
+        btn.textContent = allChecked ? 'Выделить все' : 'Снять все';
+    });
+    
+    document.getElementById('closeExportBtn').addEventListener('click', () => document.getElementById('exportModal').classList.remove('show'));
+    document.getElementById('cancelExportBtn').addEventListener('click', () => document.getElementById('exportModal').classList.remove('show'));
+    document.getElementById('doExportBtn').addEventListener('click', doExport);
+
     document.getElementById('settingsBtn').addEventListener('click', (e) => { 
         e.stopPropagation(); 
         toggleSettings(); 
@@ -1271,6 +1506,65 @@ async function init() {
     document.getElementById('closeTransferBtn').addEventListener('click', () => document.getElementById('transferModal').classList.remove('show'));
     document.getElementById('cancelTransferBtn').addEventListener('click', () => document.getElementById('transferModal').classList.remove('show'));
     document.getElementById('doTransferBtn').addEventListener('click', doTransfer);
+
+    document.getElementById('resetBtn').addEventListener('click', (e) => {
+        e.stopPropagation(); 
+        document.getElementById("resetMenu").classList.toggle("show"); 
+        document.getElementById("downloadMenu").classList.remove("show");
+        document.getElementById("menuDropdown").classList.remove("show");
+    });
+
+    document.querySelectorAll('#resetMenu .dropdown-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            const type = e.target.getAttribute('data-reset');
+            if (type === 'all') {
+                if (confirm('Вы уверены, что хотите полностью сбросить настройки и кэш?')) { resetAll(); }
+            } else if (type === 'city') {
+                if (confirm('Сбросить станции для текущего города? Настройки частот и сдвига сохранятся.')) {
+                    resetCurrentCity();
+                }
+            }
+            document.getElementById("resetMenu").classList.remove("show");
+        });
+    });
+
+    document.getElementById('menuBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const menu = document.getElementById('menuDropdown');
+        if (!menu.classList.contains('show')) {
+            const iconDownload = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
+            const iconShare = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:middle;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>';
+            const iconTheme = '<span style="display:inline-block; width:14px; text-align:center; margin-right:8px;">☾</span>';
+            const iconHelp = '<span style="display:inline-block; width:14px; text-align:center; margin-right:8px; font-weight:bold;">?</span>';
+            
+            menu.innerHTML = `
+                <div class="dropdown-item" data-action="download-png">${iconDownload}Скачать PNG</div>
+                <div class="dropdown-item" data-action="download-pdf">${iconDownload}Скачать PDF</div>
+                <div class="dropdown-item" data-action="download-xlsx">${iconDownload}Скачать XLSX</div>
+                <div class="dropdown-item" data-action="download-json">${iconDownload}Экспорт JSON</div>
+                <div class="dropdown-item" data-action="share">${iconShare}Поделиться</div>
+                <div class="dropdown-item" data-action="theme">${iconTheme}Сменить тему</div>
+                <div class="dropdown-item" data-action="help">${iconHelp}Инструкция</div>
+            `;
+        }
+        menu.classList.toggle('show');
+        document.getElementById("resetMenu").classList.remove("show");
+        document.getElementById("downloadMenu").classList.remove("show");
+    });
+
+    document.getElementById('menuDropdown').addEventListener('click', (e) => {
+        const item = e.target.closest('.dropdown-item');
+        if (!item) return;
+        const action = item.dataset.action;
+        if (action === 'theme') toggleTheme();
+        else if (action === 'help') document.getElementById("helpModal").classList.add("show");
+        else if (action === 'download-png') exportPNG();
+        else if (action === 'download-pdf') exportPDF();
+        else if (action === 'download-xlsx') exportXLSX();
+        else if (action === 'download-json') openExportModal();
+        else if (action === 'share') copyShareLink();
+        document.getElementById('menuDropdown').classList.remove('show');
+    });
 
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.preset-dropdown') && !e.target.closest('.preset-menu') && !e.target.closest('.preset-btn')) closePresetMenu();
@@ -1304,44 +1598,28 @@ async function init() {
     }
 
     applySettingsMode();
+    
     const html = await fetchPage(MAIN_PAGE);
-    if (!html) {
+    if (html) {
+        const newCities = parseCities(html);
+        if (Object.keys(newCities).length > 0) {
+            citiesMap = newCities;
+            localStorage.setItem("fm_cities_map", JSON.stringify(citiesMap));
+        }
+    } else if (Object.keys(citiesMap).length === 0 && Object.keys(state.cityData).length === 0) {
         document.getElementById("errorMsg").style.display = "block";
-        document.getElementById("errorMsg").textContent = "Сайт недоступен. Приносим дикие извинения за неудобства!";
+        document.getElementById("errorMsg").innerHTML = "Сайт недоступен. Приносим дикие извинения за неудобства!<br><br><button id='importFallbackBtn' class='btn-text' style='height:35px; width:auto; padding:0 15px; display:inline-flex;'>Импортировать JSON</button>";
+        document.getElementById('importFallbackBtn').addEventListener('click', () => document.getElementById('importFileInput').click());
         return;
     }
-    citiesMap = parseCities(html);
-    citySelectMenu.innerHTML = "";
     
-    Object.keys(citiesMap).sort().forEach(c => {
-        const item = document.createElement("div");
-        item.className = "custom-select-option";
-        item.dataset.value = c;
-        if (c === state.city) item.classList.add('active');
-        const nameSpan = document.createElement("span");
-        nameSpan.className = "city-name";
-        nameSpan.textContent = c;
-        nameSpan.title = c; 
-        item.appendChild(nameSpan);
-        const statsSpan = document.createElement("span");
-        statsSpan.className = "city-stats";
-        const statsInit = state.cityData[c]?.stats;
-        statsSpan.innerHTML = formatCityStatsHTML(statsInit);
-        statsSpan.title = getStatsTooltip(statsInit);
-        item.appendChild(statsSpan);
-        item.onclick = (e) => {
-            e.stopPropagation();
-            state.city = c;
-            commitState();
-            loadCity(c);
-            citySelectMenu.classList.remove('show');
-        };
-        citySelectMenu.appendChild(item);
-    });
+    renderCitySelectMenu();
 
     citySelectTrigger.onclick = (e) => {
         e.stopPropagation();
         citySelectMenu.classList.toggle('show');
+        const activeItem = citySelectMenu.querySelector('.active');
+        if (activeItem) activeItem.scrollIntoView({ block: 'center' });
     };
     
     if (!citiesMap[state.city]) state.city = DEFAULT_STATE.city;
@@ -1352,73 +1630,73 @@ async function init() {
 }
 
 async function loadCity(city) {
-    if (!citiesMap[city]) return;
+    if (!citiesMap[city] && !state.cityData[city]?.allStations) return;
     state.city = city;
     
-    // 1. Очищаем станции от предыдущего города сразу, чтобы не было путаницы
     state.stations = []; 
     const list = document.getElementById('stationsList');
     list.innerHTML = '<div class="loading-msg">Загрузка станций...</div>';
     render(); 
 
-    // 2. Загружаем свежие данные от API
     const html = await fetchPage(citiesMap[city]);
+    let newStations = [];
     if (html) {
-        const newStations = parseStations(html);
-        if (newStations.length > 0) {
-            state.stations = newStations;
-            
-            if (!state.cityData[city]) state.cityData[city] = { stations: {} };
-            state.cityData[city].totalStations = state.stations.length;
-            
-            // 3. Синхронизация: ТОЛЬКО если в кэше уже есть сохраненные настройки для ЭТОГО же города
-            const ls = localStorage.getItem(LS_KEY);
-            let cachedSettings = {};
-            if (ls) {
-                try {
-                    const parsed = JSON.parse(ls);
-                    if (parsed.cityData && parsed.cityData[city]) {
-                        cachedSettings = parsed.cityData[city].stations || {};
-                    }
-                } catch {}
-            }
-            
-            const settingKeys = Object.keys(cachedSettings);
-            if (settingKeys.length > 0) {
-                // У нас есть старые настройки для этого города. Сводим названия.
-                const score = FMUse.evaluateSync(settingKeys.map(n => ({name: n})), newStations);
-                if (score >= 3) {
-                    const matches = FMUse.matchArrays(settingKeys, newStations.map(s => s.name));
-                    let syncedSettings = {};
-                    matches.forEach(m => {
-                        const oldData = cachedSettings[m.source];
-                        if (oldData && (oldData.type !== 'normal' || oldData.presetIndex)) {
-                            syncedSettings[m.target] = { ...oldData };
-                        }
-                    });
-                    state.cityData[city].stations = syncedSettings;
-                    if (score === 4) showToast("Данные обновлены, настройки перенесены.");
-                } else {
-                    // Если балл плохой, просто оставляем старые настройки как есть
-                    state.cityData[city].stations = cachedSettings;
-                    showToast(`Данные API изменились (балл ${score}). Настройки сохранены.`);
-                }
-            } else {
-                // 4. Город открыт впервые: просто грузим API, ничего не сводим
-                state.cityData[city].stations = {};
-            }
-            
-            updateCityStats(city);
-            commitState();
-            render();
-            
-        } else {
-            showToast("Ошибка парсинга. Загрузите другой город.");
-            list.innerHTML = '<div class="loading-msg">Нет данных</div>';
+        newStations = parseStations(html);
+        if (newStations.length === 0) {
+            showToast("Ошибка парсинга.");
+            newStations = [];
         }
+    } else if (state.cityData[city]?.allStations) {
+        newStations = state.cityData[city].allStations;
+        showToast("Нет сети. Используем кэш станций.");
     } else {
-        showToast("Сеть недоступна. Попробуйте позже.");
-        list.innerHTML = '<div class="loading-msg">Ошибка сети</div>';
+        showToast("Сеть недоступна.");
+    }
+
+    if (newStations.length > 0) {
+        state.stations = newStations;
+        if (!state.cityData[city]) state.cityData[city] = { stations: {} };
+        state.cityData[city].allStations = newStations.map(s => ({ name: s.name, freq: s.freq }));
+        state.cityData[city].totalStations = state.stations.length;
+        
+        const ls = localStorage.getItem(LS_KEY);
+        let cachedSettings = {};
+        if (ls) {
+            try {
+                const parsed = JSON.parse(ls);
+                if (parsed.cityData && parsed.cityData[city]) {
+                    cachedSettings = parsed.cityData[city].stations || {};
+                }
+            } catch {}
+        }
+        
+        const settingKeys = Object.keys(cachedSettings);
+        if (settingKeys.length > 0) {
+            const score = FMUse.evaluateSync(settingKeys.map(n => ({name: n})), newStations);
+            if (score >= 3) {
+                const matches = FMUse.matchArrays(settingKeys, newStations.map(s => s.name));
+                let syncedSettings = {};
+                matches.forEach(m => {
+                    const oldData = cachedSettings[m.source];
+                    if (oldData && (oldData.type !== 'normal' || oldData.presetIndex)) {
+                        syncedSettings[m.target] = { ...oldData };
+                    }
+                });
+                state.cityData[city].stations = syncedSettings;
+                if (score === 4) showToast("Данные обновлены, настройки перенесены.");
+            } else {
+                state.cityData[city].stations = cachedSettings;
+                showToast(`Данные API изменились (балл ${score}). Настройки сохранены.`);
+            }
+        } else {
+            state.cityData[city].stations = {};
+        }
+        
+        updateCityStats(city);
+        commitState();
+        render();
+    } else {
+        list.innerHTML = '<div class="loading-msg">Нет данных</div>';
     }
 }
 
@@ -1490,13 +1768,6 @@ document.getElementById('overwriteBtn').addEventListener('click', () => {
     document.getElementById('guestModal').classList.remove('show');
     showToast("Настройки перезаписаны");
 });
-document.getElementById('cacheResetBtn').addEventListener('click', () => {
-    const keysToRemove = ["fm_adapter_calc", "fm_adapter_calc_v2", "fm_adapter_calc_v3", "fm_adapter_calc_v4", "fm_adapter_calc_v5", "fm_adapter_calc_v6", "fm_adapter_calc_v7", "fm_adapter_calc_v8", "fm_adapter_calc_v9", LS_KEY, LS_THEME_KEY, "geo_checked"];
-    keysToRemove.forEach(k => localStorage.removeItem(k));
-    localStorage.setItem("fm_cache_version", CACHE_VERSION);
-    window.location.reload();
-});
-
 document.getElementById('restoreBtn').addEventListener('click', () => {
     state.isGuestMode = false;
     const ls = localStorage.getItem(LS_KEY);
@@ -1510,77 +1781,11 @@ document.getElementById('restoreBtn').addEventListener('click', () => {
     updateUrl();
 });
 
-function resetCurrentCity() {
-    const city = state.city;
-    if (!citiesMap[city]) return;
-    if (state.cityData[city]) {
-        state.cityData[city].stations = {};
-    }
-    commitState(); // Сохраняем очищенные данные в LS
-    showToast("Сброс станций текущего города...");
-    loadCity(city);
-}
-
-document.getElementById('resetBtn').addEventListener('click', (e) => {
-    e.stopPropagation(); 
-    document.getElementById("resetMenu").classList.toggle("show"); 
-    document.getElementById("downloadMenu").classList.remove("show");
-    document.getElementById("menuDropdown").classList.remove("show");
-});
-
-document.querySelectorAll('#resetMenu .dropdown-item').forEach(item => {
-    item.addEventListener('click', (e) => {
-        const type = e.target.getAttribute('data-reset');
-        if (type === 'all') {
-            if (confirm('Вы уверены, что хотите полностью сбросить настройки и кэш?')) { resetAll(); }
-        } else if (type === 'city') {
-            if (confirm('Сбросить станции для текущего города? Настройки частот и сдвига сохранятся.')) {
-                resetCurrentCity();
-            }
-        }
-        document.getElementById("resetMenu").classList.remove("show");
-    });
-});
-
-document.getElementById('menuBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    const menu = document.getElementById('menuDropdown');
-    if (!menu.classList.contains('show')) {
-        const iconDownload = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
-        const iconShare = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:middle;"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>';
-        const iconTheme = '<span style="display:inline-block; width:14px; text-align:center; margin-right:8px;">☾</span>';
-        const iconHelp = '<span style="display:inline-block; width:14px; text-align:center; margin-right:8px; font-weight:bold;">?</span>';
-        const iconReset = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:middle;"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>';
-        
-        menu.innerHTML = `
-            <div class="dropdown-item" data-action="download-png">${iconDownload}Скачать PNG</div>
-            <div class="dropdown-item" data-action="download-pdf">${iconDownload}Скачать PDF</div>
-            <div class="dropdown-item" data-action="download-xlsx">${iconDownload}Скачать XLSX</div>
-            <div class="dropdown-item" data-action="share">${iconShare}Поделиться</div>
-            <div class="dropdown-item" data-action="theme">${iconTheme}Сменить тему</div>
-            <div class="dropdown-item" data-action="help">${iconHelp}Инструкция</div>
-            <div class="dropdown-item" data-action="reset-city">Сброс текущего города</div>
-            <div class="dropdown-item" data-action="reset-all">${iconReset}Полный сброс</div>
-        `;
-    }
-    menu.classList.toggle('show');
-    document.getElementById("resetMenu").classList.remove("show");
-    document.getElementById("downloadMenu").classList.remove("show");
-});
-
-document.getElementById('menuDropdown').addEventListener('click', (e) => {
-    const item = e.target.closest('.dropdown-item');
-    if (!item) return;
-    const action = item.dataset.action;
-    if (action === 'theme') toggleTheme();
-    else if (action === 'reset-all') { if (confirm('Вы уверены, что хотите полностью сбросить настройки и кэш?')) { resetAll(); } }
-    else if (action === 'reset-city') { if (confirm('Сбросить станции для текущего города? Настройки частот и сдвига сохранятся.')) { resetCurrentCity(); } }
-    else if (action === 'help') document.getElementById("helpModal").classList.add("show");
-    else if (action === 'download-png') exportPNG();
-    else if (action === 'download-pdf') exportPDF();
-    else if (action === 'download-xlsx') exportXLSX();
-    else if (action === 'share') copyShareLink();
-    document.getElementById('menuDropdown').classList.remove('show');
+document.getElementById('cacheResetBtn').addEventListener('click', () => {
+    const keysToRemove = ["fm_adapter_calc", "fm_adapter_calc_v2", "fm_adapter_calc_v3", "fm_adapter_calc_v4", "fm_adapter_calc_v5", "fm_adapter_calc_v6", "fm_adapter_calc_v7", "fm_adapter_calc_v8", "fm_adapter_calc_v9", LS_KEY, LS_THEME_KEY, "geo_checked", "fm_cities_map"];
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    localStorage.setItem("fm_cache_version", CACHE_VERSION);
+    window.location.reload();
 });
 
 function setupWheelInput(id, min, max, step, stateProp) {
