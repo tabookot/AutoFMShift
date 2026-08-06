@@ -1,5 +1,5 @@
 // 0.3.1 | Rule: minor.major.build. build++ on full regen
-const VERSION = "0.3.1";
+const VERSION = "0.3.11";
 const API_URL = "https://radiopedia.fandom.com/ru/api.php";
 const MAIN_PAGE = "Частотные планы радиостанций в городах России";
 const LS_KEY = "fm_adapter_calc_v10"; 

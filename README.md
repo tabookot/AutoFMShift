@@ -62,13 +62,10 @@
 
 Приложение использует открытые API и библиотеки:
 
-1. **Radiopedia API**
-   * URL: `https://radiopedia.fandom.com/ru/api.php`
-   * Метод: `GET` (`action=parse`, `prop=text`)
-   * Использование: Получение HTML-кода страниц со списком городов и таблицами частот радиостанций.
-2. **GeoJS** `https://get.geojs.io/v1/ip/geo.json` - местоположение пользователя по IP.
-3. **jsPDF** `https://github.com/parallax/jsPDF` — генерация PDF-файла.
-4. **exceljs** `https://github.com/exceljs/exceljs` — генерация Excel-файла.
+1. [Radiopedia API](https://radiopedia.fandom.com/ru/api.php) Получение HTML-кода страниц со списком городов и таблицами частот радиостанций.
+2. [GeoJS](https://get.geojs.io/v1/ip/geo.json) - местоположение пользователя по IP.
+3. [jsPDF](https://github.com/parallax/jsPDF) — генерация PDF-файла.
+4. [exceljs](https://github.com/exceljs/exceljs) — генерация Excel-файла.
 
 ## 🚀 Газуем
 
