@@ -98,6 +98,36 @@ body {
 .select-wrapper select { flex: 1; }
 .dropdown { position: relative; flex: 1 1 40%; min-width: 0; }
 
+.custom-select { position: relative; flex: 1; min-width: 0; }
+.custom-select-trigger {
+    background: var(--panel-light); border: 1px solid var(--border); color: var(--text);
+    padding: 7px 9px; border-radius: var(--radius-sm); font-size: 13px; width: 100%; outline: none;
+    transition: border-color var(--transition); -webkit-appearance: none; appearance: none; min-width: 0;
+    cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.custom-select-trigger:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+.custom-select-menu {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--panel);
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; z-index: 20;
+    max-height: 300px; overflow-y: auto; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.custom-select-menu.show { display: block; }
+.custom-select-option {
+    display: flex; justify-content: space-between; align-items: center; gap: 15px;
+    padding: 3px 8px; cursor: pointer; border-radius: var(--radius-sm); font-size: 13px;
+    white-space: nowrap;
+}
+.custom-select-option:hover { background: var(--panel-light); }
+.custom-select-option.active { background: var(--accent); color: var(--bg); font-weight: bold; }
+.custom-select-option .city-name { overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+.custom-select-option .city-stats { flex-shrink: 0; text-align: right; }
+
+/* Touchscreen */
+@media (hover: none) and (pointer: coarse) {
+    .custom-select-menu { max-height: 250px; }
+    .custom-select-option { font-size: 14px; padding: 8px 12px; }
+}
+
 input, select {
     background: var(--panel-light); border: 1px solid var(--border); color: var(--text);
     padding: 7px 9px; border-radius: var(--radius-sm); font-size: 13px; width: 100%; outline: none;

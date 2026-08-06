@@ -192,6 +192,29 @@ function getStationData(name) {
     return state.cityData[state.city]?.stations?.[name] || { type: 'normal', presetIndex: null };
 }
 
+function updateCityStats(city) {
+    if (!state.cityData[city]) state.cityData[city] = { stations: {} };
+    if (state.city === city && state.stations.length > 0) {
+        state.cityData[city].totalStations = state.stations.length;
+    }
+    const cityStations = state.cityData[city].stations || {};
+    let fav = 0, cand = 0, trash = 0, presets = 0;
+    Object.values(cityStations).forEach(s => {
+        if (s.type === 'fav') fav++;
+        else if (s.type === 'cand') cand++;
+        else if (s.type === 'trash') trash++;
+        if (s.presetIndex && isPresetVisible(s.presetIndex)) presets++;
+    });
+    state.cityData[city].stats = {
+        total: state.cityData[city].totalStations || 0,
+        fav: fav,
+        cand: cand,
+        trash: trash,
+        statused: fav + cand + trash,
+        presets: presets
+    };
+}
+
 function ensureStationData(name) {
     if (!state.cityData[state.city]) state.cityData[state.city] = { stations: {} };
     if (!state.cityData[state.city].stations[name]) {
@@ -206,6 +229,7 @@ function cycleStationStatus(name) {
     else if (data.type === 'fav') data.type = 'cand';
     else if (data.type === 'cand') data.type = 'trash';
     else data.type = 'normal';
+    updateCityStats(state.city);
     commitState();
     render();
 }
@@ -223,7 +247,7 @@ function isPresetVisible(presetIndex) {
 }
 
 function assignPreset(name, presetIndex) {
-    const data = ensureStationData(name); // Сначала гарантируем, что структура города и станции создана
+    const data = ensureStationData(name);
     const cityStations = state.cityData[state.city].stations;
     if (presetIndex) {
         Object.keys(cityStations).forEach(n => {
@@ -231,6 +255,7 @@ function assignPreset(name, presetIndex) {
         });
     }
     data.presetIndex = data.presetIndex === presetIndex ? null : presetIndex;
+    updateCityStats(state.city);
     commitState();
     render();
 }
@@ -243,16 +268,20 @@ function openPresetMenu(btn, name) {
     const maxPresets = state.bands * state.presets;
     const cityStations = state.cityData[state.city]?.stations || {};
     const currentData = getStationData(name);
+    let firstFreeItem = null;
     
     for (let p = 1; p <= maxPresets; p++) {
         let occupiedBy = '';
         Object.keys(cityStations).forEach(n => {
-            if (cityStations[n].presetIndex === p && n !== name) { occupiedBy = n; }
+            if (cityStations[n].presetIndex === p) { 
+                occupiedBy = n; 
+            }
         });
         
         const item = document.createElement('div');
-        item.className = 'dropdown-item preset-item' + (occupiedBy ? ' occupied' : '');
-        if (currentData.presetIndex === p) item.classList.add('current');
+        const isCurrent = currentData.presetIndex === p;
+        item.className = 'dropdown-item preset-item' + (occupiedBy && !isCurrent ? ' occupied' : '');
+        if (isCurrent) item.classList.add('current');
         
         const numSpan = document.createElement('span');
         numSpan.className = 'preset-num';
@@ -271,6 +300,9 @@ function openPresetMenu(btn, name) {
             closePresetMenu(); 
         };
         menu.appendChild(item);
+        if (!occupiedBy && !firstFreeItem) {
+            firstFreeItem = item;
+        }
     }
     
     const clearItem = document.createElement('div');
@@ -285,6 +317,9 @@ function openPresetMenu(btn, name) {
 
     btn.parentElement.appendChild(menu);
     activePresetMenu = menu;
+    if (firstFreeItem) {
+        firstFreeItem.scrollIntoView({ block: 'center' });
+    }
 }
 
 function closePresetMenu() {
@@ -802,17 +837,29 @@ async function exportXLSX() {
         if (isLong1 || isLong2) isLongCount++;
     }
     
+    // Динамический расчет высоты строк (с учетом динамического блока инструкции внизу)
     const N = half;
     const availableHeight = 580; 
     const titleHeaderHeight = 55; 
-    const instructionHeight = hasInstruction ? 40 : 0; 
+
+    // Вычисляем высоту инструкции на основе реальной длины текста
+    let instructionHeight = 0;
+    if (hasInstruction) {
+        const totalColWidth = colWidths.reduce((a, b) => a + b, 0);
+        const maxPixels = (totalColWidth * 7) - 20; // 7px на единицу Excel, минус отступы
+        ctx.font = '10pt Arial'; // Шрифт инструкции
+        const textWidth = ctx.measureText(instructionText).width;
+        const lines = Math.max(1, Math.ceil(textWidth / maxPixels));
+        instructionHeight = lines * 12 + 8; // 12px на строку + небольшие отступы
+    }
+
     const dataAvailableHeight = availableHeight - titleHeaderHeight - instructionHeight;
     
     let baseHeight = 18; 
     if (N > 0) {
         baseHeight = (dataAvailableHeight - isLongCount * 11) / N;
         baseHeight = Math.min(18, baseHeight); 
-        baseHeight = Math.max(15, baseHeight); 
+        baseHeight = Math.max(15, baseHeight); // Удерживаем минимум 15, чтобы не обрезался 14pt шрифт
         baseHeight = Math.round(baseHeight);
     }
     const longHeight = Math.max(26, baseHeight + 11); 
@@ -934,7 +981,7 @@ async function exportXLSX() {
     if (hasInstruction) {
         const instrRow = ws.addRow([instructionText]);
         ws.mergeCells(instrRow.number, 1, instrRow.number, totalCols);
-        instrRow.height = instructionHeight;
+        instrRow.height = instructionHeight; // Применяем вычисленную динамическую высоту
         const cell = instrRow.getCell(1);
         cell.font = { name: 'Arial', size: 10, color: { argb: 'FF333333' } }; 
         cell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true, indent: 1 };
@@ -1083,6 +1130,36 @@ function renderStations() {
     list.appendChild(frag);
 }
 
+function pluralize(num, one, few, many) {
+    const mod10 = num % 10;
+    const mod100 = num % 100;
+    if (mod10 === 1 && mod100 !== 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+    return many;
+}
+
+function getStatsTooltip(stats) {
+    if (!stats) return '';
+    const textParts = [];
+    if (stats.total) textParts.push(`${stats.total} ${pluralize(stats.total, 'станция', 'станции', 'станций')}`);
+    if (stats.fav) textParts.push(`${stats.fav} ${pluralize(stats.fav, 'любимая', 'любимые', 'любимых')}`);
+    if (stats.cand) textParts.push(`${stats.cand} ${pluralize(stats.cand, 'интересная', 'интересные', 'интересных')}`);
+    if (stats.trash) textParts.push(`${stats.trash} ${pluralize(stats.trash, 'мусорная', 'мусорные', 'мусорных')}`);
+    if (stats.presets) textParts.push(`${stats.presets} ${pluralize(stats.presets, 'кнопка', 'кнопки', 'кнопок')}`);
+    return textParts.join(', ');
+}
+
+function formatCityStatsHTML(stats) {
+    if (!stats || (stats.total === 0 && stats.statused === 0 && stats.presets === 0)) return '';
+    const subMap = {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'};
+    const sub = (num) => String(num).split('').map(d => subMap[d] || d).join('');
+    const parts = [];
+    if (stats.total) parts.push(`📻${sub(stats.total)}`);
+    if (stats.statused) parts.push(`☑${sub(stats.statused)}`);
+    if (stats.presets) parts.push(`▣${sub(stats.presets)}`);
+    return parts.join(' ');
+}
+
 function render() {
     const minInput = document.getElementById("minFreq");
     const maxInput = document.getElementById("maxFreq");
@@ -1092,6 +1169,29 @@ function render() {
     if (document.activeElement !== document.getElementById('bands')) document.getElementById('bands').value = state.bands;
     if (document.activeElement !== document.getElementById('presets')) document.getElementById('presets').value = state.presets;
     if (citySelect.value !== state.city) citySelect.value = state.city;
+    
+    const citySelectTrigger = document.getElementById("citySelectTrigger");
+    const citySelectMenu = document.getElementById("citySelectMenu");
+    if (citySelectTrigger) {
+        const c = state.city;
+        updateCityStats(c);
+        citySelectTrigger.textContent = c;
+        
+        // Обновляем активный элемент и стату в списке
+        const oldActive = citySelectMenu.querySelector('.active');
+        if (oldActive) oldActive.classList.remove('active');
+        
+        const items = citySelectMenu.querySelectorAll('.custom-select-option');
+        items.forEach(item => {
+            if (item.dataset.value === c) {
+                item.classList.add('active');
+                const stats = state.cityData[c]?.stats;
+                const statsSpan = item.querySelector('.city-stats');
+                statsSpan.innerHTML = formatCityStatsHTML(stats);
+                statsSpan.title = getStatsTooltip(stats); // Обновляем хинт статов
+            }
+        });
+    }
     
     document.getElementById("templatesBtn").textContent = state.templateShort || "свой";
     
@@ -1329,6 +1429,7 @@ async function init() {
         if (!e.target.closest('.preset-dropdown') && !e.target.closest('.preset-menu') && !e.target.closest('.preset-btn')) closePresetMenu();
         if (!e.target.closest('#templatesBtn') && !e.target.closest('#templatesMenu')) document.getElementById("templatesMenu").classList.remove("show");
         if (!e.target.closest('#downloadBtn') && !e.target.closest('#downloadMenu')) document.getElementById("downloadMenu").classList.remove("show");
+        if (!e.target.closest('#citySelect')) document.getElementById("citySelectMenu").classList.remove("show");
     });
 
     loadFromLS();
@@ -1361,12 +1462,44 @@ async function init() {
         return;
     }
     citiesMap = parseCities(html);
-    citySelect.innerHTML = "";
+    const citySelectMenu = document.getElementById("citySelectMenu");
+    citySelectMenu.innerHTML = "";
+    
     Object.keys(citiesMap).sort().forEach(c => {
-        const opt = document.createElement("option");
-        opt.value = c; opt.textContent = c;
-        citySelect.appendChild(opt);
+        const item = document.createElement("div");
+        item.className = "custom-select-option";
+        item.dataset.value = c;
+        if (c === state.city) item.classList.add('active');
+        
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "city-name";
+        nameSpan.textContent = c;
+        nameSpan.title = c; // Хинт для города
+        item.appendChild(nameSpan);
+        
+        const statsSpan = document.createElement("span");
+        statsSpan.className = "city-stats";
+        const statsInit = state.cityData[c]?.stats;
+        statsSpan.innerHTML = formatCityStatsHTML(statsInit);
+        statsSpan.title = getStatsTooltip(statsInit); // Хинт для статов
+        item.appendChild(statsSpan);
+        
+        item.onclick = (e) => {
+            e.stopPropagation();
+            state.city = c;
+            commitState();
+            loadCity(c);
+            citySelectMenu.classList.remove('show');
+        };
+        citySelectMenu.appendChild(item);
     });
+
+    // Открытие/закрытие меню
+    const citySelectTrigger = document.getElementById("citySelectTrigger");
+    citySelectTrigger.onclick = (e) => {
+        e.stopPropagation();
+        citySelectMenu.classList.toggle('show');
+    };
     if (!citiesMap[state.city]) state.city = DEFAULT_STATE.city;
     await loadCity(state.city);
     render();
@@ -1383,7 +1516,9 @@ async function loadCity(city) {
     if (ls) {
         const parsed = JSON.parse(ls);
         if (parsed.city === city && parsed.stations?.length > 0) { 
-            state.stations = parsed.stations; 
+            state.stations = parsed.stations;
+            if (!state.cityData[city]) state.cityData[city] = { stations: {} };
+            state.cityData[city].totalStations = state.stations.length;
             render(); 
         } else {
             list.innerHTML = '<div class="loading-msg">Загрузка станций...</div>';
@@ -1397,6 +1532,9 @@ async function loadCity(city) {
         const parsed = parseStations(html);
         if (parsed.length > 0) {
             state.stations = parsed;
+            if (!state.cityData[city]) state.cityData[city] = { stations: {} };
+            state.cityData[city].totalStations = state.stations.length;
+            updateCityStats(city);
             commitState();
             render();
         } else {
@@ -1482,12 +1620,6 @@ function fallbackCopyTextToClipboard(text) {
 }
 
 document.getElementById("themeBtn").addEventListener("click", toggleTheme);
-
-document.getElementById("citySelect").addEventListener("change", (e) => { 
-    state.city = e.target.value; 
-    commitState(); 
-    loadCity(state.city); 
-});
 
 document.getElementById("templatesBtn").addEventListener("click", (e) => {
     e.stopPropagation(); document.getElementById("templatesMenu").classList.toggle("show"); document.getElementById("downloadMenu").classList.remove("show");

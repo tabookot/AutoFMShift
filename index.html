@@ -131,7 +131,10 @@
                 <div class="control-row">
                     <div class="select-group">
                         <div class="select-wrapper" title="Выберите город для загрузки списка местных радиостанций.">
-                            <select id="citySelect"><option>Загрузка...</option></select>
+                            <div id="citySelect" class="custom-select" tabindex="0">
+                                <div id="citySelectTrigger" class="custom-select-trigger">Загрузка...</div>
+                                <div id="citySelectMenu" class="custom-select-menu"></div>
+                            </div>
                             <button id="geoBtn" class="btn-icon mini" title="Определить ваш город по IP-адресу.">&#9873;</button>
                         </div>
                         <div class="dropdown">
