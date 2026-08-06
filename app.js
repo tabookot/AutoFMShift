@@ -1,5 +1,6 @@
-// 0.3.1 | Rule: minor.major.build. build++ on full regen
-const VERSION = "0.3.11";
+// 0.4.1 | Rule: minor.major.build. build++ on full regen
+const VERSION = "0.4.1";
+const CACHE_VERSION = "4"; // Версия структуры кэша
 const API_URL = "https://radiopedia.fandom.com/ru/api.php";
 const MAIN_PAGE = "Частотные планы радиостанций в городах России";
 const LS_KEY = "fm_adapter_calc_v10"; 
@@ -49,6 +50,7 @@ let state = { ...DEFAULT_STATE };
 let citiesMap = {};
 let activePresetMenu = null;
 let saveStateTimer = null;
+let selectedTransferCity = null;
 
 // THEME
 function initTheme() {
@@ -57,7 +59,6 @@ function initTheme() {
     const theme = savedTheme || (systemDark ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', theme);
     updateThemeIcon();
-
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
         if (!localStorage.getItem(LS_THEME_KEY)) {
             document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
@@ -65,7 +66,6 @@ function initTheme() {
         }
     });
 }
-
 function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -73,7 +73,6 @@ function toggleTheme() {
     localStorage.setItem(LS_THEME_KEY, newTheme);
     updateThemeIcon();
 }
-
 function updateThemeIcon() {
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
     const themeBtn = document.getElementById('themeBtn');
@@ -91,7 +90,6 @@ async function fetchPage(title) {
         return data.parse?.text?.["*"] || null;
     } catch { return null; }
 }
-
 function parseCities(html) {
     const doc = new DOMParser().parseFromString(html, "text/html");
     const cities = {};
@@ -104,7 +102,6 @@ function parseCities(html) {
     });
     return cities;
 }
-
 function parseStations(html) {
     const doc = new DOMParser().parseFromString(html, "text/html");
     const stations = [];
@@ -154,17 +151,14 @@ function evaluateShifts() {
     else if (fullShifts.length > 0) best = EASY_SHIFTS.find(s => s > 0 && fullShifts.includes(s)) || Math.min(...fullShifts);
     return { statuses, best: best === -1 ? 0 : best };
 }
-
 function calcShiftedFreq(freq) {
     if (state.shift === 0 || (state.min === RU_MIN && state.max === RU_MAX)) return freq;
     return parseFloat((freq - state.shift).toFixed(2));
 }
-
 function formatFreq(f) {
     if (typeof f !== 'number' || isNaN(f)) return '—';
     return f.toFixed(1).replace('.', ',');
 }
-
 function isAvailable(freq) {
     const shifted = calcShiftedFreq(freq);
     return shifted >= state.min && shifted <= state.max;
@@ -177,7 +171,6 @@ function toggleSettings() {
     applySettingsMode();
     render();
 }
-
 function applySettingsMode() {
     const display = state.settingsMode ? 'block' : 'none';
     document.getElementById('bands').style.display = display;
@@ -187,34 +180,9 @@ function applySettingsMode() {
     settingsBtn.classList.toggle('active', state.settingsMode);
     settingsBtn.setAttribute('aria-pressed', state.settingsMode ? 'true' : 'false');
 }
-
 function getStationData(name) {
     return state.cityData[state.city]?.stations?.[name] || { type: 'normal', presetIndex: null };
 }
-
-function updateCityStats(city) {
-    if (!state.cityData[city]) state.cityData[city] = { stations: {} };
-    if (state.city === city && state.stations.length > 0) {
-        state.cityData[city].totalStations = state.stations.length;
-    }
-    const cityStations = state.cityData[city].stations || {};
-    let fav = 0, cand = 0, trash = 0, presets = 0;
-    Object.values(cityStations).forEach(s => {
-        if (s.type === 'fav') fav++;
-        else if (s.type === 'cand') cand++;
-        else if (s.type === 'trash') trash++;
-        if (s.presetIndex && isPresetVisible(s.presetIndex)) presets++;
-    });
-    state.cityData[city].stats = {
-        total: state.cityData[city].totalStations || 0,
-        fav: fav,
-        cand: cand,
-        trash: trash,
-        statused: fav + cand + trash,
-        presets: presets
-    };
-}
-
 function ensureStationData(name) {
     if (!state.cityData[state.city]) state.cityData[state.city] = { stations: {} };
     if (!state.cityData[state.city].stations[name]) {
@@ -222,7 +190,6 @@ function ensureStationData(name) {
     }
     return state.cityData[state.city].stations[name];
 }
-
 function cycleStationStatus(name) {
     const data = ensureStationData(name);
     if (data.type === 'normal') data.type = 'fav';
@@ -233,7 +200,6 @@ function cycleStationStatus(name) {
     commitState();
     render();
 }
-
 function formatPreset(presetIndex, bands, presets) {
     if (!presetIndex) return '';
     if (bands === 1) return `${presetIndex}`;
@@ -241,11 +207,9 @@ function formatPreset(presetIndex, bands, presets) {
     const preset = presetIndex % presets === 0 ? presets : presetIndex % presets;
     return `${band}.${preset}`;
 }
-
 function isPresetVisible(presetIndex) {
     return presetIndex && presetIndex <= (state.bands * state.presets);
 }
-
 function assignPreset(name, presetIndex) {
     const data = ensureStationData(name);
     const cityStations = state.cityData[state.city].stations;
@@ -259,69 +223,45 @@ function assignPreset(name, presetIndex) {
     commitState();
     render();
 }
-
 function openPresetMenu(btn, name) {
     closePresetMenu();
     const menu = document.createElement('div');
     menu.className = 'dropdown-menu preset-menu show';
-    
     const maxPresets = state.bands * state.presets;
     const cityStations = state.cityData[state.city]?.stations || {};
     const currentData = getStationData(name);
     let firstFreeItem = null;
-    
     for (let p = 1; p <= maxPresets; p++) {
         let occupiedBy = '';
         Object.keys(cityStations).forEach(n => {
-            if (cityStations[n].presetIndex === p) { 
-                occupiedBy = n; 
-            }
+            if (cityStations[n].presetIndex === p) { occupiedBy = n; }
         });
-        
         const item = document.createElement('div');
         const isCurrent = currentData.presetIndex === p;
         item.className = 'dropdown-item preset-item' + (occupiedBy && !isCurrent ? ' occupied' : '');
         if (isCurrent) item.classList.add('current');
-        
         const numSpan = document.createElement('span');
         numSpan.className = 'preset-num';
         numSpan.textContent = formatPreset(p, state.bands, state.presets);
         item.appendChild(numSpan);
-        
         const nameSpan = document.createElement('span');
         nameSpan.className = 'preset-name';
         nameSpan.textContent = occupiedBy ? occupiedBy : 'Свободно';
         if (occupiedBy) nameSpan.title = occupiedBy;
         item.appendChild(nameSpan);
-        
-        item.onclick = (e) => { 
-            e.stopPropagation(); 
-            assignPreset(name, p); 
-            closePresetMenu(); 
-        };
+        item.onclick = (e) => { e.stopPropagation(); assignPreset(name, p); closePresetMenu(); };
         menu.appendChild(item);
-        if (!occupiedBy && !firstFreeItem) {
-            firstFreeItem = item;
-        }
+        if (!occupiedBy && !firstFreeItem) firstFreeItem = item;
     }
-    
     const clearItem = document.createElement('div');
     clearItem.className = 'dropdown-item preset-item preset-clear';
     clearItem.textContent = '✕ Очистить';
-    clearItem.onclick = (e) => { 
-        e.stopPropagation(); 
-        assignPreset(name, null); 
-        closePresetMenu(); 
-    };
+    clearItem.onclick = (e) => { e.stopPropagation(); assignPreset(name, null); closePresetMenu(); };
     menu.appendChild(clearItem);
-
     btn.parentElement.appendChild(menu);
     activePresetMenu = menu;
-    if (firstFreeItem) {
-        firstFreeItem.scrollIntoView({ block: 'center' });
-    }
+    if (firstFreeItem) firstFreeItem.scrollIntoView({ block: 'center' });
 }
-
 function closePresetMenu() {
     if (activePresetMenu) { activePresetMenu.remove(); activePresetMenu = null; }
 }
@@ -337,7 +277,6 @@ function getStatusExportData(name) {
     else if (data.type === 'cand') { icon = '★'; color = [241, 196, 15]; }
     return { icon, preset: presetStr, color, type: data.type };
 }
-
 function wrapText(ctx, text, maxWidth) {
     const words = text.split(' ');
     let lines = [];
@@ -347,31 +286,26 @@ function wrapText(ctx, text, maxWidth) {
         if (ctx.measureText(testLine).width > maxWidth && currentLine) {
             lines.push(currentLine);
             currentLine = word;
-        } else {
-            currentLine = testLine;
-        }
+        } else { currentLine = testLine; }
     });
     if (currentLine) lines.push(currentLine);
     return lines;
 }
-
 function generateSetupInstruction(stations) {
     const setupStations = stations.filter(st => {
         const data = getStationData(st.name);
         return data.presetIndex && isPresetVisible(data.presetIndex) && isAvailable(st.freq);
     }).map(st => {
         const presetStr = formatPreset(getStationData(st.name).presetIndex, state.bands, state.presets);
-        // Используем ⟦ ⟧ — они выглядят как цельные квадратные скобки и поддерживаются во всех шрифтах
         const button = `⟦ ${presetStr} ⟧`;
         return { freq: calcShiftedFreq(st.freq), button: button };
     }).sort((a, b) => a.freq - b.freq);
-
     if (setupStations.length === 0) return "";
-    
     const steps = setupStations.map(s => `${formatFreq(s.freq)} ${s.button}`);
     return "Настройка: " + steps.join("  →  ");
 }
 
+// CANVAS (PNG)
 function generateCanvas() {
     const isMobile = window.innerWidth < 600;
     const cols = isMobile ? 1 : 2;
@@ -379,33 +313,23 @@ function generateCanvas() {
     const rowHeight = 28;
     const headerHeight = 35;
     const titleHeightBase = 60;
-    
-    const validStations = state.settingsMode 
-        ? state.stations.filter(st => getStationData(st.name).type !== 'trash') 
-        : state.stations;
-        
+    const validStations = state.settingsMode ? state.stations.filter(st => getStationData(st.name).type !== 'trash') : state.stations;
     const sorted = [...validStations].sort((a, b) => a.freq - b.freq);
     const half = cols === 1 ? sorted.length : Math.ceil(sorted.length / 2);
     const parts = cols === 1 ? [sorted] : [sorted.slice(0, half), sorted.slice(half)];
-    
-    // Генерация инструкции (только в режиме настроек)
     const instructionText = state.settingsMode ? generateSetupInstruction(validStations) : "";
-    
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
-    
     tempCtx.font = 'bold 12px Arial';
     const nameHeaderW = tempCtx.measureText('Станция').width;
     const freqHeaderW = tempCtx.measureText('Частота').width;
     const shiftHeaderW = tempCtx.measureText('На ГУ').width;
     const markHeaderW = tempCtx.measureText('Пометки').width;
-    
     tempCtx.font = '12px Arial';
     let maxNameWidth = nameHeaderW;
     let maxFreqWidth = freqHeaderW;
     let maxShiftedWidth = shiftHeaderW;
     let maxMarkWidth = markHeaderW;
-    
     validStations.forEach(st => {
         maxNameWidth = Math.max(maxNameWidth, tempCtx.measureText(st.name).width);
         maxFreqWidth = Math.max(maxFreqWidth, tempCtx.measureText(formatFreq(st.freq)).width);
@@ -417,22 +341,18 @@ function generateCanvas() {
             maxMarkWidth = Math.max(maxMarkWidth, tempCtx.measureText(text).width);
         }
     });
-    
     const isStandard = state.min === RU_MIN && state.max === RU_MAX;
     const padX = 10;
     const markWidth = state.settingsMode ? Math.max(50, maxMarkWidth + padX * 2) : 0;
     const colWidth = Math.ceil(markWidth + maxNameWidth + maxFreqWidth + (isStandard ? 0 : maxShiftedWidth) + padX * 4); 
-    
     const canvasWidth = cols * colWidth + (cols - 1) * padding + padding * 2;
     const maxRows = cols === 1 ? sorted.length : half;
-    
     tempCtx.font = 'bold 16px Arial';
     const shiftText = isStandard ? "Стандарт" : `${state.shift} МГц`;
     const titleText = `Город: ${state.city} | Диапазон: ${state.min} - ${state.max} МГц | Сдвиг: ${shiftText}`;
     const maxTextWidth = canvasWidth - padding * 2;
     const titleLines = wrapText(tempCtx, titleText, maxTextWidth);
     const finalTitleHeight = titleHeightBase + (titleLines.length - 1) * 20;
-    
     let instructionLines = [];
     let instructionHeight = 0;
     if (instructionText) {
@@ -440,54 +360,41 @@ function generateCanvas() {
         instructionLines = wrapText(tempCtx, instructionText, maxTextWidth);
         instructionHeight = instructionLines.length * 16 + 20;
     }
-    
     const canvasHeight = finalTitleHeight + headerHeight + maxRows * rowHeight + padding + instructionHeight;
-    
     const canvas = document.createElement('canvas');
     const scale = 2;
     canvas.width = canvasWidth * scale;
     canvas.height = canvasHeight * scale;
     const ctx = canvas.getContext('2d');
     ctx.scale(scale, scale);
-    
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-    
     ctx.fillStyle = '#000000';
     ctx.font = 'bold 16px Arial';
     ctx.textBaseline = 'middle';
-    
     titleLines.forEach((line, index) => {
         const y = (finalTitleHeight / 2) + (index - (titleLines.length - 1) / 2) * 20;
         ctx.fillText(line, padding, y);
     });
-    
     for (let c = 0; c < cols; c++) {
         const part = parts[c];
         if (!part || part.length === 0) continue;
         const xOffset = padding + c * (colWidth + padding);
         let y = finalTitleHeight;
-        
         ctx.fillStyle = '#f1f3f5';
         ctx.fillRect(xOffset, y, colWidth, headerHeight);
         ctx.strokeStyle = '#dee2e6';
         ctx.strokeRect(xOffset, y, colWidth, headerHeight);
-        
         ctx.fillStyle = '#212529';
         ctx.font = 'bold 12px Arial';
         ctx.textAlign = 'left';
-        
         let currentX = xOffset + padX;
-        if (state.settingsMode) {
-            ctx.fillText('Пометки', currentX, y + headerHeight / 2);
-            currentX += markWidth;
-        }
+        if (state.settingsMode) { ctx.fillText('Пометки', currentX, y + headerHeight / 2); currentX += markWidth; }
         ctx.fillText('Частота', currentX, y + headerHeight / 2);
         currentX += maxFreqWidth + padX;
         ctx.fillText('Станция', currentX, y + headerHeight / 2);
         currentX += maxNameWidth + padX;
         if (!isStandard) ctx.fillText('На ГУ', currentX, y + headerHeight / 2);
-        
         y += headerHeight;
         ctx.font = '12px Arial';
         part.forEach(st => {
@@ -498,10 +405,8 @@ function generateCanvas() {
             ctx.moveTo(xOffset, y);
             ctx.lineTo(xOffset + colWidth, y);
             ctx.stroke();
-            
             ctx.fillStyle = '#212529';
             currentX = xOffset + padX;
-            
             if (state.settingsMode) {
                 const statusData = getStatusExportData(st.name);
                 const iconText = statusData.icon;
@@ -519,16 +424,13 @@ function generateCanvas() {
                 ctx.fillStyle = '#212529';
                 currentX += markWidth;
             }
-            
             ctx.fillText(formatFreq(st.freq), currentX, y + rowHeight / 2);
             currentX += maxFreqWidth + padX;
-            
             let name = st.name;
             while (ctx.measureText(name).width > maxNameWidth && name.length > 0) name = name.slice(0, -1);
             if (name !== st.name) name += '...';
             ctx.fillText(name, currentX, y + rowHeight / 2);
             currentX += maxNameWidth + padX;
-            
             if (!isStandard) {
                 ctx.fillStyle = isAvail ? '#27ae60' : '#e74c3c';
                 ctx.fillText(shifted >= FM_BAND_MIN ? formatFreq(shifted) : '—', currentX, y + rowHeight / 2);
@@ -537,21 +439,17 @@ function generateCanvas() {
         });
         ctx.strokeRect(xOffset, finalTitleHeight, colWidth, headerHeight + maxRows * rowHeight);
     }
-    
-    // Отрисовка инструкции
     if (instructionLines.length > 0) {
-        ctx.fillStyle = '#333333'; // Мягкий темно-серый
-        ctx.font = '12px Arial';   // Обычный шрифт
+        ctx.fillStyle = '#333333';
+        ctx.font = '12px Arial';
         ctx.textAlign = 'left';
         const yStart = finalTitleHeight + headerHeight + maxRows * rowHeight + 10;
         instructionLines.forEach((line, index) => {
             ctx.fillText(line, padding, yStart + index * 16);
         });
     }
-    
     return canvas;
 }
-
 function downloadBlob(blob, filename) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -559,7 +457,6 @@ function downloadBlob(blob, filename) {
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 100);
 }
-
 function exportPNG() {
     if (state.stations.length === 0) return showToast("Нет данных для экспорта");
     const canvas = generateCanvas();
@@ -583,38 +480,28 @@ async function loadCyrillicFont() {
   } catch (e) { return null; }
 }
 
+// PDF
 function exportPDF() {
     if (state.stations.length === 0) return showToast("Нет данных для экспорта");
     if (!_cyrillicFontB64) return showToast("Шрифт еще загружается, попробуйте через секунду");
-    
     try {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-        
         doc.addFileToVFS("DejaVuSans.ttf", _cyrillicFontB64);
         doc.addFont("DejaVuSans.ttf", "DejaVuSans", "normal");
         doc.setFont("DejaVuSans");
         const fontName = 'DejaVuSans';
-        
         const isStandard = state.min === RU_MIN && state.max === RU_MAX;
         const shiftText = isStandard ? "Стандарт" : `${state.shift} МГц`;
         const title = `Город: ${state.city} | Диапазон: ${state.min} - ${state.max} МГц | Сдвиг: ${shiftText}`;
-        
-        const validStations = state.settingsMode 
-            ? state.stations.filter(st => getStationData(st.name).type !== 'trash') 
-            : state.stations;
-            
+        const validStations = state.settingsMode ? state.stations.filter(st => getStationData(st.name).type !== 'trash') : state.stations;
         const sorted = [...validStations].sort((a, b) => a.freq - b.freq);
         const half = Math.ceil(sorted.length / 2);
         const p1 = sorted.slice(0, half);
         const p2 = sorted.slice(half);
-        
-        // Генерация инструкции (только в режиме настроек)
         const instructionText = state.settingsMode ? generateSetupInstruction(validStations) : "";
-        
         const headers = isStandard ? ["Пометки", "Частота", "Станция"] : ["Пометки", "Частота", "Станция", "На ГУ"];
         const headerRow = [...headers, '', ...headers];
-        
         const multiBody = [];
         for (let i = 0; i < half; i++) {
             const r1 = p1[i];
@@ -651,7 +538,6 @@ function exportPDF() {
             } else { row.push(...Array(headers.length).fill("")); }
             multiBody.push(row);
         }
-        
         const colStyles = {};
         headerRow.forEach((h, i) => {
             if (h === 'Пометки') colStyles[i] = { cellWidth: 25, halign: 'left' };
@@ -660,10 +546,8 @@ function exportPDF() {
             else if (h === 'На ГУ') colStyles[i] = { cellWidth: 20, halign: 'center' };
             else if (h === '') colStyles[i] = { cellWidth: 5, fillColor: [255, 255, 255], lineColor: [255, 255, 255] };
         });
-        
         doc.setFontSize(14);
         doc.text(title, 14, 15);
-        
         doc.autoTable({
             head: [headerRow],
             body: multiBody,
@@ -681,14 +565,9 @@ function exportPDF() {
                     const colName = headerRow[colIndex];
                     if (colName === 'Пометки' && state.settingsMode) data.cell.styles.fillColor = [240, 240, 240];
                     if (currentStation && !isAvailable(currentStation.freq)) data.cell.styles.textColor = [153, 153, 153];
-                    
                     if (colName === 'Пометки' && currentStation && state.settingsMode) {
                         const statusData = getStatusExportData(currentStation.name);
-                        data.cell.custom = {
-                            icon: statusData.icon,
-                            preset: statusData.preset,
-                            color: statusData.color
-                        };
+                        data.cell.custom = { icon: statusData.icon, preset: statusData.preset, color: statusData.color };
                         data.cell.text = [];
                     }
                     if (colName === 'На ГУ') {
@@ -700,20 +579,13 @@ function exportPDF() {
             didDrawCell: function(data) {
                 if (data.section === 'body' && data.cell.custom) {
                     const { icon, preset, color } = data.cell.custom;
-                    
                     doc.setFont(fontName);
                     doc.setFontSize(10);
-                    
                     const x = data.cell.x + 2;
                     const y = data.cell.y + data.cell.height / 2;
-                    
                     let currentX = x;
                     if (icon) {
-                        if (color) {
-                            doc.setTextColor(color[0], color[1], color[2]);
-                        } else {
-                            doc.setTextColor(33, 37, 41);
-                        }
+                        if (color) { doc.setTextColor(color[0], color[1], color[2]); } else { doc.setTextColor(33, 37, 41); }
                         doc.text(icon, currentX, y, { baseline: 'middle' });
                         currentX += doc.getTextWidth(icon) + 1;
                     }
@@ -724,22 +596,17 @@ function exportPDF() {
                 }
             }
         });
-        
-        // Отрисовка инструкции под таблицей
         if (instructionText) {
             const finalY = doc.lastAutoTable.finalY;
             const pageWidth = doc.internal.pageSize.getWidth();
             const margin = 14;
             const maxWidth = pageWidth - margin * 2;
-            
             doc.setFontSize(9);
-            doc.setFont(fontName, "normal"); 
-            doc.setTextColor(50, 50, 50); 
-            
+            doc.setFont(fontName, "normal");
+            doc.setTextColor(50, 50, 50);
             const instructionLines = doc.splitTextToSize(instructionText, maxWidth);
             doc.text(instructionLines, margin, finalY + 10);
         }
-        
         const pdfBlob = doc.output('blob');
         downloadBlob(pdfBlob, `FM_${state.city}.pdf`);
     } catch (e) {
@@ -748,78 +615,44 @@ function exportPDF() {
     }
 }
 
-// XLSX Export using ExcelJS (Dynamic A4 Fit)
+// XLSX
 async function exportXLSX() {
     if (state.stations.length === 0) return showToast("Нет данных для экспорта");
-    
     const isStandard = state.min === RU_MIN && state.max === RU_MAX;
     const shiftText = isStandard ? "Стандарт" : `${state.shift} МГц`;
     const title = `Город: ${state.city} | Диапазон: ${state.min} - ${state.max} МГц | Сдвиг: ${shiftText}`;
-    
-    const validStations = state.settingsMode 
-        ? state.stations.filter(st => getStationData(st.name).type !== 'trash') 
-        : state.stations;
-        
+    const validStations = state.settingsMode ? state.stations.filter(st => getStationData(st.name).type !== 'trash') : state.stations;
     const sorted = [...validStations].sort((a, b) => a.freq - b.freq);
     const half = Math.ceil(sorted.length / 2);
     const p1 = sorted.slice(0, half);
     const p2 = sorted.slice(half);
-    
-    // Генерация инструкции (только в режиме настроек)
     const instructionText = state.settingsMode ? generateSetupInstruction(validStations) : "";
     const hasInstruction = instructionText.length > 0;
-    
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet('Stations');
-    
-    ws.pageSetup = {
-        orientation: 'landscape',
-        paperSize: 9, // A4
-        fitToWidth: 1,
-        fitToHeight: 1,
-        margins: { left: 0.2, right: 0.2, top: 0.1, bottom: 0.1, header: 0.0, footer: 0.0 }
-    };
+    ws.pageSetup = { orientation: 'landscape', paperSize: 9, fitToWidth: 1, fitToHeight: 1, margins: { left: 0.2, right: 0.2, top: 0.1, bottom: 0.1, header: 0.0, footer: 0.0 } };
     ws.properties.defaultRowHeight = 18;
     ws.views = [{ showGridLines: false }];
-    
     const colWidths = isStandard ? [8, 12, 33, 2, 8, 12, 33] : [8, 12, 33, 12, 2, 8, 12, 33, 12];
-    colWidths.forEach((w, i) => {
-        ws.getColumn(i + 1).width = w;
-    });
-    
+    colWidths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
     const headers = isStandard ? ["№", "Частота\n(МГц)", "Название станции"] : ["№", "Частота\n(МГц)", "Название станции", "На ГУ\n(МГц)"];
     const totalCols = headers.length * 2 + 1;
-    
     const headerFont = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
     const headerFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF000000' } };
-    const thinBorder = {
-        top: { style: 'thin', color: { argb: 'FF000000' } },
-        left: { style: 'thin', color: { argb: 'FF000000' } },
-        bottom: { style: 'thin', color: { argb: 'FF000000' } },
-        right: { style: 'thin', color: { argb: 'FF000000' } }
-    };
-    
+    const thinBorder = { top: { style: 'thin', color: { argb: 'FF000000' } }, left: { style: 'thin', color: { argb: 'FF000000' } }, bottom: { style: 'thin', color: { argb: 'FF000000' } }, right: { style: 'thin', color: { argb: 'FF000000' } } };
     const titleRow = ws.addRow([title]);
     ws.mergeCells(1, 1, 1, totalCols);
     titleRow.getCell(1).font = { name: 'Arial', size: 14, bold: true };
     titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
     titleRow.height = 25;
-    
     const headerValues = [...headers, '', ...headers];
     const headerRow = ws.addRow(headerValues);
     headerRow.height = 30;
-    headerRow.eachCell((cell) => {
-        cell.font = headerFont;
-        cell.fill = headerFill;
-        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-        cell.border = thinBorder;
-    });
-    
+    headerRow.eachCell((cell) => { cell.font = headerFont; cell.fill = headerFill; cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; cell.border = thinBorder; });
     const stationColWidth = 33; 
     const maxPixels = (stationColWidth * 7) - 10; 
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    
     const isOverflowing = (station) => {
         if (!station || !station.name) return false;
         const data = getStationData(station.name);
@@ -827,174 +660,93 @@ async function exportXLSX() {
         ctx.font = `${isBold ? 'bold ' : ''}14pt Arial`; 
         return ctx.measureText(station.name).width > maxPixels;
     };
-    
     let isLongCount = 0;
     for (let i = 0; i < half; i++) {
-        const r1 = p1[i];
-        const r2 = p2[i];
+        const r1 = p1[i]; const r2 = p2[i];
         const isLong1 = r1 && isOverflowing(r1);
         const isLong2 = r2 && isOverflowing(r2);
         if (isLong1 || isLong2) isLongCount++;
     }
-    
-    // Динамический расчет высоты строк (с учетом динамического блока инструкции внизу)
     const N = half;
     const availableHeight = 580; 
     const titleHeaderHeight = 55; 
-
-    // Вычисляем высоту инструкции на основе реальной длины текста
     let instructionHeight = 0;
     if (hasInstruction) {
         const totalColWidth = colWidths.reduce((a, b) => a + b, 0);
-        const maxPixels = (totalColWidth * 7) - 20; // 7px на единицу Excel, минус отступы
-        ctx.font = '10pt Arial'; // Шрифт инструкции
+        const maxPixelsInstr = (totalColWidth * 7) - 20; 
+        ctx.font = '10pt Arial'; 
         const textWidth = ctx.measureText(instructionText).width;
-        const lines = Math.max(1, Math.ceil(textWidth / maxPixels));
-        instructionHeight = lines * 12 + 8; // 12px на строку + небольшие отступы
+        const lines = Math.max(1, Math.ceil(textWidth / maxPixelsInstr));
+        instructionHeight = lines * 12 + 8; 
     }
-
     const dataAvailableHeight = availableHeight - titleHeaderHeight - instructionHeight;
-    
     let baseHeight = 18; 
     if (N > 0) {
         baseHeight = (dataAvailableHeight - isLongCount * 11) / N;
         baseHeight = Math.min(18, baseHeight); 
-        baseHeight = Math.max(15, baseHeight); // Удерживаем минимум 15, чтобы не обрезался 14pt шрифт
+        baseHeight = Math.max(15, baseHeight); 
         baseHeight = Math.round(baseHeight);
     }
     const longHeight = Math.max(26, baseHeight + 11); 
-    
     const rowHeights = {};
-    
     for (let i = 0; i < half; i++) {
-        const r1 = p1[i];
-        const r2 = p2[i];
-        const rowValues = [];
-        
+        const r1 = p1[i]; const r2 = p2[i]; const rowValues = [];
         if (r1) {
             let numStr = "";
-            if (state.settingsMode) {
-                const statusData = getStatusExportData(r1.name);
-                numStr = statusData.preset;
-            }
+            if (state.settingsMode) { const statusData = getStatusExportData(r1.name); numStr = statusData.preset; }
             rowValues.push(numStr, formatFreq(r1.freq), r1.name);
-            if (!isStandard) {
-                const s1 = calcShiftedFreq(r1.freq);
-                rowValues.push(s1 >= FM_BAND_MIN ? formatFreq(s1) : "—");
-            }
-        } else {
-            rowValues.push(...(isStandard ? ["", "", ""] : ["", "", "", ""]));
-        }
-        
-        rowValues.push(""); // Spacer
-        
+            if (!isStandard) { const s1 = calcShiftedFreq(r1.freq); rowValues.push(s1 >= FM_BAND_MIN ? formatFreq(s1) : "—"); }
+        } else { rowValues.push(...(isStandard ? ["", "", ""] : ["", "", "", ""])); }
+        rowValues.push(""); 
         if (r2) {
             let numStr = "";
-            if (state.settingsMode) {
-                const statusData = getStatusExportData(r2.name);
-                numStr = statusData.preset;
-            }
+            if (state.settingsMode) { const statusData = getStatusExportData(r2.name); numStr = statusData.preset; }
             rowValues.push(numStr, formatFreq(r2.freq), r2.name);
-            if (!isStandard) {
-                const s2 = calcShiftedFreq(r2.freq);
-                rowValues.push(s2 >= FM_BAND_MIN ? formatFreq(s2) : "—");
-            }
-        } else {
-            rowValues.push(...(isStandard ? ["", "", ""] : ["", "", "", ""]));
-        }
-        
+            if (!isStandard) { const s2 = calcShiftedFreq(r2.freq); rowValues.push(s2 >= FM_BAND_MIN ? formatFreq(s2) : "—"); }
+        } else { rowValues.push(...(isStandard ? ["", "", ""] : ["", "", "", ""])); }
         const row = ws.addRow(rowValues);
         const currentRowNum = i + 3; 
-        
         const isLong1 = r1 && isOverflowing(r1);
         const isLong2 = r2 && isOverflowing(r2);
         const isLong = isLong1 || isLong2; 
-        
         rowHeights[currentRowNum] = isLong ? longHeight : baseHeight;
-        
         row.eachCell((cell, colNumber) => {
             cell.border = thinBorder;
-            
             const colName = headerValues[colNumber - 1];
             const isLeftCol = colNumber <= headers.length;
             const currentStation = isLeftCol ? r1 : r2;
-            
             const isCurrentLong = isLeftCol ? isLong1 : isLong2;
-            
-            let fontSize = 14; 
-            let fontColor = { argb: 'FF000000' };
-            let isBold = false;
-            let isItalic = false;
-            let isStrike = false;
-            let cellFill = null;
-            
-            if (isCurrentLong && colName === 'Название станции') {
-                fontSize = 11;
-            }
-            
+            let fontSize = 14; let fontColor = { argb: 'FF000000' }; let isBold = false; let isItalic = false; let isStrike = false; let cellFill = null;
+            if (isCurrentLong && colName === 'Название станции') { fontSize = 11; }
             if (currentStation) {
                 const data = getStationData(currentStation.name);
                 const isAvail = isAvailable(currentStation.freq);
-                
-                if (!isAvail) {
-                    fontColor = { argb: 'FF999999' };
-                    isStrike = true;
-                } else if (data.type === 'fav') {
-                    isBold = true;
-                    cellFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
-                } else if (data.type === 'cand') {
-                    isBold = true;
-                    isItalic = true;
-                    cellFill = { type: 'pattern', pattern: 'gray0625' };
-                }
+                if (!isAvail) { fontColor = { argb: 'FF999999' }; isStrike = true; } 
+                else if (data.type === 'fav') { isBold = true; cellFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } }; } 
+                else if (data.type === 'cand') { isBold = true; isItalic = true; cellFill = { type: 'pattern', pattern: 'gray0625' }; }
             }
-            
             cell.font = { name: 'Arial', size: fontSize, bold: isBold, italic: isItalic, color: fontColor, strike: isStrike };
-            
             let alignment = { vertical: 'middle' }; 
-            
-            if (colName === '№') {
-                alignment.horizontal = 'center'; 
-            } else if (colName === 'Название станции') {
-                alignment.horizontal = 'left';
-                alignment.indent = 1;
-                if (isCurrentLong) {
-                    alignment.wrapText = true; 
-                }
-            } else if (colName === '') {
-                alignment.horizontal = 'center';
-                cell.border = null; 
-            } else {
-                alignment.horizontal = 'center';
-            }
-            
+            if (colName === '№') { alignment.horizontal = 'center'; } 
+            else if (colName === 'Название станции') { alignment.horizontal = 'left'; alignment.indent = 1; if (isCurrentLong) { alignment.wrapText = true; } } 
+            else if (colName === '') { alignment.horizontal = 'center'; cell.border = null; } 
+            else { alignment.horizontal = 'center'; }
             cell.alignment = alignment;
             if (cellFill) cell.fill = cellFill;
         });
     }
-    
-    for (let r = 3; r <= half + 2; r++) {
-        ws.getRow(r).height = rowHeights[r] || baseHeight;
-    }
-    
-    // 7. Добавление строки инструкции под таблицей
+    for (let r = 3; r <= half + 2; r++) { ws.getRow(r).height = rowHeights[r] || baseHeight; }
     if (hasInstruction) {
         const instrRow = ws.addRow([instructionText]);
         ws.mergeCells(instrRow.number, 1, instrRow.number, totalCols);
-        instrRow.height = instructionHeight; // Применяем вычисленную динамическую высоту
+        instrRow.height = instructionHeight;
         const cell = instrRow.getCell(1);
         cell.font = { name: 'Arial', size: 10, color: { argb: 'FF333333' } }; 
         cell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true, indent: 1 };
         cell.border = thinBorder;
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } }; 
-        
-        for (let i = 2; i <= totalCols; i++) {
-            const c = instrRow.getCell(i);
-            c.border = thinBorder;
-            c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } };
-        }
+        for (let i = 2; i <= totalCols; i++) { const c = instrRow.getCell(i); c.border = thinBorder; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } }; }
     }
-    
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     downloadBlob(blob, `FM_${state.city}.xlsx`);
@@ -1014,18 +766,15 @@ function renderAdapters() {
         const statusType = statusData.type;
         const ratio = statusData.ratio || 0;
         chip.className = `chip ${statusType || ''}`;
-        
         let tipText = `Сдвиг ${shift} МГц. `;
         if (statusType === 'full') tipText += "Все станции доступны.";
         else if (statusType === 'partial') tipText += `Доступно ${Math.round(ratio * 100)}% станций.`;
         else tipText += "Станции недоступны.";
         if (shift === best && statusType === 'full') tipText += " Лучший выбор!";
         chip.setAttribute('title', tipText);
-        
         if (shift === best && statusType === 'full') chip.classList.add('best');
         if (shift === state.shift) chip.classList.add("active");
         chip.textContent = shift === 0 ? "0" : shift;
-        
         if (statusType === 'partial') {
             const r = Math.round(255 - 14 * ratio);
             const g = Math.round(71 + 125 * ratio);
@@ -1039,7 +788,6 @@ function renderAdapters() {
     };
     SHIFTS.forEach(s => addChip(s, statuses[s] || { type: 'none' }));
 }
-
 function renderStations() {
     const list = document.getElementById("stationsList");
     list.innerHTML = "";
@@ -1052,9 +800,7 @@ function renderStations() {
     }
     const sorted = [...state.stations].sort((a, b) => a.freq - b.freq);
     const isStandard = state.min === RU_MIN && state.max === RU_MAX;
-    
     const frag = document.createDocumentFragment();
-    
     sorted.forEach(st => {
         const item = document.createElement("div");
         item.className = "station-item";
@@ -1062,12 +808,10 @@ function renderStations() {
         const isAvail = isAvailable(st.freq);
         const freqClass = isAvail ? 'ok' : 'err';
         if (!isAvail) item.classList.add("unavailable");
-        
         const freqDiv = document.createElement('div');
         freqDiv.className = 'freq';
         freqDiv.textContent = formatFreq(st.freq);
         item.appendChild(freqDiv);
-
         if (state.settingsMode) {
             const data = getStationData(st.name);
             if (data.type === 'trash') item.classList.add('trash');
@@ -1077,16 +821,13 @@ function renderStations() {
             if (data.type === 'fav') { iconClass = 'fav'; iconChar = '♥'; iconTitle = 'Избранное'; }
             else if (data.type === 'cand') { iconClass = 'cand'; iconChar = '★'; iconTitle = 'Интересное'; }
             else if (data.type === 'trash') { iconClass = 'trash'; iconChar = '✖'; iconTitle = 'Мусор (исключается из экспорта)'; }
-            
             const visible = isPresetVisible(data.presetIndex);
             const presetStr = visible ? formatPreset(data.presetIndex, state.bands, state.presets) : '';
             const displayStr = visible ? presetStr : '+';
             const isActive = visible;
             const btnTitle = isActive ? `Кнопка ${presetStr}` : '';
-            
             const statusCell = document.createElement('div');
             statusCell.className = 'status-cell';
-            
             const iconSpan = document.createElement('span');
             iconSpan.className = `status-icon ${iconClass}`;
             iconSpan.dataset.name = st.name;
@@ -1095,21 +836,17 @@ function renderStations() {
             iconSpan.setAttribute('role', 'button');
             if (iconTitle) iconSpan.title = iconTitle;
             statusCell.appendChild(iconSpan);
-            
             const presetDropdown = document.createElement('div');
             presetDropdown.className = 'preset-dropdown';
-            
             const presetBtn = document.createElement('button');
             presetBtn.className = `preset-btn ${isActive ? 'active' : ''}`;
             presetBtn.dataset.name = st.name;
             presetBtn.textContent = displayStr;
             if (btnTitle) presetBtn.title = btnTitle;
-            
             presetDropdown.appendChild(presetBtn);
             statusCell.appendChild(presetDropdown);
             item.appendChild(statusCell);
         }
-
         const nameDiv = document.createElement('div');
         nameDiv.className = 'name';
         nameDiv.textContent = st.name;
@@ -1117,19 +854,18 @@ function renderStations() {
         nameDiv.style.cursor = 'pointer';
         nameDiv.addEventListener('click', () => showToast(st.name)); 
         item.appendChild(nameDiv);
-
         if (!isStandard) {
             const shiftedDiv = document.createElement('div');
             shiftedDiv.className = `shifted-freq ${freqClass}`;
             shiftedDiv.textContent = shiftedNum >= FM_BAND_MIN ? formatFreq(shiftedNum) : "—";
             item.appendChild(shiftedDiv);
         }
-
         frag.appendChild(item);
     });
     list.appendChild(frag);
 }
 
+// CITY STATS & UI
 function pluralize(num, one, few, many) {
     const mod10 = num % 10;
     const mod100 = num % 100;
@@ -1137,7 +873,37 @@ function pluralize(num, one, few, many) {
     if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
     return many;
 }
-
+function updateCityStats(city) {
+    if (!state.cityData[city]) state.cityData[city] = { stations: {} };
+    if (state.city === city && state.stations.length > 0) {
+        state.cityData[city].totalStations = state.stations.length;
+    }
+    
+    const cityStations = state.cityData[city].stations || {};
+    const cleanStations = {};
+    let fav = 0, cand = 0, trash = 0, presets = 0;
+    
+    Object.keys(cityStations).forEach(name => {
+        const s = cityStations[name];
+        // Сохраняем только если есть реальный статус или кнопка
+        if (s.type !== 'normal' || s.presetIndex) {
+            cleanStations[name] = s;
+            if (s.type === 'fav') fav++;
+            else if (s.type === 'cand') cand++;
+            else if (s.type === 'trash') trash++;
+            if (s.presetIndex && isPresetVisible(s.presetIndex)) presets++;
+        }
+    });
+    
+    state.cityData[city].stations = cleanStations;
+    state.cityData[city].stats = {
+        total: state.cityData[city].totalStations || 0,
+        fav: fav, cand: cand, trash: trash,
+        statused: fav + cand + trash,
+        presets: presets
+    };
+    state.cityData[city].lastModified = Date.now();
+}
 function getStatsTooltip(stats) {
     if (!stats) return '';
     const textParts = [];
@@ -1148,7 +914,6 @@ function getStatsTooltip(stats) {
     if (stats.presets) textParts.push(`${stats.presets} ${pluralize(stats.presets, 'кнопка', 'кнопки', 'кнопок')}`);
     return textParts.join(', ');
 }
-
 function formatCityStatsHTML(stats) {
     if (!stats || (stats.total === 0 && stats.statused === 0 && stats.presets === 0)) return '';
     const subMap = {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'};
@@ -1163,24 +928,22 @@ function formatCityStatsHTML(stats) {
 function render() {
     const minInput = document.getElementById("minFreq");
     const maxInput = document.getElementById("maxFreq");
-    const citySelect = document.getElementById("citySelect");
+    const citySelectTrigger = document.getElementById("citySelectTrigger");
+    const citySelectMenu = document.getElementById("citySelectMenu");
+    const transferBtn = document.getElementById('transferBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    
     if (document.activeElement !== minInput) minInput.value = state.min;
     if (document.activeElement !== maxInput) maxInput.value = state.max;
     if (document.activeElement !== document.getElementById('bands')) document.getElementById('bands').value = state.bands;
     if (document.activeElement !== document.getElementById('presets')) document.getElementById('presets').value = state.presets;
-    if (citySelect.value !== state.city) citySelect.value = state.city;
     
-    const citySelectTrigger = document.getElementById("citySelectTrigger");
-    const citySelectMenu = document.getElementById("citySelectMenu");
     if (citySelectTrigger) {
         const c = state.city;
         updateCityStats(c);
         citySelectTrigger.textContent = c;
-        
-        // Обновляем активный элемент и стату в списке
         const oldActive = citySelectMenu.querySelector('.active');
         if (oldActive) oldActive.classList.remove('active');
-        
         const items = citySelectMenu.querySelectorAll('.custom-select-option');
         items.forEach(item => {
             if (item.dataset.value === c) {
@@ -1188,39 +951,53 @@ function render() {
                 const stats = state.cityData[c]?.stats;
                 const statsSpan = item.querySelector('.city-stats');
                 statsSpan.innerHTML = formatCityStatsHTML(stats);
-                statsSpan.title = getStatsTooltip(stats); // Обновляем хинт статов
+                statsSpan.title = getStatsTooltip(stats); 
             }
         });
     }
-    
     document.getElementById("templatesBtn").textContent = state.templateShort || "свой";
-    
     renderAdapters(); 
     renderStations();
+    
+    // Transfer button logic
+    if (state.settingsMode) {
+        transferBtn.style.display = 'flex';
+        transferBtn.classList.remove('blink');
+        transferBtn.title = "Перенести настройки от другого города";
+    } else {
+        transferBtn.style.display = 'none';
+        transferBtn.classList.remove('blink');
+    }
 }
 
 // STATE & PERSISTENCE
 function commitState() {
     state.lastModified = Date.now();
+    
+    // Постоянное правило: не храним в кэше города без настроек
+    const cleanCityData = {};
+    Object.keys(state.cityData).forEach(c => {
+        const stats = state.cityData[c]?.stats;
+        const hasData = stats && (stats.statused > 0 || stats.presets > 0);
+        if (hasData) {
+            cleanCityData[c] = state.cityData[c];
+        }
+    });
+    state.cityData = cleanCityData;
+    
     localStorage.setItem(LS_KEY, JSON.stringify(state));
     updateUrl();
 }
-
 function saveState() {
     if (state.isGuestMode) {
         const ls = localStorage.getItem(LS_KEY);
-        if (!ls) {
-            state.isGuestMode = false;
-            commitState();
-        } else {
-            showGuestPrompt();
-        }
+        if (!ls) { state.isGuestMode = false; commitState(); } 
+        else { showGuestPrompt(); }
         return; 
     }
     clearTimeout(saveStateTimer);
     saveStateTimer = setTimeout(commitState, 300);
 }
-
 function showGuestPrompt() {
     const ls = localStorage.getItem(LS_KEY);
     let cacheDate = "Нет данных";
@@ -1234,7 +1011,6 @@ function showGuestPrompt() {
     document.getElementById('linkDate').textContent = state.lastModified ? new Date(state.lastModified).toLocaleString('ru-RU') : "Только что";
     document.getElementById('guestModal').classList.add('show');
 }
-
 function serializeCityData(city) {
     if (!state.cityData[city]) return '';
     try {
@@ -1246,64 +1022,36 @@ function serializeCityData(city) {
         return encodeURIComponent(JSON.stringify(arr));
     } catch { return ''; }
 }
-
 function deserializeCityData(str, city) {
     if (!str) return null;
     try {
         const arr = JSON.parse(decodeURIComponent(str));
         const stations = {};
         arr.forEach(item => {
-            if (item.n) {
-                stations[item.n] = { type: item.t || 'normal', presetIndex: item.p || null };
-            }
+            if (item.n) { stations[item.n] = { type: item.t || 'normal', presetIndex: item.p || null }; }
         });
         return stations;
     } catch { return null; }
 }
-
 function updateUrl() {
     const params = new URLSearchParams({
-        city: state.city,
-        min: state.min,
-        max: state.max,
-        shift: state.shift,
-        mode: state.settingsMode ? 1 : 0,
-        bands: state.bands,
-        presets: state.presets,
-        ts: state.lastModified || Date.now(),
-        data: serializeCityData(state.city)
+        city: state.city, min: state.min, max: state.max, shift: state.shift,
+        mode: state.settingsMode ? 1 : 0, bands: state.bands, presets: state.presets,
+        ts: state.lastModified || Date.now(), data: serializeCityData(state.city)
     });
     history.replaceState(null, "", `#${params.toString()}`);
 }
-
 function loadFromUrl() {
     if (location.hash.length < 2) return false;
     const params = new URLSearchParams(location.hash.slice(1));
-    
-    const city = params.get("city");
-    if (city) state.city = city;
-    
-    const min = parseFloat(params.get("min"));
-    if (!isNaN(min) && min >= 64 && min <= 110) state.min = min;
-    
-    const max = parseFloat(params.get("max"));
-    if (!isNaN(max) && max >= 64 && max <= 110 && max > state.min) state.max = max;
-    
-    const shift = parseInt(params.get("shift"));
-    if (!isNaN(shift) && shift >= 0 && shift <= 30) state.shift = shift;
-    
-    const mode = params.get("mode");
-    if (mode === "1") state.settingsMode = true;
-    
-    const bands = parseInt(params.get("bands"));
-    if (!isNaN(bands) && bands >= 1 && bands <= 5) state.bands = bands;
-    
-    const presets = parseInt(params.get("presets"));
-    if (!isNaN(presets) && presets >= 1 && presets <= 18) state.presets = presets;
-    
-    const ts = parseInt(params.get("ts"));
-    if (!isNaN(ts) && Number.isFinite(ts)) state.lastModified = ts;
-    
+    const city = params.get("city"); if (city) state.city = city;
+    const min = parseFloat(params.get("min")); if (!isNaN(min) && min >= 64 && min <= 110) state.min = min;
+    const max = parseFloat(params.get("max")); if (!isNaN(max) && max >= 64 && max <= 110 && max > state.min) state.max = max;
+    const shift = parseInt(params.get("shift")); if (!isNaN(shift) && shift >= 0 && shift <= 30) state.shift = shift;
+    const mode = params.get("mode"); if (mode === "1") state.settingsMode = true;
+    const bands = parseInt(params.get("bands")); if (!isNaN(bands) && bands >= 1 && bands <= 5) state.bands = bands;
+    const presets = parseInt(params.get("presets")); if (!isNaN(presets) && presets >= 1 && presets <= 18) state.presets = presets;
+    const ts = parseInt(params.get("ts")); if (!isNaN(ts) && Number.isFinite(ts)) state.lastModified = ts;
     const dataStr = params.get("data");
     if (dataStr) {
         const stations = deserializeCityData(dataStr, state.city);
@@ -1312,42 +1060,24 @@ function loadFromUrl() {
             state.cityData[state.city].stations = stations;
         }
     }
-    
     const matched = TEMPLATES.find(t => t.range[0] === state.min && t.range[1] === state.max);
     state.template = matched ? matched.name : "Свой вариант";
     state.templateShort = matched ? matched.short : "свой";
-    
     return true;
 }
-
 function loadFromLS() {
     const ls = localStorage.getItem(LS_KEY);
     if (!ls) return false;
     try { state = { ...state, ...JSON.parse(ls) }; return true; } catch { return false; }
 }
-
 function resetAll() {
-    const keysToRemove = [
-        "fm_adapter_calc",
-        "fm_adapter_calc_v2",
-        "fm_adapter_calc_v3",
-        "fm_adapter_calc_v4",
-        "fm_adapter_calc_v5",
-        "fm_adapter_calc_v6",
-        "fm_adapter_calc_v7",
-        "fm_adapter_calc_v8",
-        "fm_adapter_calc_v9",
-        LS_KEY, 
-        LS_THEME_KEY,
-        "geo_checked"
-    ];
-    
+    const keysToRemove = ["fm_adapter_calc", "fm_adapter_calc_v2", "fm_adapter_calc_v3", "fm_adapter_calc_v4", "fm_adapter_calc_v5", "fm_adapter_calc_v6", "fm_adapter_calc_v7", "fm_adapter_calc_v8", "fm_adapter_calc_v9", LS_KEY, LS_THEME_KEY, "geo_checked"];
     keysToRemove.forEach(k => localStorage.removeItem(k));
+    localStorage.setItem("fm_cache_version", CACHE_VERSION);
     history.replaceState(null, "", window.location.pathname);
     showToast("Полный сброс выполнен");
     setTimeout(() => window.location.reload(), 600);
 }
-
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; 
     const dLat = (lat2 - lat1) * Math.PI / 180; 
@@ -1358,17 +1088,131 @@ function getDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
+// TRANSFER LOGIC
+function openTransferModal() {
+    const list = document.getElementById('transferCityList');
+    list.innerHTML = '';
+    selectedTransferCity = null;
+    let citiesWithStats = [];
+    Object.keys(state.cityData).forEach(c => {
+        const stats = state.cityData[c]?.stats;
+        const hasData = stats && (stats.statused > 0 || stats.presets > 0);
+        if (hasData && c !== state.city) {
+            citiesWithStats.push({ name: c, time: state.cityData[c]?.lastModified || 0 });
+        }
+    });
+    citiesWithStats.sort((a, b) => b.time - a.time);
+    if (citiesWithStats.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-dim);">Нет городов с сохраненными настройками</div>';
+    } else {
+        citiesWithStats.forEach(cityObj => {
+            const c = cityObj.name;
+            const item = document.createElement("div");
+            item.className = "custom-select-option";
+            item.dataset.value = c;
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "city-name";
+            nameSpan.textContent = c;
+            item.appendChild(nameSpan);
+            const statsSpan = document.createElement("span");
+            statsSpan.className = "city-stats";
+            const stats = state.cityData[c]?.stats;
+            statsSpan.innerHTML = formatCityStatsHTML(stats);
+            statsSpan.title = getStatsTooltip(stats);
+            item.appendChild(statsSpan);
+            item.onclick = () => {
+                list.querySelectorAll('.active').forEach(el => el.classList.remove('active'));
+                item.classList.add('active');
+                selectedTransferCity = c;
+            };
+            list.appendChild(item);
+        });
+    }
+    document.getElementById('transferModal').classList.add('show');
+}
+function doTransfer() {
+    if (!selectedTransferCity) {
+        showToast("Выберите город-источник");
+        return;
+    }
+    
+    const targetCity = state.city;
+    const sourceCityData = state.cityData[selectedTransferCity];
+    if (!sourceCityData || !sourceCityData.stations) {
+        showToast("В городе-источнике нет настроек");
+        return;
+    }
+    
+    const targetStats = state.cityData[targetCity]?.stats;
+    if (targetStats && (targetStats.statused > 0 || targetStats.presets > 0)) {
+        if (!confirm('У текущего города уже есть настройки. Вы уверены, что хотите их перезаписать?')) return;
+    }
+    
+    const transferStatuses = document.getElementById('transferStatuses').checked;
+    const transferPresets = document.getElementById('transferPresets').checked;
+    
+    const sourceStations = sourceCityData.stations;
+    const sourceNames = Object.keys(sourceStations);
+    const targetNames = state.stations.map(s => s.name);
+    
+    if (sourceNames.length === 0 || targetNames.length === 0) {
+        showToast("Нет данных для переноса");
+        return;
+    }
+    
+    const matches = FMUse.matchArrays(sourceNames, targetNames, 0.65); 
+    let newTargetData = {};
+    let transferredCount = 0;
+    
+    matches.forEach(m => {
+        const sourceData = JSON.parse(JSON.stringify(sourceStations[m.source]));
+        let newData = { type: 'normal', presetIndex: null };
+        if (sourceData.type !== 'normal' && transferStatuses) newData.type = sourceData.type;
+        if (sourceData.presetIndex && transferPresets) newData.presetIndex = sourceData.presetIndex;
+        
+        if (newData.type !== 'normal' || newData.presetIndex) {
+            newTargetData[m.target] = newData;
+            transferredCount++;
+        }
+    });
+    
+    if (!state.cityData[targetCity]) state.cityData[targetCity] = { stations: {} };
+    state.cityData[targetCity].stations = newTargetData;
+    updateCityStats(targetCity);
+    
+    commitState();
+    render();
+    
+    document.getElementById('transferModal').classList.remove('show');
+    
+    if (transferredCount > 0) {
+        showToast(`Перенесено: ${transferredCount} из ${matches.length} пар`);
+    } else if (matches.length > 0) {
+        showToast(`Совпадений: ${matches.length}, но нет настроек для переноса`);
+    } else {
+        showToast("Совпадающих станций не найдено");
+    }
+}
+
 // EVENTS
 async function init() {
+    // Проверка версии кэша
+    const savedCacheVersion = localStorage.getItem("fm_cache_version");
+    if (savedCacheVersion !== CACHE_VERSION) {
+        document.getElementById('cacheModal').classList.add('show');
+        return;
+    }
+
     initTheme();
     await loadCyrillicFont();
     document.getElementById('appVersion').textContent = 'v' + VERSION;
     
-    const citySelect = document.getElementById("citySelect");
+    const citySelectMenu = document.getElementById("citySelectMenu");
+    const citySelectTrigger = document.getElementById("citySelectTrigger");
     const templatesMenu = document.getElementById("templatesMenu");
     const stationsList = document.getElementById("stationsList");
     
-    if (!citySelect || !templatesMenu || !stationsList) {
+    if (!citySelectMenu || !templatesMenu || !stationsList) {
         console.error("DOM initialization failed: missing elements.");
         return;
     }
@@ -1378,11 +1222,8 @@ async function init() {
         item.className = "dropdown-item";
         item.textContent = t.name; 
         item.onclick = () => {
-            state.template = t.name;
-            state.templateShort = t.short;
-            state.min = t.range[0]; 
-            state.max = t.range[1]; 
-            state.shift = 0;
+            state.template = t.name; state.templateShort = t.short;
+            state.min = t.range[0]; state.max = t.range[1]; state.shift = 0;
             commitState(); render();
             templatesMenu.classList.remove("show");
         };
@@ -1392,13 +1233,8 @@ async function init() {
     stationsList.addEventListener('click', (e) => {
         const icon = e.target.closest('.status-icon');
         const btn = e.target.closest('.preset-btn');
-        if (icon) {
-            e.stopPropagation();
-            cycleStationStatus(icon.dataset.name);
-        } else if (btn) {
-            e.stopPropagation();
-            openPresetMenu(btn, btn.dataset.name);
-        }
+        if (icon) { e.stopPropagation(); cycleStationStatus(icon.dataset.name); } 
+        else if (btn) { e.stopPropagation(); openPresetMenu(btn, btn.dataset.name); }
     });
 
     const hoverTrigger = document.getElementById('hoverTrigger');
@@ -1412,6 +1248,7 @@ async function init() {
         hoverTrigger.addEventListener('touchend', hideBg);
         hoverTrigger.addEventListener('touchcancel', hideBg);
     }
+    
     document.getElementById('downloadBtn').addEventListener('click', (e) => {
         e.stopPropagation(); document.getElementById("downloadMenu").classList.toggle("show"); document.getElementById("templatesMenu").classList.remove("show");
     });
@@ -1424,12 +1261,24 @@ async function init() {
             document.getElementById("downloadMenu").classList.remove("show");
         });
     });
-    document.getElementById('settingsBtn').addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(); });
+    
+    document.getElementById('settingsBtn').addEventListener('click', (e) => { 
+        e.stopPropagation(); 
+        toggleSettings(); 
+    });
+    
+    document.getElementById('transferBtn').addEventListener('click', openTransferModal);
+    document.getElementById('closeTransferBtn').addEventListener('click', () => document.getElementById('transferModal').classList.remove('show'));
+    document.getElementById('cancelTransferBtn').addEventListener('click', () => document.getElementById('transferModal').classList.remove('show'));
+    document.getElementById('doTransferBtn').addEventListener('click', doTransfer);
+
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.preset-dropdown') && !e.target.closest('.preset-menu') && !e.target.closest('.preset-btn')) closePresetMenu();
         if (!e.target.closest('#templatesBtn') && !e.target.closest('#templatesMenu')) document.getElementById("templatesMenu").classList.remove("show");
         if (!e.target.closest('#downloadBtn') && !e.target.closest('#downloadMenu')) document.getElementById("downloadMenu").classList.remove("show");
-        if (!e.target.closest('#citySelect')) document.getElementById("citySelectMenu").classList.remove("show");
+        if (!e.target.closest('#citySelect')) citySelectMenu.classList.remove("show");
+        if (!e.target.closest('#resetBtn') && !e.target.closest('#resetMenu')) document.getElementById("resetMenu").classList.remove("show");
+        if (!e.target.closest('#menuBtn') && !e.target.closest('#menuDropdown')) document.getElementById("menuDropdown").classList.remove("show");
     });
 
     loadFromLS();
@@ -1462,7 +1311,6 @@ async function init() {
         return;
     }
     citiesMap = parseCities(html);
-    const citySelectMenu = document.getElementById("citySelectMenu");
     citySelectMenu.innerHTML = "";
     
     Object.keys(citiesMap).sort().forEach(c => {
@@ -1470,20 +1318,17 @@ async function init() {
         item.className = "custom-select-option";
         item.dataset.value = c;
         if (c === state.city) item.classList.add('active');
-        
         const nameSpan = document.createElement("span");
         nameSpan.className = "city-name";
         nameSpan.textContent = c;
-        nameSpan.title = c; // Хинт для города
+        nameSpan.title = c; 
         item.appendChild(nameSpan);
-        
         const statsSpan = document.createElement("span");
         statsSpan.className = "city-stats";
         const statsInit = state.cityData[c]?.stats;
         statsSpan.innerHTML = formatCityStatsHTML(statsInit);
-        statsSpan.title = getStatsTooltip(statsInit); // Хинт для статов
+        statsSpan.title = getStatsTooltip(statsInit);
         item.appendChild(statsSpan);
-        
         item.onclick = (e) => {
             e.stopPropagation();
             state.city = c;
@@ -1494,12 +1339,11 @@ async function init() {
         citySelectMenu.appendChild(item);
     });
 
-    // Открытие/закрытие меню
-    const citySelectTrigger = document.getElementById("citySelectTrigger");
     citySelectTrigger.onclick = (e) => {
         e.stopPropagation();
         citySelectMenu.classList.toggle('show');
     };
+    
     if (!citiesMap[state.city]) state.city = DEFAULT_STATE.city;
     await loadCity(state.city);
     render();
@@ -1510,36 +1354,71 @@ async function init() {
 async function loadCity(city) {
     if (!citiesMap[city]) return;
     state.city = city;
-    const ls = localStorage.getItem(LS_KEY);
-    const list = document.getElementById('stationsList');
     
-    if (ls) {
-        const parsed = JSON.parse(ls);
-        if (parsed.city === city && parsed.stations?.length > 0) { 
-            state.stations = parsed.stations;
-            if (!state.cityData[city]) state.cityData[city] = { stations: {} };
-            state.cityData[city].totalStations = state.stations.length;
-            render(); 
-        } else {
-            list.innerHTML = '<div class="loading-msg">Загрузка станций...</div>';
-        }
-    } else {
-        list.innerHTML = '<div class="loading-msg">Загрузка станций...</div>';
-    }
+    // 1. Очищаем станции от предыдущего города сразу, чтобы не было путаницы
+    state.stations = []; 
+    const list = document.getElementById('stationsList');
+    list.innerHTML = '<div class="loading-msg">Загрузка станций...</div>';
+    render(); 
 
+    // 2. Загружаем свежие данные от API
     const html = await fetchPage(citiesMap[city]);
     if (html) {
-        const parsed = parseStations(html);
-        if (parsed.length > 0) {
-            state.stations = parsed;
+        const newStations = parseStations(html);
+        if (newStations.length > 0) {
+            state.stations = newStations;
+            
             if (!state.cityData[city]) state.cityData[city] = { stations: {} };
             state.cityData[city].totalStations = state.stations.length;
+            
+            // 3. Синхронизация: ТОЛЬКО если в кэше уже есть сохраненные настройки для ЭТОГО же города
+            const ls = localStorage.getItem(LS_KEY);
+            let cachedSettings = {};
+            if (ls) {
+                try {
+                    const parsed = JSON.parse(ls);
+                    if (parsed.cityData && parsed.cityData[city]) {
+                        cachedSettings = parsed.cityData[city].stations || {};
+                    }
+                } catch {}
+            }
+            
+            const settingKeys = Object.keys(cachedSettings);
+            if (settingKeys.length > 0) {
+                // У нас есть старые настройки для этого города. Сводим названия.
+                const score = FMUse.evaluateSync(settingKeys.map(n => ({name: n})), newStations);
+                if (score >= 3) {
+                    const matches = FMUse.matchArrays(settingKeys, newStations.map(s => s.name));
+                    let syncedSettings = {};
+                    matches.forEach(m => {
+                        const oldData = cachedSettings[m.source];
+                        if (oldData && (oldData.type !== 'normal' || oldData.presetIndex)) {
+                            syncedSettings[m.target] = { ...oldData };
+                        }
+                    });
+                    state.cityData[city].stations = syncedSettings;
+                    if (score === 4) showToast("Данные обновлены, настройки перенесены.");
+                } else {
+                    // Если балл плохой, просто оставляем старые настройки как есть
+                    state.cityData[city].stations = cachedSettings;
+                    showToast(`Данные API изменились (балл ${score}). Настройки сохранены.`);
+                }
+            } else {
+                // 4. Город открыт впервые: просто грузим API, ничего не сводим
+                state.cityData[city].stations = {};
+            }
+            
             updateCityStats(city);
             commitState();
             render();
+            
         } else {
-            showToast("Ошибка парсинга. Используем кэш.");
+            showToast("Ошибка парсинга. Загрузите другой город.");
+            list.innerHTML = '<div class="loading-msg">Нет данных</div>';
         }
+    } else {
+        showToast("Сеть недоступна. Попробуйте позже.");
+        list.innerHTML = '<div class="loading-msg">Ошибка сети</div>';
     }
 }
 
@@ -1578,41 +1457,24 @@ function showToast(msg) {
     setTimeout(() => toast.classList.remove("show"), 2000);
 }
 
-// Clipboard API Fallback
 async function copyShareLink() {
     const url = window.location.href;
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        try {
-            await navigator.clipboard.writeText(url);
-            showToast("Ссылка скопирована в буфер обмена");
-        } catch (err) {
-            fallbackCopyTextToClipboard(url);
-        }
-    } else {
-        fallbackCopyTextToClipboard(url);
-    }
+        try { await navigator.clipboard.writeText(url); showToast("Ссылка скопирована в буфер обмена"); } 
+        catch (err) { fallbackCopyTextToClipboard(url); }
+    } else { fallbackCopyTextToClipboard(url); }
 }
-
 function fallbackCopyTextToClipboard(text) {
     const textArea = document.createElement("textarea");
     textArea.value = text;
-    
-    textArea.style.top = "-9999px";
-    textArea.style.left = "-9999px";
-    textArea.style.position = "fixed";
-
+    textArea.style.top = "-9999px"; textArea.style.left = "-9999px"; textArea.style.position = "fixed";
     document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-
+    textArea.focus(); textArea.select();
     try {
         const successful = document.execCommand('copy');
         document.body.removeChild(textArea);
-        if (successful) {
-            showToast("Ссылка скопирована (старый метод)");
-        } else {
-            window.prompt("Скопируйте ссылку вручную (Ctrl+C):", text);
-        }
+        if (successful) { showToast("Ссылка скопирована (старый метод)"); } 
+        else { window.prompt("Скопируйте ссылку вручную (Ctrl+C):", text); }
     } catch (err) {
         document.body.removeChild(textArea);
         window.prompt("Скопируйте ссылку вручную (Ctrl+C):", text);
@@ -1620,17 +1482,21 @@ function fallbackCopyTextToClipboard(text) {
 }
 
 document.getElementById("themeBtn").addEventListener("click", toggleTheme);
-
 document.getElementById("templatesBtn").addEventListener("click", (e) => {
     e.stopPropagation(); document.getElementById("templatesMenu").classList.toggle("show"); document.getElementById("downloadMenu").classList.remove("show");
 });
-
 document.getElementById('overwriteBtn').addEventListener('click', () => {
-    state.isGuestMode = false;
-    commitState();
+    state.isGuestMode = false; commitState();
     document.getElementById('guestModal').classList.remove('show');
     showToast("Настройки перезаписаны");
 });
+document.getElementById('cacheResetBtn').addEventListener('click', () => {
+    const keysToRemove = ["fm_adapter_calc", "fm_adapter_calc_v2", "fm_adapter_calc_v3", "fm_adapter_calc_v4", "fm_adapter_calc_v5", "fm_adapter_calc_v6", "fm_adapter_calc_v7", "fm_adapter_calc_v8", "fm_adapter_calc_v9", LS_KEY, LS_THEME_KEY, "geo_checked"];
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    localStorage.setItem("fm_cache_version", CACHE_VERSION);
+    window.location.reload();
+});
+
 document.getElementById('restoreBtn').addEventListener('click', () => {
     state.isGuestMode = false;
     const ls = localStorage.getItem(LS_KEY);
@@ -1638,44 +1504,88 @@ document.getElementById('restoreBtn').addEventListener('click', () => {
         state = { ...state, ...JSON.parse(ls) };
         if (!state.cityData) state.cityData = {};
     }
-    applySettingsMode();
-    render();
+    applySettingsMode(); render();
     document.getElementById('guestModal').classList.remove('show');
     showToast("Возвращены ваши настройки");
     updateUrl();
 });
 
-(function() {
-    let clickCount = 0; let clickTimer = null;
-    const logoBtn = document.getElementById('logoBtn');
-    
-    const triggerReset = () => {
-        clearTimeout(clickTimer);
-        clickCount = 0;
-        if (confirm('Вы уверены, что хотите полностью сбросить настройки и кэш?')) {
-            resetAll();
+function resetCurrentCity() {
+    const city = state.city;
+    if (!citiesMap[city]) return;
+    if (state.cityData[city]) {
+        state.cityData[city].stations = {};
+    }
+    commitState(); // Сохраняем очищенные данные в LS
+    showToast("Сброс станций текущего города...");
+    loadCity(city);
+}
+
+document.getElementById('resetBtn').addEventListener('click', (e) => {
+    e.stopPropagation(); 
+    document.getElementById("resetMenu").classList.toggle("show"); 
+    document.getElementById("downloadMenu").classList.remove("show");
+    document.getElementById("menuDropdown").classList.remove("show");
+});
+
+document.querySelectorAll('#resetMenu .dropdown-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+        const type = e.target.getAttribute('data-reset');
+        if (type === 'all') {
+            if (confirm('Вы уверены, что хотите полностью сбросить настройки и кэш?')) { resetAll(); }
+        } else if (type === 'city') {
+            if (confirm('Сбросить станции для текущего города? Настройки частот и сдвига сохранятся.')) {
+                resetCurrentCity();
+            }
         }
-    };
-    
-    logoBtn.addEventListener('click', () => {
-        clickCount++;
-        if (clickCount === 1) clickTimer = setTimeout(() => clickCount = 0, 600);
-        else if (clickCount === 3) triggerReset();
+        document.getElementById("resetMenu").classList.remove("show");
     });
-    
-    logoBtn.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            triggerReset();
-        }
-    });
-})();
+});
+
+document.getElementById('menuBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const menu = document.getElementById('menuDropdown');
+    if (!menu.classList.contains('show')) {
+        const iconDownload = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
+        const iconShare = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:middle;"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>';
+        const iconTheme = '<span style="display:inline-block; width:14px; text-align:center; margin-right:8px;">☾</span>';
+        const iconHelp = '<span style="display:inline-block; width:14px; text-align:center; margin-right:8px; font-weight:bold;">?</span>';
+        const iconReset = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:middle;"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>';
+        
+        menu.innerHTML = `
+            <div class="dropdown-item" data-action="download-png">${iconDownload}Скачать PNG</div>
+            <div class="dropdown-item" data-action="download-pdf">${iconDownload}Скачать PDF</div>
+            <div class="dropdown-item" data-action="download-xlsx">${iconDownload}Скачать XLSX</div>
+            <div class="dropdown-item" data-action="share">${iconShare}Поделиться</div>
+            <div class="dropdown-item" data-action="theme">${iconTheme}Сменить тему</div>
+            <div class="dropdown-item" data-action="help">${iconHelp}Инструкция</div>
+            <div class="dropdown-item" data-action="reset-city">Сброс текущего города</div>
+            <div class="dropdown-item" data-action="reset-all">${iconReset}Полный сброс</div>
+        `;
+    }
+    menu.classList.toggle('show');
+    document.getElementById("resetMenu").classList.remove("show");
+    document.getElementById("downloadMenu").classList.remove("show");
+});
+
+document.getElementById('menuDropdown').addEventListener('click', (e) => {
+    const item = e.target.closest('.dropdown-item');
+    if (!item) return;
+    const action = item.dataset.action;
+    if (action === 'theme') toggleTheme();
+    else if (action === 'reset-all') { if (confirm('Вы уверены, что хотите полностью сбросить настройки и кэш?')) { resetAll(); } }
+    else if (action === 'reset-city') { if (confirm('Сбросить станции для текущего города? Настройки частот и сдвига сохранятся.')) { resetCurrentCity(); } }
+    else if (action === 'help') document.getElementById("helpModal").classList.add("show");
+    else if (action === 'download-png') exportPNG();
+    else if (action === 'download-pdf') exportPDF();
+    else if (action === 'download-xlsx') exportXLSX();
+    else if (action === 'share') copyShareLink();
+    document.getElementById('menuDropdown').classList.remove('show');
+});
 
 function setupWheelInput(id, min, max, step, stateProp) {
     const el = document.getElementById(id);
-    el.setAttribute("min", min);
-    el.setAttribute("max", max);
-
+    el.setAttribute("min", min); el.setAttribute("max", max);
     const applyChange = (val) => {
         if (isNaN(val)) return false;
         val = Math.max(min, Math.min(max, val));
@@ -1687,45 +1597,27 @@ function setupWheelInput(id, min, max, step, stateProp) {
              const matched = TEMPLATES.find(t => t.range[0] === state.min && t.range[1] === state.max);
              state.template = matched ? matched.name : "Свой вариант";
              state.templateShort = matched ? matched.short : "свой";
-        } else {
-             state[stateProp] = Math.round(val);
-        }
+        } else { state[stateProp] = Math.round(val); }
         return true;
     };
-
     el.addEventListener("input", (e) => {
         if (e.target.value === "") return; 
         let val = parseFloat(e.target.value);
-        if (applyChange(val)) {
-            saveState(); render();
-        }
+        if (applyChange(val)) { saveState(); render(); }
     });
-
     el.addEventListener("blur", () => {
-        if (el.value === "" || isNaN(parseFloat(el.value))) {
-            applyChange(min); 
-            commitState(); render();
-        }
+        if (el.value === "" || isNaN(parseFloat(el.value))) { applyChange(min); commitState(); render(); }
     });
-
     el.addEventListener("wheel", (e) => {
         e.preventDefault();
         let val = parseFloat(el.value) || min;
-        if (e.deltaY < 0) val += step;
-        else val -= step;
-        if (applyChange(val)) {
-            saveState(); render();
-        }
+        if (e.deltaY < 0) val += step; else val -= step;
+        if (applyChange(val)) { saveState(); render(); }
     }, { passive: false });
-
-    let touchStartY = null;
-    let touchStartVal = null;
-
+    let touchStartY = null; let touchStartVal = null;
     el.addEventListener('touchstart', (e) => {
-        touchStartY = e.touches[0].clientY;
-        touchStartVal = parseFloat(el.value) || min;
+        touchStartY = e.touches[0].clientY; touchStartVal = parseFloat(el.value) || min;
     }, { passive: true });
-
     el.addEventListener('touchmove', (e) => {
         if (touchStartY === null) return;
         e.preventDefault();
@@ -1733,16 +1625,10 @@ function setupWheelInput(id, min, max, step, stateProp) {
         const deltaY = touchStartY - currentY;
         const steps = Math.round(deltaY / 15);
         let newVal = touchStartVal + (steps * step);
-        if (applyChange(newVal)) {
-            // Throttle render
-        }
+        if (applyChange(newVal)) { /* Throttle render */ }
     }, { passive: false });
-
     el.addEventListener('touchend', () => {
-        if (touchStartY !== null) {
-            commitState();
-            render();
-        }
+        if (touchStartY !== null) { commitState(); render(); }
         touchStartY = null;
     });
 }

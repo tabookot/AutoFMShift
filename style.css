@@ -98,7 +98,7 @@ body {
 .select-wrapper select { flex: 1; }
 .dropdown { position: relative; flex: 1 1 40%; min-width: 0; }
 
-.custom-select { position: relative; flex: 1; min-width: 0; }
+.custom-select { position: relative; flex: 1 1 120px; min-width: 100px; }
 .custom-select-trigger {
     background: var(--panel-light); border: 1px solid var(--border); color: var(--text);
     padding: 7px 9px; border-radius: var(--radius-sm); font-size: 13px; width: 100%; outline: none;
@@ -107,7 +107,7 @@ body {
 }
 .custom-select-trigger:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
 .custom-select-menu {
-    position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--panel);
+    position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%; width: max-content; max-width: calc(100vw - 20px); background: var(--panel);
     border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; z-index: 20;
     max-height: 300px; overflow-y: auto; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
@@ -138,6 +138,18 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px v
 input[type=number]::-webkit-inner-spin-button, 
 input[type=number]::-webkit-outer-spin-button { 
     -webkit-appearance: none; margin: 0; display: none;
+}
+input[type="checkbox"] {
+    -webkit-appearance: checkbox !important;
+    appearance: checkbox !important;
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer !important;
 }
 input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
@@ -302,3 +314,23 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     input, select { font-size: 15px; padding: 10px 12px; }
     .station-item { padding: 6px 4px; }
 }
+
+@keyframes blink {
+    0%, 100% { opacity: 1; border-color: var(--accent); box-shadow: 0 0 5px var(--accent); }
+    50% { opacity: 0.3; border-color: transparent; box-shadow: none; }
+}
+.btn-icon.blink { animation: blink 1s infinite; border-color: var(--accent); }    
+
+.app-header .actions .dropdown { flex: 0 0 auto; }
+#menuBtnWrapper { display: none; }
+@media (max-width: 420px) {
+    .app-header .actions > *:not(#menuBtnWrapper) { display: none !important; }
+    #menuBtnWrapper { display: block !important; }
+}
+
+/* Кастомные чекбоксы */
+.checkbox-wrap { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; user-select: none; }
+.checkbox-wrap input { position: absolute; opacity: 0; width: 0; height: 0; }
+.checkbox-custom { width: 18px; height: 18px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel-light); display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
+.checkbox-wrap input:checked + .checkbox-custom { background: var(--accent); border-color: var(--accent); }
+.checkbox-wrap input:checked + .checkbox-custom::after { content: '✓'; color: var(--bg); font-size: 14px; font-weight: bold; line-height: 1; }
