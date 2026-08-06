@@ -33,23 +33,6 @@
     --trash: #8e44ad;
 }
 
-@media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) {
-        --bg: #f8f9fa;
-        --panel: #ffffff;
-        --panel-light: #f1f3f5;
-        --text: #212529;
-        --text-dim: #6c757d;
-        --accent: #0096c7;
-        --accent-glow: rgba(0, 150, 199, 0.2);
-        --border: #dee2e6;
-        --green: #27ae60;
-        --yellow: #f39c12;
-        --pink: #e74c3c;
-        --trash: #8e44ad;
-    }
-}
-
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 body {
@@ -59,6 +42,8 @@ body {
     min-height: 100vh;
     font-size: 13px;
     overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
 }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -126,7 +111,6 @@ input[type=number]::-webkit-outer-spin-button {
 }
 input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
-/* Input widths: Give maxFreq, bands, presets more space */
 #minFreq, #maxFreq { flex: 2 1 60px; min-width: 55px; text-align: center; }
 #bands, #presets { flex: 1.5 1 50px; min-width: 45px; text-align: center; }
 
@@ -151,7 +135,8 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .dropdown-menu {
     position: absolute; top: calc(100% + 4px); right: 0; background: var(--panel);
     border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; z-index: 20;
-    min-width: 160px; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    min-width: 100px; /* Уменьшена минимальная ширина */
+    display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 .dropdown-menu.show { display: block; }
 .dropdown-item { padding: 8px 10px; cursor: pointer; border-radius: var(--radius-sm); font-size: 13px; text-transform: uppercase; white-space: nowrap; }
@@ -187,7 +172,6 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 }
 .chip:hover { border-color: var(--accent); }
 .chip.active { border-width: 2px; font-weight: bold; padding: 3px 7px; }
-.chip[data-tip]:hover::after { content: attr(data-tip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; margin-bottom: 4px; z-index: 10; text-transform: none; font-weight: normal; }
 .chip.full { border-color: var(--text); color: var(--text); }
 .chip.full.active { background: var(--text); color: var(--bg); }
 .chip.none { border-color: var(--pink); color: var(--pink); opacity: 0.6; }
@@ -197,7 +181,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
 .stations-header { display: flex; align-items: center; padding: 0 4px 6px; border-bottom: 1px solid var(--border); margin-bottom: 2px; font-size: 11px; color: var(--text-dim); text-transform: uppercase; }
 .col-freq { width: 45px; flex-shrink: 0; }
-.col-status { width: 45px; text-align: center; margin-left: 4px; margin-right: 4px; position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+.col-status { width: 45px; text-align: center; margin-left: 4px; margin-right: 4px; position: relative; flex-shrink: 0; }
 .col-name { flex: 1; margin-left: 8px; min-width: 0; }
 .col-shifted { width: 45px; text-align: right; flex-shrink: 0; }
 
@@ -238,9 +222,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .station-item.trash .name { color: var(--trash); opacity: 0.8; }
 
 .error-msg { color: var(--danger); font-size: 14px; text-align: center; padding: 20px 0; display: none; }
-
-.hint { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; border-radius: 50%; background: var(--text-dim); color: var(--bg); font-size: 9px; font-weight: bold; margin-left: 4px; cursor: help; position: relative; text-transform: none; }
-.hint:hover::after { content: attr(data-tip); position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 6px 10px; border-radius: 6px; white-space: normal; width: 180px; text-align: center; margin-top: 5px; font-size: 11px; font-weight: normal; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.loading-msg { color: var(--text-dim); font-size: 14px; text-align: center; padding: 20px 0; }
 
 .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; padding: 10px; }
 .modal.show { display: flex; }
@@ -270,6 +252,9 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     #minFreq, #maxFreq, #bands, #presets {
         touch-action: none;
     }
+
+    /* Hide hover trigger on touch devices to prevent blocking clicks */
+    .hover-trigger { display: none; }
 
     .col-status { width: 70px; }
     .status-cell { width: 70px; gap: 8px; }

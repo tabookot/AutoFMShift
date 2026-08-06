@@ -1,12 +1,24 @@
-// 0.1.54 | Rule: minor.major.build. build++ on full regen
-const VERSION = "0.1.54";
+// 0.3.1 | Rule: minor.major.build. build++ on full regen
+const VERSION = "0.3.1";
 const API_URL = "https://radiopedia.fandom.com/ru/api.php";
 const MAIN_PAGE = "Частотные планы радиостанций в городах России";
 const LS_KEY = "fm_adapter_calc_v10"; 
 const LS_THEME_KEY = "fm_adapter_theme";
 
+const RU_MIN = 87.5;
+const RU_MAX = 108.0;
+const FM_BAND_MIN = 76.0;
+const FM_BAND_MAX = 108.0;
+
+const EXCELJS_BORDER = {
+    top: { style: 'thin', color: { argb: 'FF000000' } },
+    left: { style: 'thin', color: { argb: 'FF000000' } },
+    bottom: { style: 'thin', color: { argb: 'FF000000' } },
+    right: { style: 'thin', color: { argb: 'FF000000' } }
+};
+
 const TEMPLATES = [
-    { name: "Россия / Европа", short: "ru/eu", range: [87.5, 108.0] },
+    { name: "Россия / Европа", short: "ru/eu", range: [RU_MIN, RU_MAX] },
     { name: "Япония (до 2014)", short: "jp-old", range: [76.0, 90.0] },
     { name: "Япония (Wide FM)", short: "jp-wide", range: [76.0, 95.0] },
     { name: "США", short: "usa", range: [87.9, 107.9] },
@@ -20,8 +32,9 @@ const EASY_SHIFTS = [0, 10, 20, 30, 12, 24, 14, 16, 18, 28];
 const DEFAULT_STATE = {
     city: "Москва",
     template: "Россия / Европа",
-    min: 87.5,
-    max: 108.0,
+    templateShort: "ru/eu",
+    min: RU_MIN,
+    max: RU_MAX,
     shift: 0,
     stations: [],
     settingsMode: false,
@@ -35,30 +48,37 @@ const DEFAULT_STATE = {
 let state = { ...DEFAULT_STATE };
 let citiesMap = {};
 let activePresetMenu = null;
+let saveStateTimer = null;
 
 // THEME
 function initTheme() {
     const savedTheme = localStorage.getItem(LS_THEME_KEY);
-    if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = savedTheme || (systemDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
     updateThemeIcon();
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (!localStorage.getItem(LS_THEME_KEY)) {
+            document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+            updateThemeIcon();
+        }
+    });
 }
 
 function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const isDarkDefault = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    let newTheme;
-    if (currentTheme) newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    else newTheme = isDarkDefault ? 'light' : 'dark';
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem(LS_THEME_KEY, newTheme);
     updateThemeIcon();
 }
 
 function updateThemeIcon() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const isDarkDefault = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const isDark = currentTheme ? currentTheme === 'dark' : isDarkDefault;
-    document.getElementById('themeBtn').textContent = isDark ? '☀' : '☾';
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const themeBtn = document.getElementById('themeBtn');
+    themeBtn.textContent = currentTheme === 'dark' ? '☀' : '☾';
+    themeBtn.setAttribute('aria-pressed', currentTheme === 'dark' ? 'true' : 'false');
 }
 
 // API & PARSING
@@ -66,6 +86,7 @@ async function fetchPage(title) {
     const url = `${API_URL}?action=parse&page=${encodeURIComponent(title)}&format=json&prop=text&origin=*`;
     try {
         const res = await fetch(url);
+        if (!res.ok) throw new Error(`Network response was not ok: ${res.status}`);
         const data = await res.json();
         return data.parse?.text?.["*"] || null;
     } catch { return null; }
@@ -100,7 +121,7 @@ function parseStations(html) {
                 const match = text.match(/(\d{2,3}[.,]\d{1,3})/);
                 if (match && !freq) {
                     const f = parseFloat(match[1].replace(",", "."));
-                    if (f >= 76.0 && f <= 108.0) freq = f;
+                    if (!isNaN(f) && f >= FM_BAND_MIN && f <= FM_BAND_MAX) freq = f;
                 } else if (!name && text.length > 2) {
                     const lower = text.toLowerCase();
                     if (!["частота", "радиостанция", "мгц", "квт", "мощность", "передатчик", "вт"].some(x => lower.includes(x))) name = text.replace(/\[\d+\]/g, "").trim();
@@ -115,7 +136,7 @@ function parseStations(html) {
 // LOGIC
 function evaluateShifts() {
     if (state.stations.length === 0) return { statuses: {}, best: 0 };
-    if (state.min === 87.5 && state.max === 108.0) return { statuses: {}, best: 0 };
+    if (state.min === RU_MIN && state.max === RU_MAX) return { statuses: {}, best: 0 };
     const statuses = {};
     const fullShifts = [];
     SHIFTS.forEach(s => {
@@ -135,7 +156,7 @@ function evaluateShifts() {
 }
 
 function calcShiftedFreq(freq) {
-    if (state.shift === 0 || (state.min === 87.5 && state.max === 108.0)) return freq;
+    if (state.shift === 0 || (state.min === RU_MIN && state.max === RU_MAX)) return freq;
     return parseFloat((freq - state.shift).toFixed(2));
 }
 
@@ -152,7 +173,7 @@ function isAvailable(freq) {
 // SETTINGS MODE LOGIC
 function toggleSettings() {
     state.settingsMode = !state.settingsMode;
-    saveState();
+    commitState();
     applySettingsMode();
     render();
 }
@@ -162,10 +183,16 @@ function applySettingsMode() {
     document.getElementById('bands').style.display = display;
     document.getElementById('presets').style.display = display;
     document.getElementById('statusHeader').style.display = state.settingsMode ? 'block' : 'none';
-    document.getElementById('settingsBtn').classList.toggle('active', state.settingsMode);
+    const settingsBtn = document.getElementById('settingsBtn');
+    settingsBtn.classList.toggle('active', state.settingsMode);
+    settingsBtn.setAttribute('aria-pressed', state.settingsMode ? 'true' : 'false');
 }
 
 function getStationData(name) {
+    return state.cityData[state.city]?.stations?.[name] || { type: 'normal', presetIndex: null };
+}
+
+function ensureStationData(name) {
     if (!state.cityData[state.city]) state.cityData[state.city] = { stations: {} };
     if (!state.cityData[state.city].stations[name]) {
         state.cityData[state.city].stations[name] = { type: 'normal', presetIndex: null };
@@ -174,12 +201,12 @@ function getStationData(name) {
 }
 
 function cycleStationStatus(name) {
-    const data = getStationData(name);
+    const data = ensureStationData(name);
     if (data.type === 'normal') data.type = 'fav';
     else if (data.type === 'fav') data.type = 'cand';
     else if (data.type === 'cand') data.type = 'trash';
     else data.type = 'normal';
-    saveState();
+    commitState();
     render();
 }
 
@@ -198,13 +225,13 @@ function isPresetVisible(presetIndex) {
 function assignPreset(name, presetIndex) {
     const cityStations = state.cityData[state.city].stations;
     if (presetIndex) {
-        for (let n in cityStations) {
+        Object.keys(cityStations).forEach(n => {
             if (cityStations[n].presetIndex === presetIndex && n !== name) cityStations[n].presetIndex = null;
-        }
+        });
     }
-    const data = getStationData(name);
+    const data = ensureStationData(name);
     data.presetIndex = data.presetIndex === presetIndex ? null : presetIndex;
-    saveState();
+    commitState();
     render();
 }
 
@@ -219,9 +246,9 @@ function openPresetMenu(btn, name) {
     
     for (let p = 1; p <= maxPresets; p++) {
         let occupiedBy = '';
-        for (let n in cityStations) {
-            if (cityStations[n].presetIndex === p && n !== name) { occupiedBy = n; break; }
-        }
+        Object.keys(cityStations).forEach(n => {
+            if (cityStations[n].presetIndex === p && n !== name) { occupiedBy = n; }
+        });
         
         const item = document.createElement('div');
         item.className = 'dropdown-item preset-item' + (occupiedBy ? ' occupied' : '');
@@ -238,14 +265,22 @@ function openPresetMenu(btn, name) {
         if (occupiedBy) nameSpan.title = occupiedBy;
         item.appendChild(nameSpan);
         
-        item.onclick = () => { assignPreset(name, p); closePresetMenu(); };
+        item.onclick = (e) => { 
+            e.stopPropagation(); 
+            assignPreset(name, p); 
+            closePresetMenu(); 
+        };
         menu.appendChild(item);
     }
     
     const clearItem = document.createElement('div');
     clearItem.className = 'dropdown-item preset-item preset-clear';
     clearItem.textContent = '✕ Очистить';
-    clearItem.onclick = () => { assignPreset(name, null); closePresetMenu(); };
+    clearItem.onclick = (e) => { 
+        e.stopPropagation(); 
+        assignPreset(name, null); 
+        closePresetMenu(); 
+    };
     menu.appendChild(clearItem);
 
     btn.parentElement.appendChild(menu);
@@ -285,6 +320,23 @@ function wrapText(ctx, text, maxWidth) {
     return lines;
 }
 
+function generateSetupInstruction(stations) {
+    const setupStations = stations.filter(st => {
+        const data = getStationData(st.name);
+        return data.presetIndex && isPresetVisible(data.presetIndex) && isAvailable(st.freq);
+    }).map(st => {
+        const presetStr = formatPreset(getStationData(st.name).presetIndex, state.bands, state.presets);
+        // Используем ⟦ ⟧ — они выглядят как цельные квадратные скобки и поддерживаются во всех шрифтах
+        const button = `⟦ ${presetStr} ⟧`;
+        return { freq: calcShiftedFreq(st.freq), button: button };
+    }).sort((a, b) => a.freq - b.freq);
+
+    if (setupStations.length === 0) return "";
+    
+    const steps = setupStations.map(s => `${formatFreq(s.freq)} ${s.button}`);
+    return "Настройка: " + steps.join("  →  ");
+}
+
 function generateCanvas() {
     const isMobile = window.innerWidth < 600;
     const cols = isMobile ? 1 : 2;
@@ -300,6 +352,8 @@ function generateCanvas() {
     const sorted = [...validStations].sort((a, b) => a.freq - b.freq);
     const half = cols === 1 ? sorted.length : Math.ceil(sorted.length / 2);
     const parts = cols === 1 ? [sorted] : [sorted.slice(0, half), sorted.slice(half)];
+    
+    const instructionText = generateSetupInstruction(validStations);
     
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
@@ -320,7 +374,7 @@ function generateCanvas() {
         maxNameWidth = Math.max(maxNameWidth, tempCtx.measureText(st.name).width);
         maxFreqWidth = Math.max(maxFreqWidth, tempCtx.measureText(formatFreq(st.freq)).width);
         const shifted = calcShiftedFreq(st.freq);
-        maxShiftedWidth = Math.max(maxShiftedWidth, tempCtx.measureText(shifted >= 76 ? formatFreq(shifted) : '—').width);
+        maxShiftedWidth = Math.max(maxShiftedWidth, tempCtx.measureText(shifted >= FM_BAND_MIN ? formatFreq(shifted) : '—').width);
         if (state.settingsMode) {
             const statusData = getStatusExportData(st.name);
             const text = `${statusData.icon} ${statusData.preset}`.trim();
@@ -328,7 +382,7 @@ function generateCanvas() {
         }
     });
     
-    const isStandard = state.min === 87.5 && state.max === 108.0;
+    const isStandard = state.min === RU_MIN && state.max === RU_MAX;
     const padX = 10;
     const markWidth = state.settingsMode ? Math.max(50, maxMarkWidth + padX * 2) : 0;
     const colWidth = Math.ceil(markWidth + maxNameWidth + maxFreqWidth + (isStandard ? 0 : maxShiftedWidth) + padX * 4); 
@@ -343,7 +397,15 @@ function generateCanvas() {
     const titleLines = wrapText(tempCtx, titleText, maxTextWidth);
     const finalTitleHeight = titleHeightBase + (titleLines.length - 1) * 20;
     
-    const canvasHeight = finalTitleHeight + headerHeight + maxRows * rowHeight + padding;
+    let instructionLines = [];
+    let instructionHeight = 0;
+    if (instructionText) {
+        tempCtx.font = '12px Arial';
+        instructionLines = wrapText(tempCtx, instructionText, maxTextWidth);
+        instructionHeight = instructionLines.length * 16 + 20;
+    }
+    
+    const canvasHeight = finalTitleHeight + headerHeight + maxRows * rowHeight + padding + instructionHeight;
     
     const canvas = document.createElement('canvas');
     const scale = 2;
@@ -384,10 +446,10 @@ function generateCanvas() {
             ctx.fillText('Пометки', currentX, y + headerHeight / 2);
             currentX += markWidth;
         }
-        ctx.fillText('Станция', currentX, y + headerHeight / 2);
-        currentX += maxNameWidth + padX;
         ctx.fillText('Частота', currentX, y + headerHeight / 2);
         currentX += maxFreqWidth + padX;
+        ctx.fillText('Станция', currentX, y + headerHeight / 2);
+        currentX += maxNameWidth + padX;
         if (!isStandard) ctx.fillText('На ГУ', currentX, y + headerHeight / 2);
         
         y += headerHeight;
@@ -422,19 +484,35 @@ function generateCanvas() {
                 currentX += markWidth;
             }
             
+            ctx.fillText(formatFreq(st.freq), currentX, y + rowHeight / 2);
+            currentX += maxFreqWidth + padX;
+            
             let name = st.name;
             while (ctx.measureText(name).width > maxNameWidth && name.length > 0) name = name.slice(0, -1);
             if (name !== st.name) name += '...';
             ctx.fillText(name, currentX, y + rowHeight / 2);
-            ctx.fillText(formatFreq(st.freq), currentX + maxNameWidth + padX, y + rowHeight / 2);
+            currentX += maxNameWidth + padX;
+            
             if (!isStandard) {
                 ctx.fillStyle = isAvail ? '#27ae60' : '#e74c3c';
-                ctx.fillText(shifted >= 76 ? formatFreq(shifted) : '—', currentX + maxNameWidth + padX + maxFreqWidth + padX, y + rowHeight / 2);
+                ctx.fillText(shifted >= FM_BAND_MIN ? formatFreq(shifted) : '—', currentX, y + rowHeight / 2);
             }
             y += rowHeight;
         });
         ctx.strokeRect(xOffset, finalTitleHeight, colWidth, headerHeight + maxRows * rowHeight);
     }
+    
+    // Отрисовка инструкции
+    if (instructionLines.length > 0) {
+        ctx.fillStyle = '#333333'; // Мягкий темно-серый
+        ctx.font = '12px Arial';   // Обычный шрифт
+        ctx.textAlign = 'left';
+        const yStart = finalTitleHeight + headerHeight + maxRows * rowHeight + 10;
+        instructionLines.forEach((line, index) => {
+            ctx.fillText(line, padding, yStart + index * 16);
+        });
+    }
+    
     return canvas;
 }
 
@@ -482,7 +560,7 @@ function exportPDF() {
         doc.setFont("DejaVuSans");
         const fontName = 'DejaVuSans';
         
-        const isStandard = state.min === 87.5 && state.max === 108.0;
+        const isStandard = state.min === RU_MIN && state.max === RU_MAX;
         const shiftText = isStandard ? "Стандарт" : `${state.shift} МГц`;
         const title = `Город: ${state.city} | Диапазон: ${state.min} - ${state.max} МГц | Сдвиг: ${shiftText}`;
         
@@ -495,7 +573,9 @@ function exportPDF() {
         const p1 = sorted.slice(0, half);
         const p2 = sorted.slice(half);
         
-        const headers = isStandard ? ["Пометки", "Станция", "Частота"] : ["Пометки", "Станция", "Частота", "На ГУ"];
+        const instructionText = generateSetupInstruction(validStations);
+        
+        const headers = isStandard ? ["Пометки", "Частота", "Станция"] : ["Пометки", "Частота", "Станция", "На ГУ"];
         const headerRow = [...headers, '', ...headers];
         
         const multiBody = [];
@@ -510,11 +590,11 @@ function exportPDF() {
                     statusText = `${statusData.icon} ${statusData.preset}`.trim();
                 }
                 row.push(statusText);
-                row.push(r1.name);
                 row.push(formatFreq(r1.freq));
+                row.push(r1.name);
                 if (!isStandard) {
                     const s1 = calcShiftedFreq(r1.freq);
-                    row.push(s1 >= 76 ? formatFreq(s1) : "—");
+                    row.push(s1 >= FM_BAND_MIN ? formatFreq(s1) : "—");
                 }
             } else { row.push(...Array(headers.length).fill("")); }
             row.push("");
@@ -525,11 +605,11 @@ function exportPDF() {
                     statusText = `${statusData.icon} ${statusData.preset}`.trim();
                 }
                 row.push(statusText);
-                row.push(r2.name);
                 row.push(formatFreq(r2.freq));
+                row.push(r2.name);
                 if (!isStandard) {
                     const s2 = calcShiftedFreq(r2.freq);
-                    row.push(s2 >= 76 ? formatFreq(s2) : "—");
+                    row.push(s2 >= FM_BAND_MIN ? formatFreq(s2) : "—");
                 }
             } else { row.push(...Array(headers.length).fill("")); }
             multiBody.push(row);
@@ -564,18 +644,64 @@ function exportPDF() {
                     const colName = headerRow[colIndex];
                     if (colName === 'Пометки' && state.settingsMode) data.cell.styles.fillColor = [240, 240, 240];
                     if (currentStation && !isAvailable(currentStation.freq)) data.cell.styles.textColor = [153, 153, 153];
+                    
                     if (colName === 'Пометки' && currentStation && state.settingsMode) {
                         const statusData = getStatusExportData(currentStation.name);
-                        if (statusData.preset) data.cell.styles.textColor = [33, 37, 41]; 
-                        else if (statusData.color) data.cell.styles.textColor = statusData.color; 
+                        data.cell.custom = {
+                            icon: statusData.icon,
+                            preset: statusData.preset,
+                            color: statusData.color
+                        };
+                        data.cell.text = [];
                     }
                     if (colName === 'На ГУ') {
                         if (currentStation && !isAvailable(currentStation.freq)) data.cell.styles.textColor = [231, 76, 60];
                         else if (currentStation) data.cell.styles.textColor = [39, 174, 96];
                     }
                 }
+            },
+            didDrawCell: function(data) {
+                if (data.section === 'body' && data.cell.custom) {
+                    const { icon, preset, color } = data.cell.custom;
+                    
+                    doc.setFont(fontName);
+                    doc.setFontSize(10);
+                    
+                    const x = data.cell.x + 2;
+                    const y = data.cell.y + data.cell.height / 2;
+                    
+                    let currentX = x;
+                    if (icon) {
+                        if (color) {
+                            doc.setTextColor(color[0], color[1], color[2]);
+                        } else {
+                            doc.setTextColor(33, 37, 41);
+                        }
+                        doc.text(icon, currentX, y, { baseline: 'middle' });
+                        currentX += doc.getTextWidth(icon) + 1;
+                    }
+                    if (preset) {
+                        doc.setTextColor(33, 37, 41);
+                        doc.text(preset, currentX, y, { baseline: 'middle' });
+                    }
+                }
             }
         });
+        
+        // Отрисовка инструкции под таблицей
+        if (instructionText) {
+            const finalY = doc.lastAutoTable.finalY;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 14;
+            const maxWidth = pageWidth - margin * 2;
+            
+            doc.setFontSize(9);
+            doc.setFont(fontName, "normal"); 
+            doc.setTextColor(50, 50, 50); 
+            
+            const instructionLines = doc.splitTextToSize(instructionText, maxWidth);
+            doc.text(instructionLines, margin, finalY + 10);
+        }
         
         const pdfBlob = doc.output('blob');
         downloadBlob(pdfBlob, `FM_${state.city}.pdf`);
@@ -585,10 +711,11 @@ function exportPDF() {
     }
 }
 
-function exportXLSX() {
+// XLSX Export using ExcelJS (Dynamic A4 Fit)
+async function exportXLSX() {
     if (state.stations.length === 0) return showToast("Нет данных для экспорта");
     
-    const isStandard = state.min === 87.5 && state.max === 108.0;
+    const isStandard = state.min === RU_MIN && state.max === RU_MAX;
     const shiftText = isStandard ? "Стандарт" : `${state.shift} МГц`;
     const title = `Город: ${state.city} | Диапазон: ${state.min} - ${state.max} МГц | Сдвиг: ${shiftText}`;
     
@@ -601,107 +728,225 @@ function exportXLSX() {
     const p1 = sorted.slice(0, half);
     const p2 = sorted.slice(half);
     
-    const headers = isStandard ? ["Пометки", "Станция", "Частота"] : ["Пометки", "Станция", "Частота", "На ГУ"];
-    const headerRow = [...headers, '', ...headers];
+    const instructionText = generateSetupInstruction(validStations);
+    const hasInstruction = instructionText.length > 0;
     
-    const aoa = [[title], [], headerRow];
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Stations');
+    
+    ws.pageSetup = {
+        orientation: 'landscape',
+        paperSize: 9, // A4
+        fitToWidth: 1,
+        fitToHeight: 1,
+        margins: { left: 0.2, right: 0.2, top: 0.1, bottom: 0.1, header: 0.0, footer: 0.0 }
+    };
+    ws.properties.defaultRowHeight = 18;
+    ws.views = [{ showGridLines: false }];
+    
+    const colWidths = isStandard ? [8, 12, 33, 2, 8, 12, 33] : [8, 12, 33, 12, 2, 8, 12, 33, 12];
+    colWidths.forEach((w, i) => {
+        ws.getColumn(i + 1).width = w;
+    });
+    
+    const headers = isStandard ? ["№", "Частота\n(МГц)", "Название станции"] : ["№", "Частота\n(МГц)", "Название станции", "На ГУ\n(МГц)"];
+    const totalCols = headers.length * 2 + 1;
+    
+    const headerFont = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+    const headerFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF000000' } };
+    const thinBorder = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } }
+    };
+    
+    const titleRow = ws.addRow([title]);
+    ws.mergeCells(1, 1, 1, totalCols);
+    titleRow.getCell(1).font = { name: 'Arial', size: 14, bold: true };
+    titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+    titleRow.height = 25;
+    
+    const headerValues = [...headers, '', ...headers];
+    const headerRow = ws.addRow(headerValues);
+    headerRow.height = 30;
+    headerRow.eachCell((cell) => {
+        cell.font = headerFont;
+        cell.fill = headerFill;
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.border = thinBorder;
+    });
+    
+    const stationColWidth = 33; 
+    const maxPixels = (stationColWidth * 7) - 10; 
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const isOverflowing = (station) => {
+        if (!station || !station.name) return false;
+        const data = getStationData(station.name);
+        const isBold = data.type === 'fav' || data.type === 'cand';
+        ctx.font = `${isBold ? 'bold ' : ''}14pt Arial`; 
+        return ctx.measureText(station.name).width > maxPixels;
+    };
+    
+    let isLongCount = 0;
+    for (let i = 0; i < half; i++) {
+        const r1 = p1[i];
+        const r2 = p2[i];
+        const isLong1 = r1 && isOverflowing(r1);
+        const isLong2 = r2 && isOverflowing(r2);
+        if (isLong1 || isLong2) isLongCount++;
+    }
+    
+    const N = half;
+    const availableHeight = 580; 
+    const titleHeaderHeight = 55; 
+    const instructionHeight = hasInstruction ? 40 : 0; 
+    const dataAvailableHeight = availableHeight - titleHeaderHeight - instructionHeight;
+    
+    let baseHeight = 18; 
+    if (N > 0) {
+        baseHeight = (dataAvailableHeight - isLongCount * 11) / N;
+        baseHeight = Math.min(18, baseHeight); 
+        baseHeight = Math.max(15, baseHeight); 
+        baseHeight = Math.round(baseHeight);
+    }
+    const longHeight = Math.max(26, baseHeight + 11); 
+    
+    const rowHeights = {};
     
     for (let i = 0; i < half; i++) {
         const r1 = p1[i];
         const r2 = p2[i];
-        const row = [];
+        const rowValues = [];
+        
         if (r1) {
-            let statusText = "";
+            let numStr = "";
             if (state.settingsMode) {
                 const statusData = getStatusExportData(r1.name);
-                statusText = `${statusData.icon} ${statusData.preset}`.trim();
+                numStr = statusData.preset;
             }
-            row.push(statusText);
-            row.push(r1.name);
-            row.push(formatFreq(r1.freq));
+            rowValues.push(numStr, formatFreq(r1.freq), r1.name);
             if (!isStandard) {
                 const s1 = calcShiftedFreq(r1.freq);
-                row.push(s1 >= 76 ? formatFreq(s1) : "—");
+                rowValues.push(s1 >= FM_BAND_MIN ? formatFreq(s1) : "—");
             }
-        } else { row.push(...(isStandard ? ["", "", ""] : ["", "", "", ""])); }
-        row.push("");
+        } else {
+            rowValues.push(...(isStandard ? ["", "", ""] : ["", "", "", ""]));
+        }
+        
+        rowValues.push(""); // Spacer
+        
         if (r2) {
-            let statusText = "";
+            let numStr = "";
             if (state.settingsMode) {
                 const statusData = getStatusExportData(r2.name);
-                statusText = `${statusData.icon} ${statusData.preset}`.trim();
+                numStr = statusData.preset;
             }
-            row.push(statusText);
-            row.push(r2.name);
-            row.push(formatFreq(r2.freq));
+            rowValues.push(numStr, formatFreq(r2.freq), r2.name);
             if (!isStandard) {
                 const s2 = calcShiftedFreq(r2.freq);
-                row.push(s2 >= 76 ? formatFreq(s2) : "—");
+                rowValues.push(s2 >= FM_BAND_MIN ? formatFreq(s2) : "—");
             }
-        } else { row.push(...(isStandard ? ["", "", ""] : ["", "", "", ""])); }
-        aoa.push(row);
+        } else {
+            rowValues.push(...(isStandard ? ["", "", ""] : ["", "", "", ""]));
+        }
+        
+        const row = ws.addRow(rowValues);
+        const currentRowNum = i + 3; 
+        
+        const isLong1 = r1 && isOverflowing(r1);
+        const isLong2 = r2 && isOverflowing(r2);
+        const isLong = isLong1 || isLong2; 
+        
+        rowHeights[currentRowNum] = isLong ? longHeight : baseHeight;
+        
+        row.eachCell((cell, colNumber) => {
+            cell.border = thinBorder;
+            
+            const colName = headerValues[colNumber - 1];
+            const isLeftCol = colNumber <= headers.length;
+            const currentStation = isLeftCol ? r1 : r2;
+            
+            const isCurrentLong = isLeftCol ? isLong1 : isLong2;
+            
+            let fontSize = 14; 
+            let fontColor = { argb: 'FF000000' };
+            let isBold = false;
+            let isItalic = false;
+            let isStrike = false;
+            let cellFill = null;
+            
+            if (isCurrentLong && colName === 'Название станции') {
+                fontSize = 11;
+            }
+            
+            if (currentStation) {
+                const data = getStationData(currentStation.name);
+                const isAvail = isAvailable(currentStation.freq);
+                
+                if (!isAvail) {
+                    fontColor = { argb: 'FF999999' };
+                    isStrike = true;
+                } else if (data.type === 'fav') {
+                    isBold = true;
+                    cellFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
+                } else if (data.type === 'cand') {
+                    isBold = true;
+                    isItalic = true;
+                    cellFill = { type: 'pattern', pattern: 'gray0625' };
+                }
+            }
+            
+            cell.font = { name: 'Arial', size: fontSize, bold: isBold, italic: isItalic, color: fontColor, strike: isStrike };
+            
+            let alignment = { vertical: 'middle' }; 
+            
+            if (colName === '№') {
+                alignment.horizontal = 'center'; 
+            } else if (colName === 'Название станции') {
+                alignment.horizontal = 'left';
+                alignment.indent = 1;
+                if (isCurrentLong) {
+                    alignment.wrapText = true; 
+                }
+            } else if (colName === '') {
+                alignment.horizontal = 'center';
+                cell.border = null; 
+            } else {
+                alignment.horizontal = 'center';
+            }
+            
+            cell.alignment = alignment;
+            if (cellFill) cell.fill = cellFill;
+        });
     }
     
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let r = 3; r <= half + 2; r++) {
+        ws.getRow(r).height = rowHeights[r] || baseHeight;
+    }
     
-    const totalCols = headerRow.length;
-    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } }];
-    
-    if (isStandard) ws['!cols'] = [{ wch: 12 }, { wch: 35 }, { wch: 15 }, { wch: 3 }, { wch: 12 }, { wch: 35 }, { wch: 15 }];
-    else ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 3 }, { wch: 12 }, { wch: 30 }, { wch: 15 }, { wch: 15 }];
-    
-    ws['!pageSetup'] = { orientation: 'landscape', paperSize: 9, scale: 100 };
-    ws['!margins'] = { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.3, footer: 0.3 };
-    ws['!sheetView'] = { showGridLines: false };
-    
-    const borderStyle = {
-        top: { style: 'thin', color: { rgb: "000000" } },
-        bottom: { style: 'thin', color: { rgb: "000000" } },
-        left: { style: 'thin', color: { rgb: "000000" } },
-        right: { style: 'thin', color: { rgb: "000000" } }
-    };
-    
-    for (let R = 0; R <= range.e.r; R++) {
-        for (let C = 0; C <= range.e.c; C++) {
-            const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-            const cell = ws[cellAddress];
-            if (!cell) continue;
-            cell.s = {};
-            if (R === 0) {
-                cell.s.font = { bold: true, sz: 16 };
-                cell.s.alignment = { horizontal: 'center', vertical: 'center' };
-            } else if (R === 2) {
-                cell.s.font = { bold: true, color: { rgb: "FFFFFF" }, sz: 14 };
-                cell.s.fill = { patternType: "solid", fgColor: { rgb: "000000" } };
-                cell.s.alignment = { horizontal: 'center', vertical: 'center' };
-                cell.s.border = borderStyle;
-            } else if (R > 2) {
-                cell.s.font = { sz: 14 };
-                cell.s.border = borderStyle;
-                const colName = headerRow[C];
-                if (colName === 'Пометки' && state.settingsMode) {
-                    cell.s.fill = { patternType: "solid", fgColor: { rgb: "EEEEEE" } };
-                    cell.s.alignment = { horizontal: 'left', vertical: 'center' };
-                }
-                if (!isStandard && colName === 'На ГУ') {
-                    if (cell.v === '—') cell.s.font = { strike: true, color: { rgb: "999999" }, sz: 14 };
-                    else if (cell.v !== '') cell.s.font = { bold: true, sz: 14 };
-                }
-                const rowIdx = R - 3;
-                const isLeftCol = C < (isStandard ? 3 : 4);
-                const currentStation = isLeftCol ? p1[rowIdx] : p2[rowIdx];
-                if (currentStation && !isAvailable(currentStation.freq)) cell.s.font = { ...cell.s.font, color: { rgb: "999999" } };
-                if (colName === 'Станция') cell.s.alignment = { horizontal: 'left', vertical: 'center' };
-                else if (colName !== 'Пометки' || !state.settingsMode) cell.s.alignment = { horizontal: 'center', vertical: 'center' };
-            }
+    // 7. Добавление строки инструкции под таблицей
+    if (hasInstruction) {
+        const instrRow = ws.addRow([instructionText]);
+        ws.mergeCells(instrRow.number, 1, instrRow.number, totalCols);
+        instrRow.height = instructionHeight;
+        const cell = instrRow.getCell(1);
+        cell.font = { name: 'Arial', size: 10, color: { argb: 'FF333333' } }; 
+        cell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true, indent: 1 };
+        cell.border = thinBorder;
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } }; 
+        
+        for (let i = 2; i <= totalCols; i++) {
+            const c = instrRow.getCell(i);
+            c.border = thinBorder;
+            c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } };
         }
     }
     
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Stations");
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true });
-    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     downloadBlob(blob, `FM_${state.city}.xlsx`);
 }
 
@@ -710,7 +955,7 @@ function renderAdapters() {
     const panel = document.getElementById("adapterPanel");
     const chips = document.getElementById("adapterChips");
     chips.innerHTML = "";
-    const isStandard = state.min === 87.5 && state.max === 108.0;
+    const isStandard = state.min === RU_MIN && state.max === RU_MAX;
     if (isStandard) { panel.style.display = "none"; return; }
     panel.style.display = "block";
     const { statuses, best } = evaluateShifts();
@@ -719,10 +964,18 @@ function renderAdapters() {
         const statusType = statusData.type;
         const ratio = statusData.ratio || 0;
         chip.className = `chip ${statusType || ''}`;
+        
+        let tipText = `Сдвиг ${shift} МГц. `;
+        if (statusType === 'full') tipText += "Все станции доступны.";
+        else if (statusType === 'partial') tipText += `Доступно ${Math.round(ratio * 100)}% станций.`;
+        else tipText += "Станции недоступны.";
+        if (shift === best && statusType === 'full') tipText += " Лучший выбор!";
+        chip.setAttribute('title', tipText);
+        
         if (shift === best && statusType === 'full') chip.classList.add('best');
         if (shift === state.shift) chip.classList.add("active");
-        if (shift === 0) { chip.textContent = "0"; chip.setAttribute('data-tip', 'Без адаптера'); }
-        else chip.textContent = shift;
+        chip.textContent = shift === 0 ? "0" : shift;
+        
         if (statusType === 'partial') {
             const r = Math.round(255 - 14 * ratio);
             const g = Math.round(71 + 125 * ratio);
@@ -731,7 +984,7 @@ function renderAdapters() {
             chip.style.color = color; chip.style.borderColor = color;
             if (shift === state.shift) { chip.style.backgroundColor = color; chip.style.color = 'var(--bg)'; }
         }
-        chip.onclick = (e) => { state.shift = shift; saveState(); render(); };
+        chip.onclick = (e) => { state.shift = shift; commitState(); render(); };
         chips.appendChild(chip);
     };
     SHIFTS.forEach(s => addChip(s, statuses[s] || { type: 'none' }));
@@ -740,9 +993,18 @@ function renderAdapters() {
 function renderStations() {
     const list = document.getElementById("stationsList");
     list.innerHTML = "";
-    if (state.stations.length === 0) { list.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px;">Нет данных</div>`; return; }
+    if (state.stations.length === 0) { 
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'loading-msg';
+        emptyDiv.textContent = 'Нет данных';
+        list.appendChild(emptyDiv);
+        return; 
+    }
     const sorted = [...state.stations].sort((a, b) => a.freq - b.freq);
-    const isStandard = state.min === 87.5 && state.max === 108.0;
+    const isStandard = state.min === RU_MIN && state.max === RU_MAX;
+    
+    const frag = document.createDocumentFragment();
+    
     sorted.forEach(st => {
         const item = document.createElement("div");
         item.className = "station-item";
@@ -761,30 +1023,47 @@ function renderStations() {
             if (data.type === 'trash') item.classList.add('trash');
             let iconClass = '';
             let iconChar = '○';
-            if (data.type === 'fav') { iconClass = 'fav'; iconChar = '♥'; }
-            else if (data.type === 'cand') { iconClass = 'cand'; iconChar = '★'; }
-            else if (data.type === 'trash') { iconClass = 'trash'; iconChar = '✖'; }
+            let iconTitle = '';
+            if (data.type === 'fav') { iconClass = 'fav'; iconChar = '♥'; iconTitle = 'Избранное'; }
+            else if (data.type === 'cand') { iconClass = 'cand'; iconChar = '★'; iconTitle = 'Интересное'; }
+            else if (data.type === 'trash') { iconClass = 'trash'; iconChar = '✖'; iconTitle = 'Мусор (исключается из экспорта)'; }
             
             const visible = isPresetVisible(data.presetIndex);
             const presetStr = visible ? formatPreset(data.presetIndex, state.bands, state.presets) : '';
             const displayStr = visible ? presetStr : '+';
             const isActive = visible;
+            const btnTitle = isActive ? `Кнопка ${presetStr}` : '';
             
             const statusCell = document.createElement('div');
             statusCell.className = 'status-cell';
-            statusCell.innerHTML = `
-                <span class="status-icon ${iconClass}" data-name="${st.name}">${iconChar}</span>
-                <div class="preset-dropdown">
-                    <button class="preset-btn ${isActive ? 'active' : ''}" data-name="${st.name}">${displayStr}</button>
-                </div>
-            `;
+            
+            const iconSpan = document.createElement('span');
+            iconSpan.className = `status-icon ${iconClass}`;
+            iconSpan.dataset.name = st.name;
+            iconSpan.textContent = iconChar;
+            iconSpan.setAttribute('tabindex', '0');
+            iconSpan.setAttribute('role', 'button');
+            if (iconTitle) iconSpan.title = iconTitle;
+            statusCell.appendChild(iconSpan);
+            
+            const presetDropdown = document.createElement('div');
+            presetDropdown.className = 'preset-dropdown';
+            
+            const presetBtn = document.createElement('button');
+            presetBtn.className = `preset-btn ${isActive ? 'active' : ''}`;
+            presetBtn.dataset.name = st.name;
+            presetBtn.textContent = displayStr;
+            if (btnTitle) presetBtn.title = btnTitle;
+            
+            presetDropdown.appendChild(presetBtn);
+            statusCell.appendChild(presetDropdown);
             item.appendChild(statusCell);
         }
 
         const nameDiv = document.createElement('div');
         nameDiv.className = 'name';
         nameDiv.textContent = st.name;
-        nameDiv.title = st.name; 
+        nameDiv.setAttribute('title', st.name);
         nameDiv.style.cursor = 'pointer';
         nameDiv.addEventListener('click', () => showToast(st.name)); 
         item.appendChild(nameDiv);
@@ -792,16 +1071,13 @@ function renderStations() {
         if (!isStandard) {
             const shiftedDiv = document.createElement('div');
             shiftedDiv.className = `shifted-freq ${freqClass}`;
-            shiftedDiv.textContent = shiftedNum >= 76 ? formatFreq(shiftedNum) : "—";
+            shiftedDiv.textContent = shiftedNum >= FM_BAND_MIN ? formatFreq(shiftedNum) : "—";
             item.appendChild(shiftedDiv);
         }
 
-        list.appendChild(item);
+        frag.appendChild(item);
     });
-    if (state.settingsMode) {
-        list.querySelectorAll('.status-icon').forEach(icon => icon.addEventListener('click', (e) => { e.stopPropagation(); cycleStationStatus(e.target.getAttribute('data-name')); }));
-        list.querySelectorAll('.preset-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); openPresetMenu(e.target, e.target.getAttribute('data-name')); }));
-    }
+    list.appendChild(frag);
 }
 
 function render() {
@@ -813,26 +1089,33 @@ function render() {
     if (document.activeElement !== document.getElementById('bands')) document.getElementById('bands').value = state.bands;
     if (document.activeElement !== document.getElementById('presets')) document.getElementById('presets').value = state.presets;
     if (citySelect.value !== state.city) citySelect.value = state.city;
-    const tmpl = TEMPLATES.find(t => t.name === state.template) || TEMPLATES.find(t => t.name === "Свой вариант");
-    document.getElementById("templatesBtn").textContent = tmpl ? tmpl.short : "свой";
-    renderAdapters(); renderStations(); updateUrl();
+    
+    document.getElementById("templatesBtn").textContent = state.templateShort || "свой";
+    
+    renderAdapters(); 
+    renderStations();
 }
 
 // STATE & PERSISTENCE
+function commitState() {
+    state.lastModified = Date.now();
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    updateUrl();
+}
+
 function saveState() {
     if (state.isGuestMode) {
         const ls = localStorage.getItem(LS_KEY);
         if (!ls) {
             state.isGuestMode = false;
-            state.lastModified = Date.now();
-            localStorage.setItem(LS_KEY, JSON.stringify(state));
+            commitState();
         } else {
             showGuestPrompt();
         }
         return; 
     }
-    state.lastModified = Date.now();
-    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    clearTimeout(saveStateTimer);
+    saveStateTimer = setTimeout(commitState, 300);
 }
 
 function showGuestPrompt() {
@@ -851,28 +1134,25 @@ function showGuestPrompt() {
 
 function serializeCityData(city) {
     if (!state.cityData[city]) return '';
-    const stations = state.cityData[city].stations;
-    return Object.keys(stations).map(name => {
-        const d = stations[name];
-        const t = d.type === 'fav' ? 'f' : d.type === 'cand' ? 'c' : d.type === 'trash' ? 't' : 'n';
-        const p = d.presetIndex || '';
-        return `${t}${p?'|'+p:''};${name}`;
-    }).join(',');
+    try {
+        const stations = state.cityData[city].stations;
+        const arr = Object.keys(stations).map(name => {
+            const d = stations[name];
+            return { n: name, t: d.type, p: d.presetIndex };
+        });
+        return encodeURIComponent(JSON.stringify(arr));
+    } catch { return ''; }
 }
 
 function deserializeCityData(str, city) {
     if (!str) return null;
-    const stations = {};
     try {
-        str.split(',').forEach(item => {
-            const [tp, name] = item.split(';');
-            if (!name) return;
-            let type = 'normal', presetIndex = null;
-            if (tp.startsWith('f')) type = 'fav';
-            else if (tp.startsWith('c')) type = 'cand';
-            else if (tp.startsWith('t')) type = 'trash';
-            if (tp.includes('|')) presetIndex = parseInt(tp.split('|')[1]);
-            stations[name] = { type, presetIndex };
+        const arr = JSON.parse(decodeURIComponent(str));
+        const stations = {};
+        arr.forEach(item => {
+            if (item.n) {
+                stations[item.n] = { type: item.t || 'normal', presetIndex: item.p || null };
+            }
         });
         return stations;
     } catch { return null; }
@@ -896,14 +1176,30 @@ function updateUrl() {
 function loadFromUrl() {
     if (location.hash.length < 2) return false;
     const params = new URLSearchParams(location.hash.slice(1));
-    state.city = params.get("city") || state.city;
-    state.min = parseFloat(params.get("min")) || state.min;
-    state.max = parseFloat(params.get("max")) || state.max;
-    state.shift = parseInt(params.get("shift")) || 0;
-    state.settingsMode = params.get("mode") === "1";
-    state.bands = parseInt(params.get("bands")) || 1;
-    state.presets = parseInt(params.get("presets")) || 6;
-    state.lastModified = parseInt(params.get("ts")) || Date.now();
+    
+    const city = params.get("city");
+    if (city) state.city = city;
+    
+    const min = parseFloat(params.get("min"));
+    if (!isNaN(min) && min >= 64 && min <= 110) state.min = min;
+    
+    const max = parseFloat(params.get("max"));
+    if (!isNaN(max) && max >= 64 && max <= 110 && max > state.min) state.max = max;
+    
+    const shift = parseInt(params.get("shift"));
+    if (!isNaN(shift) && shift >= 0 && shift <= 30) state.shift = shift;
+    
+    const mode = params.get("mode");
+    if (mode === "1") state.settingsMode = true;
+    
+    const bands = parseInt(params.get("bands"));
+    if (!isNaN(bands) && bands >= 1 && bands <= 5) state.bands = bands;
+    
+    const presets = parseInt(params.get("presets"));
+    if (!isNaN(presets) && presets >= 1 && presets <= 18) state.presets = presets;
+    
+    const ts = parseInt(params.get("ts"));
+    if (!isNaN(ts) && Number.isFinite(ts)) state.lastModified = ts;
     
     const dataStr = params.get("data");
     if (dataStr) {
@@ -916,6 +1212,8 @@ function loadFromUrl() {
     
     const matched = TEMPLATES.find(t => t.range[0] === state.min && t.range[1] === state.max);
     state.template = matched ? matched.name : "Свой вариант";
+    state.templateShort = matched ? matched.short : "свой";
+    
     return true;
 }
 
@@ -926,39 +1224,80 @@ function loadFromLS() {
 }
 
 function resetAll() {
-    localStorage.removeItem(LS_KEY); localStorage.removeItem("geo_checked");
+    const keysToRemove = [
+        "fm_adapter_calc",
+        "fm_adapter_calc_v2",
+        "fm_adapter_calc_v3",
+        "fm_adapter_calc_v4",
+        "fm_adapter_calc_v5",
+        "fm_adapter_calc_v6",
+        "fm_adapter_calc_v7",
+        "fm_adapter_calc_v8",
+        "fm_adapter_calc_v9",
+        LS_KEY, 
+        LS_THEME_KEY,
+        "geo_checked"
+    ];
+    
+    keysToRemove.forEach(k => localStorage.removeItem(k));
     history.replaceState(null, "", window.location.pathname);
-    state = { ...DEFAULT_STATE, stations: [] };
-    document.getElementById('minFreq').value = state.min;
-    document.getElementById('maxFreq').value = state.max;
-    document.getElementById("citySelect").value = state.city;
-    showToast("Состояние сброшено");
-    loadCity(state.city).then(() => checkGeo(true));
+    showToast("Полный сброс выполнен");
+    setTimeout(() => window.location.reload(), 600);
 }
 
 function getDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); return R * c;
+    const R = 6371; 
+    const dLat = (lat2 - lat1) * Math.PI / 180; 
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    let a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    a = Math.min(1, Math.max(0, a)); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
+    return R * c;
 }
 
 // EVENTS
 async function init() {
     initTheme();
-    loadCyrillicFont(); // Preload font for PDF export
+    await loadCyrillicFont();
     document.getElementById('appVersion').textContent = 'v' + VERSION;
+    
     const citySelect = document.getElementById("citySelect");
     const templatesMenu = document.getElementById("templatesMenu");
+    const stationsList = document.getElementById("stationsList");
+    
+    if (!citySelect || !templatesMenu || !stationsList) {
+        console.error("DOM initialization failed: missing elements.");
+        return;
+    }
+    
     TEMPLATES.forEach(t => {
         const item = document.createElement("div");
         item.className = "dropdown-item";
         item.textContent = t.name; 
         item.onclick = () => {
-            state.template = t.name; state.min = t.range[0]; state.max = t.range[1]; state.shift = 0;
-            saveState(); render(); templatesMenu.classList.remove("show");
+            state.template = t.name;
+            state.templateShort = t.short;
+            state.min = t.range[0]; 
+            state.max = t.range[1]; 
+            state.shift = 0;
+            commitState(); render();
+            templatesMenu.classList.remove("show");
         };
         templatesMenu.appendChild(item);
     });
+    
+    stationsList.addEventListener('click', (e) => {
+        const icon = e.target.closest('.status-icon');
+        const btn = e.target.closest('.preset-btn');
+        if (icon) {
+            e.stopPropagation();
+            cycleStationStatus(icon.dataset.name);
+        } else if (btn) {
+            e.stopPropagation();
+            openPresetMenu(btn, btn.dataset.name);
+        }
+    });
+
     const hoverTrigger = document.getElementById('hoverTrigger');
     const bgBandit = document.getElementById('bgBandit');
     if (hoverTrigger && bgBandit) {
@@ -984,7 +1323,7 @@ async function init() {
     });
     document.getElementById('settingsBtn').addEventListener('click', (e) => { e.stopPropagation(); toggleSettings(); });
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('.preset-dropdown') && !e.target.closest('.preset-btn')) closePresetMenu();
+        if (!e.target.closest('.preset-dropdown') && !e.target.closest('.preset-menu') && !e.target.closest('.preset-btn')) closePresetMenu();
         if (!e.target.closest('#templatesBtn') && !e.target.closest('#templatesMenu')) document.getElementById("templatesMenu").classList.remove("show");
         if (!e.target.closest('#downloadBtn') && !e.target.closest('#downloadMenu')) document.getElementById("downloadMenu").classList.remove("show");
     });
@@ -1001,7 +1340,7 @@ async function init() {
                 if (parsed.lastModified) lsTs = parsed.lastModified;
             } catch {}
         }
-        if (state.lastModified !== lsTs) {
+        if (Number.isFinite(state.lastModified) && state.lastModified !== lsTs) {
             state.isGuestMode = true;
         } else {
             loadFromLS(); 
@@ -1028,6 +1367,7 @@ async function init() {
     if (!citiesMap[state.city]) state.city = DEFAULT_STATE.city;
     await loadCity(state.city);
     render();
+    updateUrl();
     if (!hasUrl && !localStorage.getItem("geo_checked")) checkGeo(false);
 }
 
@@ -1035,14 +1375,30 @@ async function loadCity(city) {
     if (!citiesMap[city]) return;
     state.city = city;
     const ls = localStorage.getItem(LS_KEY);
+    const list = document.getElementById('stationsList');
+    
     if (ls) {
         const parsed = JSON.parse(ls);
-        if (parsed.city === city && parsed.stations?.length > 0) { state.stations = parsed.stations; render(); }
+        if (parsed.city === city && parsed.stations?.length > 0) { 
+            state.stations = parsed.stations; 
+            render(); 
+        } else {
+            list.innerHTML = '<div class="loading-msg">Загрузка станций...</div>';
+        }
+    } else {
+        list.innerHTML = '<div class="loading-msg">Загрузка станций...</div>';
     }
+
     const html = await fetchPage(citiesMap[city]);
     if (html) {
-        state.stations = parseStations(html);
-        render();
+        const parsed = parseStations(html);
+        if (parsed.length > 0) {
+            state.stations = parsed;
+            commitState();
+            render();
+        } else {
+            showToast("Ошибка парсинга. Используем кэш.");
+        }
     }
 }
 
@@ -1081,16 +1437,62 @@ function showToast(msg) {
     setTimeout(() => toast.classList.remove("show"), 2000);
 }
 
+// Clipboard API Fallback
+async function copyShareLink() {
+    const url = window.location.href;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+            await navigator.clipboard.writeText(url);
+            showToast("Ссылка скопирована в буфер обмена");
+        } catch (err) {
+            fallbackCopyTextToClipboard(url);
+        }
+    } else {
+        fallbackCopyTextToClipboard(url);
+    }
+}
+
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    
+    textArea.style.top = "-9999px";
+    textArea.style.left = "-9999px";
+    textArea.style.position = "fixed";
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        if (successful) {
+            showToast("Ссылка скопирована (старый метод)");
+        } else {
+            window.prompt("Скопируйте ссылку вручную (Ctrl+C):", text);
+        }
+    } catch (err) {
+        document.body.removeChild(textArea);
+        window.prompt("Скопируйте ссылку вручную (Ctrl+C):", text);
+    }
+}
+
 document.getElementById("themeBtn").addEventListener("click", toggleTheme);
-document.getElementById("citySelect").addEventListener("change", (e) => { saveState(); loadCity(e.target.value); });
+
+document.getElementById("citySelect").addEventListener("change", (e) => { 
+    state.city = e.target.value; 
+    commitState(); 
+    loadCity(state.city); 
+});
+
 document.getElementById("templatesBtn").addEventListener("click", (e) => {
     e.stopPropagation(); document.getElementById("templatesMenu").classList.toggle("show"); document.getElementById("downloadMenu").classList.remove("show");
 });
 
 document.getElementById('overwriteBtn').addEventListener('click', () => {
     state.isGuestMode = false;
-    state.lastModified = Date.now();
-    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    commitState();
     document.getElementById('guestModal').classList.remove('show');
     showToast("Настройки перезаписаны");
 });
@@ -1105,14 +1507,32 @@ document.getElementById('restoreBtn').addEventListener('click', () => {
     render();
     document.getElementById('guestModal').classList.remove('show');
     showToast("Возвращены ваши настройки");
+    updateUrl();
 });
 
 (function() {
     let clickCount = 0; let clickTimer = null;
-    document.getElementById('logoBtn').addEventListener('click', () => {
+    const logoBtn = document.getElementById('logoBtn');
+    
+    const triggerReset = () => {
+        clearTimeout(clickTimer);
+        clickCount = 0;
+        if (confirm('Вы уверены, что хотите полностью сбросить настройки и кэш?')) {
+            resetAll();
+        }
+    };
+    
+    logoBtn.addEventListener('click', () => {
         clickCount++;
         if (clickCount === 1) clickTimer = setTimeout(() => clickCount = 0, 600);
-        else if (clickCount === 3) { clearTimeout(clickTimer); clickCount = 0; resetAll(); }
+        else if (clickCount === 3) triggerReset();
+    });
+    
+    logoBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            triggerReset();
+        }
     });
 })();
 
@@ -1131,6 +1551,7 @@ function setupWheelInput(id, min, max, step, stateProp) {
              if (stateProp === 'min') state.min = val; else state.max = val;
              const matched = TEMPLATES.find(t => t.range[0] === state.min && t.range[1] === state.max);
              state.template = matched ? matched.name : "Свой вариант";
+             state.templateShort = matched ? matched.short : "свой";
         } else {
              state[stateProp] = Math.round(val);
         }
@@ -1138,9 +1559,17 @@ function setupWheelInput(id, min, max, step, stateProp) {
     };
 
     el.addEventListener("input", (e) => {
+        if (e.target.value === "") return; 
         let val = parseFloat(e.target.value);
         if (applyChange(val)) {
             saveState(); render();
+        }
+    });
+
+    el.addEventListener("blur", () => {
+        if (el.value === "" || isNaN(parseFloat(el.value))) {
+            applyChange(min); 
+            commitState(); render();
         }
     });
 
@@ -1170,13 +1599,14 @@ function setupWheelInput(id, min, max, step, stateProp) {
         const steps = Math.round(deltaY / 15);
         let newVal = touchStartVal + (steps * step);
         if (applyChange(newVal)) {
-            render(); 
+            // Throttle render
         }
     }, { passive: false });
 
     el.addEventListener('touchend', () => {
         if (touchStartY !== null) {
-            saveState();
+            commitState();
+            render();
         }
         touchStartY = null;
     });
@@ -1187,13 +1617,7 @@ setupWheelInput("maxFreq", 64, 110, 0.1, "max");
 setupWheelInput("bands", 1, 5, 1, "bands");
 setupWheelInput("presets", 1, 18, 1, "presets");
 
-document.getElementById("shareBtn").addEventListener("click", () => {
-    if (!state.lastModified) {
-        state.lastModified = Date.now();
-        updateUrl();
-    }
-    navigator.clipboard.writeText(window.location.href).then(() => showToast("Ссылка скопирована в буфер обмена")).catch(() => showToast("Ошибка копирования ссылки"));
-});
+document.getElementById("shareBtn").addEventListener("click", copyShareLink);
 document.getElementById("geoBtn").addEventListener("click", () => checkGeo(true));
 document.getElementById("helpBtn").addEventListener("click", () => document.getElementById("helpModal").classList.add("show"));
 document.getElementById("closeHelpBtn").addEventListener("click", () => document.getElementById("helpModal").classList.remove("show"));

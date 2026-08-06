@@ -2,25 +2,63 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutoFMShift</title>
     <link rel="stylesheet" href="style.css">
+    
+    <!-- ES5 Compatibility Guard for IE11 and older -->
+    <script>
+        (function() {
+            var isCompatible = true;
+            if (!window.fetch || !window.Promise || !window.URLSearchParams) {
+                isCompatible = false;
+            }
+            try {
+                var el = document.createElement('div');
+                el.style.setProperty('--test', '1');
+                if (el.style.getPropertyValue('--test') !== '1') {
+                    isCompatible = false;
+                }
+            } catch (e) {
+                isCompatible = false;
+            }
+
+            if (!isCompatible) {
+                var blocker = document.createElement('div');
+                blocker.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#1a1a1a;color:#f1f1f1;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:20px;text-align:center;';
+                
+                var container = document.createElement('div');
+                container.style.cssText = 'max-width:500px;line-height:1.6;';
+                
+                container.innerHTML = 
+                    '<h2 style="color:#ff4757;margin-bottom:20px;font-size:24px;">Браузер не поддерживается</h2>' +
+                    '<p style="font-size:16px;margin-bottom:20px;">Ваш браузер устарел и не поддерживает технологии, необходимые для работы этого приложения.</p>' +
+                    '<p style="font-size:16px;margin-bottom:30px;">Пожалуйста, обновите ваш браузер до последней версии (Chrome, Firefox, Safari, Edge) или используйте современное устройство.</p>' +
+                    '<a href="https://www.google.com/chrome/" target="_blank" rel="noopener" style="background:#0096c7;color:#fff;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">Скачать Chrome</a>';
+                
+                blocker.appendChild(container);
+                document.documentElement.appendChild(blocker);
+                
+                throw new Error("Browser not supported. Stopping execution.");
+            }
+        })();
+    </script>
 </head>
 <body>
     <div class="app-container">
         <header class="app-header">
             <div class="brand">
-                <div id="logoBtn" class="logo-img" title="Тройной клик для сброса"></div>
+                <div id="logoBtn" class="logo-img" title="Тройной клик для полного сброса кэша и настроек" role="button" tabindex="0" aria-label="Сброс настроек"></div>
                 <div class="title">
                     <span class="logo-text">Auto<span class="accent-text">FM</span>Shift</span>
                     <a class="version" id="appVersion" href="https://github.com/tabookot/AutoFMShift" target="_blank" rel="noopener"></a>
                 </div>
             </div>
             <div class="actions">
-                <button id="themeBtn" class="btn-icon" title="Сменить тему"></button>
-                <button id="helpBtn" class="btn-icon" title="Инструкция">?</button>
+                <button id="themeBtn" class="btn-icon" title="Сменить тему" aria-pressed="false"></button>
+                <button id="helpBtn" class="btn-icon" title="Инструкция" aria-label="Инструкция">?</button>
                 <div class="dropdown">
-                    <button id="downloadBtn" class="btn-icon" title="Скачать">
+                    <button id="downloadBtn" class="btn-icon" title="Скачать" aria-label="Скачать">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     </button>
                     <div id="downloadMenu" class="dropdown-menu">
@@ -29,7 +67,7 @@
                         <div class="dropdown-item" data-format="xlsx">XLSX</div>
                     </div>
                 </div>
-                <button id="shareBtn" class="btn-icon" title="Поделиться">
+                <button id="shareBtn" class="btn-icon" title="Поделиться" aria-label="Поделиться">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
                 </button>
             </div>
@@ -92,21 +130,21 @@
             <section class="panel control-panel">
                 <div class="control-row">
                     <div class="select-group">
-                        <div class="select-wrapper">
+                        <div class="select-wrapper" title="Выберите город для загрузки списка местных радиостанций.">
                             <select id="citySelect"><option>Загрузка...</option></select>
-                            <button id="geoBtn" class="btn-icon mini" title="Автоопределение">&#9873;</button>
+                            <button id="geoBtn" class="btn-icon mini" title="Определить ваш город по IP-адресу.">&#9873;</button>
                         </div>
                         <div class="dropdown">
-                            <button id="templatesBtn" class="btn-text" title="Шаблоны ГУ">RU/EU</button>
+                            <button id="templatesBtn" class="btn-text" title="Головное Устройство (ГУ) — это магнитола. Выберите диапазон частот в зависимости от рынка происхождения авто (Япония, США, РФ/Европа) или укажите свой.">RU/EU</button>
                             <div id="templatesMenu" class="dropdown-menu"></div>
                         </div>
                     </div>
                     <div class="input-group">
                         <input type="number" id="minFreq" step="0.1" min="64" max="110" title="Мин. частота ГУ">
                         <input type="number" id="maxFreq" step="0.1" min="64" max="110" title="Макс. частота ГУ">
-                        <input type="number" id="bands" min="1" max="5" value="1" title="Кол-во бэндов ГУ" style="display: none;">
-                        <input type="number" id="presets" min="1" max="18" value="6" title="Кнопок в бэнде" style="display: none;">
-                        <button id="settingsBtn" class="btn-icon" title="Настройки ГУ">
+                        <input type="number" id="bands" min="1" max="5" value="1" title="Кол-во бэндов (диапазонов) ГУ" style="display: none;">
+                        <input type="number" id="presets" min="1" max="18" value="6" title="Кнопок быстрого доступа в одном бэнде" style="display: none;">
+                        <button id="settingsBtn" class="btn-icon" title="Настройки ГУ" aria-pressed="false">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
                         </button>
                     </div>
@@ -117,7 +155,7 @@
                 <div class="bg-bandit" id="bgBandit"></div>
                 
                 <section class="panel adapter-panel" id="adapterPanel" style="display: none;">
-                    <div class="panel-title">FM-Адаптер (Сдвиг, МГц) <span class="hint" data-tip="Сдвиг частоты вычитается из частоты станции для попадания в диапазон ГУ.">?</span></div>
+                    <div class="panel-title" title="Сдвиг частоты вычитается из частоты станции для попадания в диапазон ГУ. Например, станция 100.0 МГц при сдвиге 10 будет вещать на 90.0 МГц.">FM-Адаптер (Сдвиг, МГц)</div>
                     <div class="chips-container" id="adapterChips"></div>
                     <div class="hover-trigger" id="hoverTrigger" title="Наведите или удерживайте для подсказки"></div>
                 </section>
@@ -125,20 +163,20 @@
                 <section class="panel stations-panel">
                     <div class="error-msg" id="errorMsg"></div>
                     <div class="stations-header">
-                        <span class="col-freq">Частота</span>
-                        <span class="col-status" id="statusHeader" style="display: none;">Статус</span>
-                        <span class="col-name">Станция</span>
-                        <span class="col-shifted">На ГУ</span>
+                        <span class="col-freq" title="Оригинальная частота вещания радиостанции.">Частота</span>
+                        <span class="col-status" id="statusHeader" title="Пометки и номера кнопок. Клик по иконке меняет статус, клик по номеру открывает меню назначения кнопки магнитолы." style="display: none;">Статус</span>
+                        <span class="col-name" title="Название радиостанции. Кликните, чтобы увидеть полное имя, если оно обрезано.">Станция</span>
+                        <span class="col-shifted" title="Частота на магнитоле после установки адаптера. Зеленый — доступна, красный — вне диапазона.">На ГУ</span>
                     </div>
                     <div class="stations-list" id="stationsList"></div>
                 </section>
             </div>
         </main>
     </div>
-    <div id="toast" class="toast"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" crossorigin="anonymous"></script>
     <script src="cities.js"></script>
     <script src="app.js"></script>
 </body>
