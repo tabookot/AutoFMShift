@@ -4,23 +4,26 @@ const FMUse = {
         if (!name) return '';
         let cleanName = name.toLowerCase();
         
-        // 1. Удаляем HTML-сущности (неразрывные пробелы и т.д.)
-        cleanName = cleanName.replace(/&#\d+;/g, ' ');
+        // 1. Отрезаем историю (всё, что после переноса строки) и вторые станции (после /)
+        cleanName = cleanName.split('\n')[0].split('/')[0];
         
-        // 2. Удаляем служебные пометки Fandom
+        // 2. Жестко удаляем любые HTML-сущности (&#160;, &nbsp; и т.д.)
+        cleanName = cleanName.replace(/&[a-z0-9]+;/gi, ' ').replace(/\u00A0/g, ' ');
+        
+        // 3. Удаляем служебные пометки Fandom
         cleanName = cleanName.replace(/\(план\)|\(тест\)|\(был план\)/g, ' ');
         
-        // 3. Удаляем всё в круглых и квадратных скобках (уточнения городов, регионов, дат)
+        // 4. Удаляем всё в круглых и квадратных скобках (уточнения городов, регионов, дат)
         cleanName = cleanName.replace(/\([^)]+\)/g, ' ').replace(/\[[^\]]+\]/g, ' ');
         
-        // 4. Удаляем мусорные слова
-        cleanName = cleanName.replace(/\b(радио|radio|fm|ам|тв|tv|комедия|comedy)\b/g, ' ');
+        // 5. Удаляем мусорные слова и аббревиатуры вещателей (ГТРК, ТРВ и т.д.)
+        cleanName = cleanName.replace(/\b(радио|radio|fm|ам|тв|tv|комедия|comedy|гтрк|трв|орр)\b/g, ' ');
         
-        // 5. Оставляем только буквы, цифры и пробелы
-        cleanName = cleanName.replace(/[^\p{L}\p{N}\s]/gu, ' ');
+        // 6. Оставляем только буквы, цифры и пробелы
+        cleanName = cleanName.replace(/[^\p{L}\p{N}\s-]/gu, ' ');
         
-        // 6. Удаляем лишние пробелы
-        cleanName = cleanName.replace(/\s+/g, ' ').trim();
+        // 7. Удаляем лишние пробелы и дефисы по краям
+        cleanName = cleanName.replace(/[-\s]+/g, ' ').trim();
         
         return cleanName;
     },
