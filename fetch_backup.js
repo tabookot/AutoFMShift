@@ -50,7 +50,7 @@ async function run() {
     const newData = await Api.generateApiBackup(citiesMap, "0.5.1-github-action", () => false);
 
     // --- ГЕНЕРАЦИЯ СПИСКОВ ---
-    generateLists(newData, citiesMap);
+    await generateLists(newData, citiesMap);
     // -------------------------
 
     // 1. Сравнение городов
@@ -129,7 +129,7 @@ async function run() {
 }
 
 // --- ФУНКЦИИ ГЕНЕРАЦИИ СПИСКОВ ---
-function generateLists(data, citiesMap) {
+async function generateLists(data, citiesMap) {
     if (!fs.existsSync('lists')) {
         fs.mkdirSync('lists', { recursive: true });
     }
