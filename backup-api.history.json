@@ -1,0 +1,23 @@
+{
+  "sessions": [
+    {
+      "timestamp": "2026-08-07T06:32:49.999Z",
+      "status": "success",
+      "requiresAttention": false,
+      "attentionReasons": [],
+      "changes": {
+        "cities": {
+          "new": [],
+          "deleted": [],
+          "renamed": []
+        },
+        "stations": {
+          "new": [],
+          "deleted": [],
+          "renamed": [],
+          "frequency_migrated": []
+        }
+      }
+    }
+  ]
+}
