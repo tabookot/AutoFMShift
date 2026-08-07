@@ -17,7 +17,8 @@ const FMUse = {
         cleanName = cleanName.replace(/\([^)]+\)/g, ' ').replace(/\[[^\]]+\]/g, ' ');
         
         // 5. Удаляем мусорные слова и аббревиатуры вещателей (ГТРК, ТРВ и т.д.)
-        cleanName = cleanName.replace(/\b(радио|radio|fm|ам|тв|tv|комедия|comedy|гтрк|трв|орр)\b/g, ' ');
+        // Используем проверку пробелов вместо \b, так как \b не работает с кириллицей
+        cleanName = cleanName.replace(/(^|\s)(радио|radio|fm|ам|тв|tv|комедия|comedy|гтрк|трв|орр)(?=\s|$)/g, ' ');
         
         // 6. Оставляем только буквы, цифры и пробелы
         cleanName = cleanName.replace(/[^\p{L}\p{N}\s-]/gu, ' ');
