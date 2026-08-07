@@ -1,4 +1,4 @@
-// 0.5.1 | Rule: minor.major.build. build++ on full regen
+// 0.5.5 | Rule: minor.major.build. build++ on full regen
 const VERSION = "0.5.5";
 const CACHE_VERSION = "4"; 
  
