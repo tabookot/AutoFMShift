@@ -1,8 +1,9 @@
-// 0.4.24 | Rule: minor.major.build. build++ on full regen
-const VERSION = "0.4.24";
+// 0.4.25 | Rule: minor.major.build. build++ on full regen
+const VERSION = "0.4.25";
 const CACHE_VERSION = "4"; 
 const API_URL = "https://radiopedia.fandom.com/ru/api.php";
-const MAIN_PAGE = "Расчет сдвига частот (FM-адаптера) для автомагнитол";
+// MAIN_PAGE - не менять, это не заголовок программы, а название статьи на вики-сайте Fandom, с которой приложение парсит список всех городов
+const MAIN_PAGE = "Частотные планы радиостанций в городах России"; 
 const LS_KEY = "fm_adapter_calc_v10"; 
 const LS_THEME_KEY = "fm_adapter_theme";
 
