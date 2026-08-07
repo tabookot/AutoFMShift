@@ -103,7 +103,7 @@
                 </div>
                 <div class="intro">
                     <b>О приложении:</b> Решает проблему прослушивания местных FM-радиостанций на автомобилях с нестандартным диапазоном магнитолы (например, JDM). Приложение подбирает необходимый FM-адаптер (сдвиг частоты), чтобы все местные станции попадали в диапазон вашего ГУ, и показывает, на какой частоте их искать.<br>
-                    Данные предоставлены сайтом <a href="https://radiopedia.fandom.com/ru/" target="_blank" rel="noopener">radiopedia.fandom.com</a>.
+                    Данные предоставлены сайтом <a href="https://radiopedia.fandom.com/ru/" target="_blank" rel="noopener">radiopedia.fandom.com</a>. <a href="#" id="apiBackupBtn" title="Сформировать бэкап API" style="font-size: 10px; color: var(--text-dim); text-decoration: none;">💾</a>
                 </div>
                 <ol class="manual">
                     <li>Выберите <b>Город</b> и <b>Диапазон ГУ</b> (магнитолы).</li>
@@ -125,6 +125,7 @@
                     <li><b>Копирование настроек:</b> В режиме настроек ГУ появляется кнопка копирования. Она позволяет скопировать статусы и номера кнопок из другого города в текущий. Приложение само найдет совпадающие станции по названиям, не удаляя настройки в городе-источнике.</li>
                     <li><b>Экспорт / Импорт (JSON):</b> Позволяет сделать резервную копию ваших настроек и списка станций для всех городов в один файл. Это полезно для переноса настроек между браузерами/устройствами или создания бэкапа. Формат файла универсален и хранит коды-названия станций, что позволит приложению работать даже если изменится API или пропадет интернет (Офлайн-режим).</li>
                     <li><b>Подсказка для ввода:</b> Чтобы изменить число в полях ввода, прокручивайте колесо мыши вверх или вниз, а на мобильных — касайтесь поля и ведите палец вверх или вниз.</li>
+                    <li style="font-size: 11px; color: var(--text-dim); list-style: none;">Индикаторы ▎источника данных в таблице раскрашены: <span style="color: var(--accent); font-weight: bold;">■ API</span>, <span style="color: var(--green); font-weight: bold;">■ Бэкап</span>, <span style="color: var(--text-dim); font-weight: bold;">■ Кэш</span>.</li>
                 </ol>
                 <div class="repo-link">
                     <a href="https://github.com/tabookot/AutoFMShift" target="_blank" rel="noopener">GitHub репозиторий</a>
@@ -264,11 +265,20 @@
             </div>
         </main>
     </div>
+    <div id="loadingModal" class="modal">
+        <div class="modal-content">
+            <div class="spinner"></div>
+            <div id="loadingText" style="color: var(--text); margin-top: 15px;">Загрузка...</div>
+            <button id="cancelLoadingBtn" class="btn-text" style="margin: 20px auto 0 auto; width: auto; padding: 5px 20px; background: transparent; color: var(--accent); border-color: var(--accent);">Отмена</button>
+        </div>
+    </div>
+
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" crossorigin="anonymous"></script>
     <script src="cities.js"></script>
+    <script src="api.js"></script>
     <script src="fmuse.js"></script>
     <script src="app.js"></script>
 </body>

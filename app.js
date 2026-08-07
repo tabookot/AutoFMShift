@@ -1,9 +1,7 @@
-// 0.4.25 | Rule: minor.major.build. build++ on full regen
-const VERSION = "0.4.25";
+// 0.5.1 | Rule: minor.major.build. build++ on full regen
+const VERSION = "0.5.5";
 const CACHE_VERSION = "4"; 
-const API_URL = "https://radiopedia.fandom.com/ru/api.php";
-// MAIN_PAGE - не менять, это не заголовок программы, а название статьи на вики-сайте Fandom, с которой приложение парсит список всех городов
-const MAIN_PAGE = "Частотные планы радиостанций в городах России"; 
+ 
 const LS_KEY = "fm_adapter_calc_v10"; 
 const LS_THEME_KEY = "fm_adapter_theme";
 
@@ -52,6 +50,7 @@ let citiesMap = JSON.parse(localStorage.getItem("fm_cities_map") || "{}");
 let activePresetMenu = null;
 let saveStateTimer = null;
 let selectedTransferCity = null;
+let lastDataSource = '';
 
 // THEME
 function initTheme() {
@@ -81,55 +80,7 @@ function updateThemeIcon() {
     themeBtn.setAttribute('aria-pressed', currentTheme === 'dark' ? 'true' : 'false');
 }
 
-// API & PARSING
-async function fetchPage(title) {
-    const url = `${API_URL}?action=parse&page=${encodeURIComponent(title)}&format=json&prop=text&origin=*`;
-    try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`Network response was not ok: ${res.status}`);
-        const data = await res.json();
-        return data.parse?.text?.["*"] || null;
-    } catch { return null; }
-}
-function parseCities(html) {
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    const cities = {};
-    doc.querySelectorAll("a[title]").forEach(a => {
-        const title = a.getAttribute("title");
-        if (title.startsWith(MAIN_PAGE + "/")) {
-            const city = title.split("/").pop().replace(/_/g, " ").trim();
-            if (city && !["Сводная таблица", "Россия"].includes(city)) cities[city] = title;
-        }
-    });
-    return cities;
-}
-function parseStations(html) {
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    const stations = [];
-    doc.querySelectorAll("table").forEach(table => {
-        table.querySelectorAll("tr").forEach(row => {
-            const cols = row.querySelectorAll("td, th");
-            if (cols.length < 2) return;
-            let freq = null, name = "";
-            cols.forEach(col => {
-                const a = col.querySelector("a");
-                if (a && a.getAttribute('title') && !name) name = a.getAttribute('title').replace(/_/g, " ").trim();
-                const text = col.textContent.trim();
-                if (!text) return;
-                const match = text.match(/(\d{2,3}[.,]\d{1,3})/);
-                if (match && !freq) {
-                    const f = parseFloat(match[1].replace(",", "."));
-                    if (!isNaN(f) && f >= FM_BAND_MIN && f <= FM_BAND_MAX) freq = f;
-                } else if (!name && text.length > 2) {
-                    const lower = text.toLowerCase();
-                    if (!["частота", "радиостанция", "мгц", "квт", "мощность", "передатчик", "вт"].some(x => lower.includes(x))) name = text.replace(/\[\d+\]/g, "").trim();
-                }
-            });
-            if (freq && name) stations.push({ freq, name });
-        });
-    });
-    return stations;
-}
+
 
 // LOGIC
 function evaluateShifts() {
@@ -805,6 +756,7 @@ function renderStations() {
     sorted.forEach(st => {
         const item = document.createElement("div");
         item.className = "station-item";
+        item.dataset.source = state.stationsSource || 'cache';
         const shiftedNum = calcShiftedFreq(st.freq);
         const isAvail = isAvailable(st.freq);
         const freqClass = isAvail ? 'ok' : 'err';
@@ -1302,8 +1254,10 @@ function doExport() {
     }
     
     const exportData = {
+        type: "user-backup",
         appVersion: VERSION,
         exportDate: Date.now(),
+        totalCities: Object.keys(citiesMap).length,
         source: "AutoFMShift User Backup",
         cities: {}
     };
@@ -1355,7 +1309,20 @@ async function handleFileImport(event) {
             const data = JSON.parse(e.target.result);
             if (!data.cities) throw new Error("Invalid format");
             
-            if (!confirm('Импорт перезапишет настройки для городов, найденных в файле. Продолжить?')) return;
+            if (data.type === 'api-cache') {
+                if (!confirm('Импортировать резервный кэш API? Это дополнит вашу базу городов станциями без удаления текущих настроек.')) return;
+                await Api.importApiBackup(data, state, citiesMap, FMUse, true);
+                localStorage.setItem("fm_cities_map", JSON.stringify(citiesMap));
+                commitState();
+                renderCitySelectMenu();
+                await loadCity(state.city);
+                render();
+                showToast("Импорт бэкапа API завершен");
+                document.getElementById("helpModal").classList.remove("show");
+                return;
+            } else {
+                if (!confirm('Импорт перезапишет настройки для городов, найденных в файле. Продолжить?')) return;
+            }
             
             Object.keys(data.cities).forEach(citySlug => {
                 const impCity = data.cities[citySlug];
@@ -1493,6 +1460,35 @@ async function init() {
         checkboxes.forEach(cb => cb.checked = !allChecked);
         btn.textContent = allChecked ? 'Выделить все' : 'Снять все';
     });
+
+    document.getElementById('apiBackupBtn').addEventListener('click', async (e) => {
+        e.preventDefault();
+        if (Object.keys(citiesMap).length === 0) return showToast("Список городов пуст");
+        if (!confirm('Сформировать полный бэкап API? Это может занять около минуты. Не закрывайте страницу.')) return;
+        
+        const modal = document.getElementById('loadingModal');
+        const loadingText = document.getElementById('loadingText');
+        let isCancelled = false;
+        
+        document.getElementById('cancelLoadingBtn').onclick = () => { isCancelled = true; };
+        modal.classList.add('show');
+        loadingText.textContent = "Сбор городов...";
+        
+        try {
+            const data = await Api.generateApiBackup(citiesMap, VERSION, () => isCancelled);
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const d = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const dateStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}`;
+            downloadBlob(blob, `backup-api_${dateStr}.json`);
+            showToast("Бэкап API сформирован");
+        } catch (err) {
+            if (err.message === 'Canceled') showToast("Операция отменена");
+            else showToast("Ошибка формирования бэкапа");
+        } finally {
+            modal.classList.remove('show');
+        }
+    });
     
     document.getElementById('closeExportBtn').addEventListener('click', () => document.getElementById('exportModal').classList.remove('show'));
     document.getElementById('cancelExportBtn').addEventListener('click', () => document.getElementById('exportModal').classList.remove('show'));
@@ -1600,18 +1596,36 @@ async function init() {
 
     applySettingsMode();
     
-    const html = await fetchPage(MAIN_PAGE);
+    const html = await Api.fetchPage(Api.MAIN_PAGE);
     if (html) {
-        const newCities = parseCities(html);
+        const newCities = Api.parseCities(html);
         if (Object.keys(newCities).length > 0) {
             citiesMap = newCities;
             localStorage.setItem("fm_cities_map", JSON.stringify(citiesMap));
         }
-    } else if (Object.keys(citiesMap).length === 0 && Object.keys(state.cityData).length === 0) {
-        document.getElementById("errorMsg").style.display = "block";
-        document.getElementById("errorMsg").innerHTML = "Сайт недоступен. Приносим дикие извинения за неудобства!<br><br><button id='importFallbackBtn' class='btn-text' style='height:35px; width:auto; padding:0 15px; display:inline-flex;'>Импортировать JSON</button>";
-        document.getElementById('importFallbackBtn').addEventListener('click', () => document.getElementById('importFileInput').click());
-        return;
+    } else {
+        try {
+            const res = await fetch('backup-api.json');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.type === 'api-cache') {
+                    window.apiBackupData = data;
+                    Object.keys(data.cities).forEach(slug => {
+                        const cName = data.cities[slug].name || slug;
+                        if (!citiesMap[cName]) citiesMap[cName] = cName;
+                    });
+                    localStorage.setItem("fm_cities_map", JSON.stringify(citiesMap));
+                    showToast("API недоступен. Загружен резервный кэш (backup-api.json)");
+                }
+            }
+        } catch (e) {}
+        
+        if (Object.keys(citiesMap).length === 0 && Object.keys(state.cityData).length === 0) {
+            document.getElementById("errorMsg").style.display = "block";
+            document.getElementById("errorMsg").innerHTML = "Сайт недоступен. Приносим дикие извинения за неудобства!<br><br><button id='importFallbackBtn' class='btn-text' style='height:35px; width:auto; padding:0 15px; display:inline-flex;'>Импортировать JSON</button>";
+            document.getElementById('importFallbackBtn').addEventListener('click', () => document.getElementById('importFileInput').click());
+            return;
+        }
     }
     
     renderCitySelectMenu();
@@ -1639,23 +1653,32 @@ async function loadCity(city) {
     list.innerHTML = '<div class="loading-msg">Загрузка станций...</div>';
     render(); 
 
-    const html = await fetchPage(citiesMap[city]);
+    const html = await Api.fetchPage(citiesMap[city]);
     let newStations = [];
+    let source = "cache";
     if (html) {
-        newStations = parseStations(html);
+        newStations = Api.parseStations(html);
+        source = "api";
+        lastDataSource = 'api';
         if (newStations.length === 0) {
             showToast("Ошибка парсинга.");
             newStations = [];
         }
+    } else if (window.apiBackupData && window.apiBackupData.cities[FMUse.generateCodeName(city)]) {
+        newStations = window.apiBackupData.cities[FMUse.generateCodeName(city)].stations.map(s => ({ name: s.name, freq: s.freq }));
+        source = "backup";
+        if (lastDataSource !== 'backup') { showToast("Нет сети. Используем backup-api.json"); lastDataSource = 'backup'; }
     } else if (state.cityData[city]?.allStations) {
         newStations = state.cityData[city].allStations;
-        showToast("Нет сети. Используем кэш станций.");
+        source = "cache";
+        if (lastDataSource !== 'cache') { showToast("Нет сети. Используем кэш станций."); lastDataSource = 'cache'; }
     } else {
-        showToast("Сеть недоступна.");
+        if (lastDataSource !== 'none') { showToast("Сеть недоступна."); lastDataSource = 'none'; }
     }
 
     if (newStations.length > 0) {
         state.stations = newStations;
+        state.stationsSource = source;
         if (!state.cityData[city]) state.cityData[city] = { stations: {} };
         state.cityData[city].allStations = newStations.map(s => ({ name: s.name, freq: s.freq }));
         state.cityData[city].totalStations = state.stations.length;
