@@ -200,6 +200,70 @@ function generateLists(data, citiesMap) {
     });
     fs.writeFileSync('lists/stations_list.md', stationsMd);
     console.log("Сохранен lists/stations_list.md");
+
+    // 3. Обогащение данных через radio-browser.info
+    await enrichStationsData(groups);
+}
+
+async function enrichStationsData(groups) {
+    console.log("Начинаем обогащение данных с radio-browser.info...");
+    const enrichedList = [];
+    const baseUrl = "https://de1.api.radio-browser.info/json/stations/search";
+
+    for (let i = 0; i < groups.length; i++) {
+        const group = groups[i];
+        const searchName = encodeURIComponent(group.mainName);
+        const url = `${baseUrl}?name=${searchName}&countrycode=RU&hidebroken=true&limit=10&order=clickcount&reverse=true`;
+        
+        let apiData = null;
+        try {
+            const res = await fetch(url, { headers: { 'User-Agent': 'AutoFMShift-GitHubAction/1.0' } });
+            if (res.ok) {
+                apiData = await res.json();
+            }
+        } catch (e) {
+            // ignore fetch errors
+        }
+
+        let stationInfo = { name: group.mainName, streams: [] };
+
+        if (apiData && apiData.length > 0) {
+            let bestMatch = null;
+            let bestScore = 0;
+            
+            for (const st of apiData) {
+                const score = FMUse.compareSets(group.mainName, st.name);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMatch = st;
+                }
+            }
+
+            // Если совпадение слов больше 50% - берем данные
+            if (bestMatch && bestScore >= 0.5) {
+                stationInfo.homepage = bestMatch.homepage || "";
+                stationInfo.favicon = bestMatch.favicon || "";
+                stationInfo.tags = bestMatch.tags ? bestMatch.tags.split(',').slice(0, 5).join(', ') : "";
+                
+                const seenUrls = new Set();
+                for (const st of apiData) {
+                    if (FMUse.compareSets(group.mainName, st.name) >= 0.5 && st.url && !seenUrls.has(st.url)) {
+                        stationInfo.streams.push({ url: st.url, bitrate: st.bitrate, codec: st.codec });
+                        seenUrls.add(st.url);
+                        if (stationInfo.streams.length >= 3) break; // Максимум 3 потока
+                    }
+                }
+            }
+        }
+        
+        enrichedList.push(stationInfo);
+
+        // Пауза 250мс, чтобы не перегружать API
+        await new Promise(r => setTimeout(r, 250));
+    }
+
+    fs.writeFileSync('lists/stations_data.json', JSON.stringify(enrichedList, null, 2));
+    console.log(`Сохранен lists/stations_data.json (${enrichedList.length} записей)`);
 }
 
 function saveHistory(report) {
