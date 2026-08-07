@@ -1,20 +1,34 @@
 const FMUse = {
-    // Разбивает название на первичные слова и вторичные (в скобках)
-    tokenizeAndClean(name) {
+    // Очистка названий от мусора
+    normalizeName(name) {
+        if (!name) return '';
         let cleanName = name.toLowerCase();
-        // Удаляем мусорные слова
-        cleanName = cleanName.replace(/\b(радио|radio|fm|ам|м|тв|tv)\b/g, ' ');
         
-        // Отделяем текст в скобках
-        let primaryStr = cleanName.replace(/\([^)]+\)/g, ' ');
-        let secondaryStr = (cleanName.match(/\(([^)]+)\)/) || ['', ''])[1];
+        // 1. Удаляем HTML-сущности (неразрывные пробелы и т.д.)
+        cleanName = cleanName.replace(/&#\d+;/g, ' ');
         
-        const splitWords = (str) => str.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(w => w.length > 0);
+        // 2. Удаляем служебные пометки Fandom
+        cleanName = cleanName.replace(/\(план\)|\(тест\)|\(был план\)/g, ' ');
         
-        return {
-            primary: splitWords(primaryStr),
-            secondary: splitWords(secondaryStr)
-        };
+        // 3. Удаляем всё в круглых и квадратных скобках (уточнения городов, регионов, дат)
+        cleanName = cleanName.replace(/\([^)]+\)/g, ' ').replace(/\[[^\]]+\]/g, ' ');
+        
+        // 4. Удаляем мусорные слова
+        cleanName = cleanName.replace(/\b(радио|radio|fm|ам|тв|tv|комедия|comedy)\b/g, ' ');
+        
+        // 5. Оставляем только буквы, цифры и пробелы
+        cleanName = cleanName.replace(/[^\p{L}\p{N}\s]/gu, ' ');
+        
+        // 6. Удаляем лишние пробелы
+        cleanName = cleanName.replace(/\s+/g, ' ').trim();
+        
+        return cleanName;
+    },
+
+    // Разбивает название на первичные слова и вторичные
+    tokenizeAndClean(name) {
+        const cleanName = this.normalizeName(name);
+        return { primary: cleanName.split(' ').filter(w => w.length > 0) };
     },
 
     // Похожесть двух отдельных слов (алгоритм Сёренсена-Дайса)
@@ -48,25 +62,11 @@ const FMUse = {
         const t1 = this.tokenizeAndClean(first);
         const t2 = this.tokenizeAndClean(second);
         
-        const allTokens1 = [...t1.primary, ...t1.secondary];
-        const allTokens2 = [...t2.primary, ...t2.secondary];
+        const allTokens1 = t1.primary;
+        const allTokens2 = t2.primary;
         
         if (allTokens1.length === 0 || allTokens2.length === 0) return 0;
         
-        // 1. Проверка первичных слов (строгий фильтр)
-        if (t1.primary.length > 0 && t2.primary.length > 0) {
-            let bestPrimaryScore = 0;
-            for (let p1 of t1.primary) {
-                for (let p2 of t2.primary) {
-                    let s = this.wordSimilarity(p1, p2);
-                    if (s > bestPrimaryScore) bestPrimaryScore = s;
-                }
-            }
-            // Если первичные слова не совпали хотя бы на 50% — строки не подходят друг другу
-            if (bestPrimaryScore < 0.5) return 0.1; 
-        }
-        
-        // 2. Расчет общего балла похожести по всем словам
         let totalScore = 0;
         let matchedTokens2 = new Array(allTokens2.length).fill(false);
         
@@ -81,7 +81,7 @@ const FMUse = {
                     bestIdx = i;
                 }
             }
-            if (bestIdx !== -1 && bestScore > 0.5) {
+            if (bestIdx !== -1 && bestScore > 0.7) { // Порог совпадения слова 70%
                 matchedTokens2[bestIdx] = true;
                 totalScore += bestScore;
             }
@@ -91,7 +91,8 @@ const FMUse = {
     },
 
     // Сопоставление двух массивов строк 1-к-1
-    matchArrays(sourceArr, targetArr, threshold = 0.5) {
+    // Для станций используем строгий порог 0.8, чтобы избежать ложных срабатываний
+    matchArrays(sourceArr, targetArr, threshold = 0.8) {
         const pairs = [];
         const usedTargets = new Set();
         const scores = [];
