@@ -144,3 +144,7 @@ const FMUse = {
         return this.tokenizeAndClean(name).primary.join('_').substring(0, 25);
     }
 };
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = FMUse;
+}
