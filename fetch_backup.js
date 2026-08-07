@@ -159,13 +159,13 @@ function generateLists(data, citiesMap) {
         let foundGroup = null;
         for (const group of groups) {
             // Проверяем схожесть с главным именем группы
-            if (FMUse.compareTwoStrings(stName, group.mainName) > 0.65) {
+            if (FMUse.compareSets(stName, group.mainName) > 0.65) {
                 foundGroup = group;
                 break;
             }
             // И с вариантами
             for (const variant of group.variants) {
-                if (FMUse.compareTwoStrings(stName, variant) > 0.65) {
+                if (FMUse.compareSets(stName, variant) > 0.65) {
                     foundGroup = group;
                     break;
                 }

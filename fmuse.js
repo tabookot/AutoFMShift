@@ -123,6 +123,21 @@ const FMUse = {
         return pairs;
     },
 
+    // Сравнение двух строк как множеств слов (индекс Жаккара)
+    // Идеально для группировки, когда одно название может быть частью другого (Maximum vs Радио Maximum)
+    compareSets(first, second) {
+        const t1 = new Set(this.tokenizeAndClean(first).primary);
+        const t2 = new Set(this.tokenizeAndClean(second).primary);
+        if (t1.size === 0 || t2.size === 0) return 0;
+        
+        let intersection = 0;
+        for (const word of t1) {
+            if (t2.has(word)) intersection++;
+        }
+        const union = t1.size + t2.size - intersection;
+        return intersection / union;
+    },
+
     // Оценка качества сведения (0-5)
     evaluateSync(oldData, newData) {
         if (newData.length === 0) return 0; 
