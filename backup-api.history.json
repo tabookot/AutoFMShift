@@ -1050,6 +1050,347 @@
           "frequency_migrated": []
         }
       }
+    },
+    {
+      "timestamp": "2026-08-07T09:33:26.068Z",
+      "status": "success",
+      "requiresAttention": false,
+      "attentionReasons": [],
+      "changes": {
+        "cities": {
+          "new": [],
+          "deleted": [],
+          "renamed": []
+        },
+        "stations": {
+          "new": [
+            {
+              "city": "Белгород",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Иваново",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Липецк",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Москва",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Орёл",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Смоленск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Вологда",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Калининград",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Мурманск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Петрозаводск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Санкт-Петербург",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Сыктывкар",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Волгоград",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Краснодар",
+              "name": "? (Вещало на 104,1)"
+            },
+            {
+              "city": "Краснодар",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Ижевск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Казань",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Нижний Новгород",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Оренбург",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Пенза",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Пермь",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Самара",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Саранск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Саратов",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Уфа",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Екатеринбург",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Курган",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Салехард",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Тюмень",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Ханты-Мансийск",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Челябинск",
+              "name": "(ПЛАН) Comedy Radio"
+            },
+            {
+              "city": "Челябинск",
+              "name": "Comedy Radio\nВести FM / Вести FM — Южный Урал / ОТВ\nВести FM — Южный Урал\nРадио Ермак\nРадио Народный Хит\nВосточный Экспресс\nЭхо Москвы"
+            },
+            {
+              "city": "Барнаул",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Иркутск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Красноярск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Новосибирск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Омск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Томск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Петропавловск-Камчатский",
+              "name": "(БЫЛ ПЛАН) Comedy Radio"
+            },
+            {
+              "city": "Хабаровск",
+              "name": "Comedy Radio"
+            }
+          ],
+          "deleted": [
+            {
+              "city": "Белгород",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Иваново",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Липецк",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Москва",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Орёл",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Смоленск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Вологда",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Калининград",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Мурманск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Петрозаводск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Санкт-Петербург",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Сыктывкар",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Волгоград",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Краснодар",
+              "name": "? (Вещало на 104,1)"
+            },
+            {
+              "city": "Краснодар",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Ижевск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Казань",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Нижний Новгород",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Оренбург",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Пенза",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Пермь",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Самара",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Саранск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Саратов",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Уфа",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Екатеринбург",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Курган",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Салехард",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Тюмень",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Ханты-Мансийск",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Челябинск",
+              "name": "(ПЛАН) Comedy Radio"
+            },
+            {
+              "city": "Челябинск",
+              "name": "Comedy Radio\nВести FM / Вести FM — Южный Урал / ОТВ\nВести FM — Южный Урал\nРадио Ермак\nРадио Народный Хит\nВосточный Экспресс\nЭхо Москвы"
+            },
+            {
+              "city": "Барнаул",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Иркутск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Красноярск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Новосибирск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Омск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Томск",
+              "name": "Comedy Radio"
+            },
+            {
+              "city": "Петропавловск-Камчатский",
+              "name": "(БЫЛ ПЛАН) Comedy Radio"
+            },
+            {
+              "city": "Хабаровск",
+              "name": "Comedy Radio"
+            }
+          ],
+          "renamed": [],
+          "frequency_migrated": []
+        }
+      }
     }
   ]
 }
