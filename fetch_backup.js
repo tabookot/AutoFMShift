@@ -32,7 +32,7 @@ async function run() {
         report.changes = null;
         console.error("Ошибка: API недоступно.");
         saveHistory(report);
-        return; // Недоступность API не требует внимания
+        return;
     }
 
     const citiesMap = Api.parseCities(html);
@@ -48,6 +48,10 @@ async function run() {
 
     console.log(`Найдено городов: ${Object.keys(citiesMap).length}. Начинаем сбор станций...`);
     const newData = await Api.generateApiBackup(citiesMap, "0.5.1-github-action", () => false);
+
+    // --- ГЕНЕРАЦИЯ СПИСКОВ ---
+    generateLists(newData, citiesMap);
+    // -------------------------
 
     // 1. Сравнение городов
     const oldCities = oldData ? Object.values(oldData.cities).map(c => c.name) : [];
@@ -80,8 +84,6 @@ async function run() {
     if (oldData) {
         for (const slug in newData.cities) {
             const newCity = newData.cities[slug];
-            
-            // Ищем соответствующий старый город (по slug или по переименованию)
             let oldCity = oldData.cities[slug];
             if (!oldCity) {
                 const renamed = report.changes.cities.renamed.find(r => r.to === newCity.name);
@@ -99,11 +101,9 @@ async function run() {
                 stMatches.forEach(m => {
                     matchedOldSt.add(m.source);
                     matchedNewSt.add(m.target);
-                    
                     if (m.score < 0.99) {
                         report.changes.stations.renamed.push({ city: newCity.name, from: m.source, to: m.target, score: m.score });
                     } else {
-                        // Точное совпадение имени — проверяем частоту
                         const oldFreq = oldCity.stations.find(s => s.name === m.source).freq;
                         const newFreq = newCity.stations.find(s => s.name === m.target).freq;
                         if (oldFreq !== newFreq) {
@@ -118,7 +118,6 @@ async function run() {
         }
     }
 
-    // Сохраняем новый бэкап
     fs.writeFileSync('backup-api.json', JSON.stringify(newData, null, 2));
     console.log("Готово! backup-api.json обновлен.");
 
@@ -127,6 +126,80 @@ async function run() {
     if (report.requiresAttention) {
         await createIssue(report);
     }
+}
+
+// --- ФУНКЦИИ ГЕНЕРАЦИИ СПИСКОВ ---
+function generateLists(data, citiesMap) {
+    if (!fs.existsSync('lists')) {
+        fs.mkdirSync('lists', { recursive: true });
+    }
+
+    // 1. Список городов (Markdown)
+    const cityNames = Object.keys(citiesMap).sort();
+    let citiesMd = `# Список городов (${cityNames.length} шт.)\n\n`;
+    cityNames.forEach((c, i) => citiesMd += `${i + 1}. ${c}\n`);
+    fs.writeFileSync('lists/cities_list.md', citiesMd);
+    console.log("Сохранен lists/cities_list.md");
+
+    // 2. Группировка станций
+    const freqMap = {};
+    Object.values(data.cities).forEach(city => {
+        city.stations.forEach(st => {
+            const name = st.name.trim();
+            if (!freqMap[name]) freqMap[name] = 0;
+            freqMap[name]++;
+        });
+    });
+
+    // Сортируем по частоте (самые частые первыми)
+    const uniqueStations = Object.keys(freqMap).sort((a, b) => freqMap[b] - freqMap[a]);
+    const groups = [];
+
+    for (const stName of uniqueStations) {
+        let foundGroup = null;
+        for (const group of groups) {
+            // Проверяем схожесть с главным именем группы
+            if (FMUse.compareTwoStrings(stName, group.mainName) > 0.65) {
+                foundGroup = group;
+                break;
+            }
+            // И с вариантами
+            for (const variant of group.variants) {
+                if (FMUse.compareTwoStrings(stName, variant) > 0.65) {
+                    foundGroup = group;
+                    break;
+                }
+            }
+            if (foundGroup) break;
+        }
+
+        if (foundGroup) {
+            foundGroup.variants.push(stName);
+            foundGroup.count += freqMap[stName];
+        } else {
+            groups.push({ mainName: stName, count: freqMap[stName], variants: [stName] });
+        }
+    }
+
+    // Сортируем группы по количеству упоминаний
+    groups.sort((a, b) => b.count - a.count);
+
+    // Сохраняем станции в JSON (для API запросов)
+    fs.writeFileSync('lists/stations_groups.json', JSON.stringify(groups, null, 2));
+    console.log(`Сохранен lists/stations_groups.json (${groups.length} уникальных групп)`);
+
+    // Сохраняем в Markdown (для чтения нейросетью/человеком)
+    let stationsMd = `# Список станций (${groups.length} групп)\n\n`;
+    groups.forEach((g, i) => {
+        stationsMd += `### ${i + 1}. ${g.mainName} (упоминаний: ${g.count})\n`;
+        if (g.variants.length > 1) {
+            stationsMd += `*Варианты:* ${g.variants.filter(v => v !== g.mainName).join(', ')}\n\n`;
+        } else {
+            stationsMd += `\n`;
+        }
+    });
+    fs.writeFileSync('lists/stations_list.md', stationsMd);
+    console.log("Сохранен lists/stations_list.md");
 }
 
 function saveHistory(report) {
