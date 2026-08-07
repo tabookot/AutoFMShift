@@ -1,5 +1,5 @@
 // 0.5.5 | Rule: minor.major.build. build++ on full regen
-const VERSION = "0.5.5";
+const VERSION = "0.5.18";
 const CACHE_VERSION = "4"; 
  
 const LS_KEY = "fm_adapter_calc_v10"; 
@@ -51,6 +51,17 @@ let activePresetMenu = null;
 let saveStateTimer = null;
 let selectedTransferCity = null;
 let lastDataSource = '';
+let stationStreamMap = {};
+let audioPlayer = null;
+let currentPlayingStation = null;
+let currentStreamIndex = 0;
+let playTimeout = null;
+let isSkipping = false;
+let audioContext = null;
+let analyser = null;
+let sourceNode = null;
+let spectrumCanvas = null;
+let spectrumCtx = null;
 
 // THEME
 function initTheme() {
@@ -802,10 +813,33 @@ function renderStations() {
         }
         const nameDiv = document.createElement('div');
         nameDiv.className = 'name';
-        nameDiv.textContent = st.name;
-        nameDiv.setAttribute('title', st.name);
         nameDiv.style.cursor = 'pointer';
-        nameDiv.addEventListener('click', () => showToast(st.name)); 
+        nameDiv.setAttribute('title', st.name);
+        nameDiv.addEventListener('click', () => showToast(st.name));
+
+        const nameText = document.createElement('span');
+        nameText.className = 'name-text';
+        nameText.textContent = st.name;
+        nameDiv.appendChild(nameText);
+
+        const streamData = stationStreamMap[FMUse.generateCodeName(st.name)];
+        if (streamData && streamData.tags) {
+            const tagsSpan = document.createElement('span');
+            tagsSpan.className = 'tags';
+            tagsSpan.textContent = streamData.tags;
+            tagsSpan.title = streamData.tags;
+            nameDiv.appendChild(tagsSpan);
+        }
+
+        if (streamData && streamData.streams && streamData.streams.length > 0) {
+            const playBtn = document.createElement('button');
+            playBtn.className = 'play-btn-row';
+            if (streamData.broken) playBtn.classList.add('hidden'); // Скрываем кнопку у сломанных станций
+            playBtn.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+            playBtn.dataset.name = st.name;
+            playBtn.onclick = (e) => { e.stopPropagation(); togglePlay(st.name); };
+            nameDiv.appendChild(playBtn);
+        }
         item.appendChild(nameDiv);
         if (!isStandard) {
             const shiftedDiv = document.createElement('div');
@@ -962,6 +996,362 @@ function render() {
     }
 }
 
+// PLAYER LOGIC
+async function loadStationsData() {
+    try {
+        const res = await fetch('lists/stations_data.json');
+        if (res.ok) {
+            const data = await res.json();
+            data.forEach(st => {
+                if (st.streams && st.streams.length > 0) {
+                    stationStreamMap[FMUse.generateCodeName(st.name)] = st;
+                }
+            });
+        }
+    } catch (e) {}
+}
+
+function togglePlay(name) {
+    if (currentPlayingStation === name) {
+        if (audioPlayer.paused) {
+            audioPlayer.play().catch(e => audioPlayer.dispatchEvent(new Event('error')));
+        } else {
+            audioPlayer.pause();
+        }
+    } else {
+        playStation(name);
+    }
+    updatePlayerUI();
+}
+
+// Точечное скрытие кнопки у сломанной станции
+function hideStationButton(name) {
+    document.querySelectorAll('.play-btn-row').forEach(btn => {
+        if (btn.dataset.name === name) btn.classList.add('hidden');
+    });
+}
+
+// Функция попытки воспроизведения конкретного потока с таймаутом
+// Функция попытки воспроизведения конкретного потока с таймаутом
+function attemptPlay(name, streamIndex) {
+    return new Promise((resolve) => {
+        const streamData = stationStreamMap[FMUse.generateCodeName(name)];
+        if (!streamData || !streamData.streams || streamIndex >= streamData.streams.length || streamData.streams[streamIndex].broken) {
+            resolve(false); return;
+        }
+        
+        currentPlayingStation = name;
+        currentStreamIndex = streamIndex;
+        updatePlayerUI(); // Показываем загрузку
+        
+        let url = streamData.streams[streamIndex].url;
+        if (window.location.protocol === 'https:' && url.startsWith('http:')) {
+            url = 'https:' + url.substring(5);
+        }
+        
+        let settled = false;
+        const cleanup = () => {
+            clearTimeout(playTimeout);
+            audioPlayer.removeEventListener('playing', onPlaying);
+            audioPlayer.removeEventListener('error', onError);
+        };
+
+        initAudioContext();
+        
+        const onPlaying = () => { if (settled) return; settled = true; cleanup(); resolve(true); };
+        const onError = () => { if (settled) return; settled = true; cleanup(); resolve(false); };
+        
+        // Таймаут 8 секунд (некоторые станции долго буферят)
+        playTimeout = setTimeout(() => { 
+            if (settled) return; settled = true; cleanup(); 
+            audioPlayer.pause();
+            resolve(false); 
+        }, 8000);
+        
+        audioPlayer.addEventListener('playing', onPlaying);
+        audioPlayer.addEventListener('error', onError);
+        
+        audioPlayer.src = url;
+        audioPlayer.play().catch(e => { 
+            // Игнорируем AbortError (возникает при быстром переключении), ждем таймаут или успех
+            if (e.name !== 'AbortError') {
+                if (settled) return; settled = true; cleanup(); resolve(false); 
+            }
+        });
+    });
+}
+
+// Единая логика ручного запуска станции
+async function togglePlay(name) {
+    if (currentPlayingStation === name && !audioPlayer.paused) {
+        audioPlayer.pause();
+        updatePlayerUI();
+        return;
+    }
+    if (currentPlayingStation === name && audioPlayer.paused) {
+        audioPlayer.play().catch(() => {});
+        updatePlayerUI();
+        return;
+    }
+    
+    stopPlayer();
+    const streamData = stationStreamMap[FMUse.generateCodeName(name)];
+    if (!streamData || !streamData.streams || streamData.streams.length === 0) {
+        showToast("Нет потока для этой станции");
+        return;
+    }
+    
+    let played = false;
+    
+    // 1. Пробуем сохраненный поток
+    let savedIdx = parseInt(localStorage.getItem('fm_working_stream_' + FMUse.generateCodeName(name)));
+    if (!isNaN(savedIdx) && savedIdx < streamData.streams.length) {
+        played = await attemptPlay(name, savedIdx);
+        if (!played) streamData.streams[savedIdx].broken = true;
+    }
+    
+    // 2. Пробуем наибольший битрейт
+    if (!played) {
+        let bestBitrate = -1, bestIdx = -1;
+        streamData.streams.forEach((s, i) => { if (!s.broken && s.bitrate > bestBitrate) { bestBitrate = s.bitrate; bestIdx = i; } });
+        if (bestIdx !== -1) {
+            played = await attemptPlay(name, bestIdx);
+            if (!played) streamData.streams[bestIdx].broken = true;
+        }
+    }
+    
+    // 3. Пробуем остальные
+    if (!played) {
+        for (let i = 0; i < streamData.streams.length; i++) {
+            if (!streamData.streams[i].broken) {
+                played = await attemptPlay(name, i);
+                if (played) break;
+                streamData.streams[i].broken = true;
+            }
+        }
+    }
+    
+    if (played) {
+        localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(name), currentStreamIndex);
+        updatePlayerUI();
+        updateUrl();
+    } else {
+        streamData.broken = true;
+        hideStationButton(name);
+        stopPlayer();
+        showToast("Станция недоступна");
+    }
+}
+
+// Логика переключения станций кнопками Next/Prev
+async function skipStation(dir) {
+    if (isSkipping) return; // Блокируем повторные нажатия во время перебора
+    isSkipping = true;
+    audioPlayer.pause();
+    
+    const playable = state.stations.filter(st => {
+        const data = stationStreamMap[FMUse.generateCodeName(st.name)];
+        return data && data.streams && !data.broken;
+    });
+    
+    if (playable.length === 0) {
+        showToast("Нет доступных станций с потоками");
+        stopPlayer();
+        isSkipping = false;
+        renderStations(); // Обновляем таблицу, чтобы скрыть кнопки сломанных
+        return;
+    }
+
+    let currentIdx = currentPlayingStation ? playable.findIndex(st => st.name === currentPlayingStation) : -1;
+    let nextIdx;
+    if (currentIdx === -1) {
+        // Если плеер выключен, Next начинает с 0, Prev с последней
+        nextIdx = dir === 1 ? 0 : playable.length - 1;
+    } else {
+        nextIdx = currentIdx + dir;
+        if (nextIdx < 0) nextIdx = playable.length - 1;
+        if (nextIdx >= playable.length) nextIdx = 0;
+    }
+
+    let attempts = 0;
+
+    while (attempts <= playable.length) {
+        const st = playable[nextIdx];
+        const streamData = stationStreamMap[FMUse.generateCodeName(st.name)];
+        let played = false;
+        
+        for (let i = 0; i < streamData.streams.length; i++) {
+            if (!streamData.streams[i].broken) {
+                played = await attemptPlay(st.name, i);
+                if (played) break;
+                streamData.streams[i].broken = true;
+            }
+        }
+        
+        if (played) {
+            localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(st.name), currentStreamIndex);
+            updatePlayerUI();
+            updateUrl();
+            isSkipping = false;
+            return;
+        } else {
+            streamData.broken = true;
+            hideStationButton(st.name);
+        }
+        
+        nextIdx += dir;
+        if (nextIdx < 0) nextIdx = playable.length - 1;
+        if (nextIdx >= playable.length) nextIdx = 0;
+        attempts++;
+    }
+    
+    showToast("Рабочие потоки не найдены");
+    stopPlayer();
+    isSkipping = false;
+    renderStations(); // Обновляем таблицу, чтобы скрыть кнопки сломанных
+}
+
+function stopPlayer() {
+    audioPlayer.pause();
+    audioPlayer.src = '';
+    currentPlayingStation = null;
+    updatePlayerUI();
+    updateUrl();
+}
+
+function initAudioContext() {
+    if (!audioContext) {
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 128;
+            sourceNode = audioContext.createMediaElementSource(audioPlayer);
+            sourceNode.connect(analyser);
+            analyser.connect(audioContext.destination);
+        } catch (e) { console.error("AudioContext not supported", e); }
+    }
+    if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
+}
+
+function drawSpectrum() {
+    if (!spectrumCtx) {
+        requestAnimationFrame(drawSpectrum);
+        return;
+    }
+    
+    if (spectrumCanvas.offsetWidth > 0) {
+        spectrumCanvas.width = spectrumCanvas.offsetWidth;
+    }
+    if (spectrumCanvas.offsetHeight > 0) {
+        spectrumCanvas.height = spectrumCanvas.offsetHeight;
+    }
+    
+    const w = spectrumCanvas.width;
+    const h = spectrumCanvas.height;
+    
+    if (w === 0 || h === 0) {
+        requestAnimationFrame(drawSpectrum);
+        return;
+    }
+    
+    spectrumCtx.clearRect(0, 0, w, h);
+    
+    if (analyser && !audioPlayer.paused && currentPlayingStation) {
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteFrequencyData(dataArray);
+        
+        const barWidth = w / bufferLength;
+        let x = 0;
+        
+        const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#00d4ff';
+        spectrumCtx.shadowBlur = 4;
+        spectrumCtx.shadowColor = accentColor;
+        
+        for (let i = 0; i < bufferLength; i++) {
+            const barHeight = (dataArray[i] / 255) * h * 0.95;
+            const bw = Math.max(1, barWidth - 2);
+            
+            const grad = spectrumCtx.createLinearGradient(0, h, 0, h - barHeight);
+            grad.addColorStop(0, accentColor);
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            spectrumCtx.fillStyle = grad;
+            
+            spectrumCtx.beginPath();
+            if (spectrumCtx.roundRect) {
+               spectrumCtx.roundRect(x, h - barHeight, bw, barHeight, [2, 2, 0, 0]);
+            } else {
+               spectrumCtx.rect(x, h - barHeight, bw, barHeight);
+            }
+            spectrumCtx.fill();
+            x += barWidth;
+        }
+    }
+    requestAnimationFrame(drawSpectrum);
+}
+
+function updatePlayerUI() {
+    const playerPanel = document.getElementById('playerPanel');
+    const playerPlayBtn = document.getElementById('playerPlayBtn');
+    const playerLogo = document.getElementById('playerLogo');
+    const playerName = document.getElementById('playerName');
+    const playerStreamInfo = document.getElementById('playerStreamInfo');
+
+    if (currentPlayingStation) {
+        const streamData = stationStreamMap[FMUse.generateCodeName(currentPlayingStation)];
+        if (streamData) {
+            playerPanel.style.display = 'flex';
+            
+            // Скрываем логотип, если ссылка битая
+            playerLogo.onerror = () => { playerLogo.style.display = 'none'; playerLogo.removeAttribute('src'); };
+            if (streamData.favicon) {
+                playerLogo.src = streamData.favicon;
+                playerLogo.style.display = 'block';
+            } else {
+                playerLogo.style.display = 'none';
+                playerLogo.removeAttribute('src');
+            }
+            playerName.textContent = currentPlayingStation;
+            playerName.href = streamData.homepage || '#';
+            
+            if (streamData.streams && streamData.streams[currentStreamIndex]) {
+                const stream = streamData.streams[currentStreamIndex];
+                let infoText = "";
+                if (streamData.streams.length > 1) {
+                    infoText += `${currentStreamIndex + 1}/${streamData.streams.length} • `;
+                }
+                infoText += `${stream.bitrate || '?'}k`;
+                playerStreamInfo.textContent = infoText;
+                playerStreamInfo.style.cursor = streamData.streams.length > 1 ? 'pointer' : 'default';
+            }
+            
+            playerPlayBtn.innerHTML = audioPlayer.paused 
+                ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>' 
+                : '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
+            playerPlayBtn.title = audioPlayer.paused ? 'Воспроизвести' : 'Пауза';
+        }
+    } else {
+        playerPanel.style.display = 'none';
+    }
+
+    document.querySelectorAll('.station-item').forEach(item => {
+        const btn = item.querySelector('.play-btn-row');
+        if (!btn) return;
+        const itemName = btn.dataset.name;
+        if (itemName === currentPlayingStation) {
+            btn.classList.add('active');
+            btn.innerHTML = audioPlayer.paused 
+                ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>' 
+                : '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
+        } else {
+            btn.classList.remove('active');
+            btn.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+        }
+    });
+}
+
 // STATE & PERSISTENCE
 function commitState() {
     state.lastModified = Date.now();
@@ -1031,6 +1421,10 @@ function updateUrl() {
         mode: state.settingsMode ? 1 : 0, bands: state.bands, presets: state.presets,
         ts: state.lastModified || Date.now(), data: serializeCityData(state.city)
     });
+    if (currentPlayingStation) {
+        params.set('play', currentPlayingStation);
+        params.set('stream', currentStreamIndex);
+    }
     history.replaceState(null, "", `#${params.toString()}`);
 }
 function loadFromUrl() {
@@ -1393,6 +1787,7 @@ async function init() {
     initTheme();
     await loadCyrillicFont();
     document.getElementById('appVersion').textContent = 'v' + VERSION;
+    document.getElementById('logoBtn').title = `AutoFMShift v${VERSION}`;
     
     const citySelectMenu = document.getElementById("citySelectMenu");
     const citySelectTrigger = document.getElementById("citySelectTrigger");
@@ -1594,8 +1989,111 @@ async function init() {
         state.isGuestMode = false;
     }
 
+    await loadStationsData();
     applySettingsMode();
+
+    audioPlayer = document.getElementById('audioPlayer');
+    const savedVol = localStorage.getItem('fm_player_volume');
+    audioPlayer.volume = savedVol !== null ? parseFloat(savedVol) : 1;
     
+    document.getElementById('logoBtn').onclick = () => window.open('https://github.com/tabookot/AutoFMShift', '_blank', 'noopener');
+    document.getElementById('playerStreamInfo').onclick = () => {
+        if (currentPlayingStation) {
+            const streamData = stationStreamMap[FMUse.generateCodeName(currentPlayingStation)];
+            if (streamData && streamData.streams && streamData.streams.length > 1) {
+                currentStreamIndex = (currentStreamIndex + 1) % streamData.streams.length;
+                playStation(currentPlayingStation, currentStreamIndex, true);
+            }
+        }
+    };
+    
+    const volumeSlider = document.getElementById('volumeSlider');
+    volumeSlider.value = audioPlayer.volume;
+    
+    const updateVolume = (val) => {
+        val = Math.max(0, Math.min(1, val));
+        volumeSlider.value = val;
+        audioPlayer.volume = val;
+        localStorage.setItem('fm_player_volume', val);
+        
+        // Динамически закрашиваем шкалу (колбу) внутри
+        const percent = Math.round(val * 100);
+        volumeSlider.style.background = `linear-gradient(to top, var(--accent) ${percent}%, var(--border) ${percent}%)`;
+        
+        volumeSlider.title = `Громкость: ${percent}%`;
+    };
+    updateVolume(audioPlayer.volume); // Инициализация хинта и фона при старте
+
+    volumeSlider.addEventListener('input', (e) => updateVolume(parseFloat(e.target.value)));
+    volumeSlider.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        let val = parseFloat(volumeSlider.value);
+        if (e.deltaY < 0) val += 0.02; else val -= 0.02;
+        updateVolume(val);
+    });
+    let volTouchY = null;
+    volumeSlider.addEventListener('touchstart', (e) => { volTouchY = e.touches[0].clientY; }, { passive: true });
+    volumeSlider.addEventListener('touchmove', (e) => {
+        if (volTouchY === null) return;
+        e.preventDefault();
+        const currentY = e.touches[0].clientY;
+        const deltaY = volTouchY - currentY;
+        let val = parseFloat(volumeSlider.value) + (deltaY / 100);
+        updateVolume(val);
+        volTouchY = currentY;
+    }, { passive: false });
+
+    spectrumCanvas = document.getElementById('spectrumCanvas');
+    spectrumCtx = spectrumCanvas.getContext('2d');
+    drawSpectrum();
+
+    // Восстановление плеера из URL (в состоянии паузы)
+    const hashParams = new URLSearchParams(location.hash.slice(1));
+    const playName = hashParams.get("play");
+    const streamIdxParam = hashParams.get("stream");
+    if (playName) {
+        const decodedName = decodeURIComponent(playName);
+        const streamData = stationStreamMap[FMUse.generateCodeName(decodedName)];
+        if (streamData && streamData.streams && streamData.streams.length > 0) {
+            let idx = streamIdxParam !== null ? parseInt(streamIdxParam) : 0;
+            if (isNaN(idx) || idx >= streamData.streams.length) idx = 0;
+            
+            currentPlayingStation = decodedName;
+            currentStreamIndex = idx;
+            
+            let urlStream = streamData.streams[idx].url;
+            if (window.location.protocol === 'https:' && urlStream.startsWith('http:')) {
+                urlStream = 'https:' + urlStream.substring(5);
+            }
+            audioPlayer.src = urlStream; // Загружаем, но не запускаем play()
+            updatePlayerUI();
+        }
+    }
+
+
+    audioPlayer.addEventListener('pause', () => updatePlayerUI());
+    audioPlayer.addEventListener('play', () => updatePlayerUI());
+
+    document.getElementById('playerPlayBtn').addEventListener('click', () => {
+        if (currentPlayingStation) {
+            if (audioPlayer.paused) audioPlayer.play().catch(()=>{});
+            else audioPlayer.pause();
+            updatePlayerUI();
+        }
+    });
+    document.getElementById('playerStopBtn').addEventListener('click', () => {
+        stopPlayer();
+        renderStations();
+    });
+
+    // Поддержка системных медиа-кнопок
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', () => { if (currentPlayingStation) audioPlayer.play().catch(()=>{}); });
+        navigator.mediaSession.setActionHandler('pause', () => audioPlayer.pause());
+        navigator.mediaSession.setActionHandler('previoustrack', () => skipStation(-1));
+        navigator.mediaSession.setActionHandler('nexttrack', () => skipStation(1));
+    }
+
     const html = await Api.fetchPage(Api.MAIN_PAGE);
     if (html) {
         const newCities = Api.parseCities(html);
@@ -1647,6 +2145,12 @@ async function init() {
 async function loadCity(city) {
     if (!citiesMap[city] && !state.cityData[city]?.allStations) return;
     state.city = city;
+    
+    // Сбрасываем статус сломанных потоков при смене города
+    Object.values(stationStreamMap).forEach(data => {
+        data.broken = false;
+        if (data.streams) data.streams.forEach(s => s.broken = false);
+    });
     
     state.stations = []; 
     const list = document.getElementById('stationsList');
