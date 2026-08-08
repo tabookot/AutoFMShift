@@ -1,5 +1,5 @@
-// 0.5.27 | Rule: minor.major.build. build++ on full regen
-const VERSION = "0.5.27";
+// Rule: minor.major.build in VERSION build++ on module regeneration
+const VERSION = "0.5.33";
 const CACHE_VERSION = "4"; 
  
 const LS_KEY = "fm_adapter_calc_v10"; 
@@ -19,11 +19,14 @@ const EXCELJS_BORDER = {
 
 const TEMPLATES = [
     { name: "Россия / Европа", short: "ru/eu", range: [RU_MIN, RU_MAX] },
-    { name: "Япония (до 2014)", short: "jp-old", range: [76.0, 90.0] },
-    { name: "Япония (Wide FM)", short: "jp-wide", range: [76.0, 95.0] },
-    { name: "США", short: "usa", range: [87.9, 107.9] },
-    { name: "OIRT / СССР / Восточная Европа", short: "oirt", range: [65.9, 74.0] },
-    { name: "Свой вариант", short: "свой", range: [76.0, 108.0] }
+    { name: "Япония (до ~2014)", short: "jp-old", range: [76.0, 90.0] },
+    { name: "Япония (≈2014–2020)", short: "jp-wide", range: [76.0, 95.0] },
+    { name: "Япония (≈2020+)", short: "jp-ext", range: [76.0, 99.0] },
+    { name: "США / Канада", short: "us/ca", range: [87.9, 107.9] },
+    { name: "Китай", short: "cn", range: [87.5, 108.0] },
+    { name: "Корея", short: "kr", range: [88.0, 108.0] },
+    { name: "OIRT / СССР", short: "oirt", range: [65.9, 74.0] },
+    { name: "Свой диапазон", short: "custom", range: [76.0, 108.0] }
 ];
 
 const SHIFTS = [0, 10, 12, 14, 16, 18, 20, 24, 28, 30];
@@ -57,6 +60,9 @@ let currentPlayingStation = null;
 let currentStreamIndex = 0;
 let playTimeout = null;
 let isSkipping = false;
+let isSwitchingStream = false;
+let titleRotationInterval = null;
+let titleRotationStation = null;
 let audioContext = null;
 let analyser = null;
 let sourceNode = null;
@@ -724,12 +730,13 @@ function renderAdapters() {
     if (isStandard) { panel.style.display = "none"; return; }
     panel.style.display = "block";
     const { statuses, best } = evaluateShifts();
+    updateAccentColor(statuses);
     const addChip = (shift, statusData) => {
         const chip = document.createElement("button");
         const statusType = statusData.type;
         const ratio = statusData.ratio || 0;
         chip.className = `chip ${statusType || ''}`;
-        let tipText = `Сдвиг ${shift} МГц. `;
+        let tipText = shift === 0 ? "Без сдвига. " : `Сдвиг ${shift} МГц. `;
         if (statusType === 'full') tipText += "Все станции доступны.";
         else if (statusType === 'partial') tipText += `Доступно ${Math.round(ratio * 100)}% станций.`;
         else tipText += "Станции недоступны.";
@@ -738,6 +745,7 @@ function renderAdapters() {
         if (shift === best && statusType === 'full') chip.classList.add('best');
         if (shift === state.shift) chip.classList.add("active");
         chip.textContent = shift === 0 ? "0" : shift;
+        
         if (statusType === 'partial') {
             const r = Math.round(255 - 14 * ratio);
             const g = Math.round(71 + 125 * ratio);
@@ -745,12 +753,61 @@ function renderAdapters() {
             const color = `rgb(${r}, ${g}, ${b})`;
             chip.style.color = color; chip.style.borderColor = color;
             if (shift === state.shift) { chip.style.backgroundColor = color; chip.style.color = 'var(--bg)'; }
+        } else if (shift === 0 && shift === state.shift) {
+            // Окрашиваем кнопку 0 в акцентный цвет, когда она активна
+            chip.style.color = 'var(--bg)';
+            chip.style.borderColor = 'var(--accent)';
+            chip.style.backgroundColor = 'var(--accent)';
         }
         chip.onclick = (e) => { state.shift = shift; commitState(); render(); };
         chips.appendChild(chip);
     };
     SHIFTS.forEach(s => addChip(s, statuses[s] || { type: 'none' }));
 }
+function updateAccentColor(statuses) {
+    const root = document.documentElement;
+    const isDark = root.getAttribute('data-theme') === 'dark' || !root.getAttribute('data-theme');
+    
+    let accentColor;
+    
+    if (state.min === RU_MIN && state.max === RU_MAX || state.shift === 0) {
+        // Стандартный режим или сдвиг 0 — возвращаем дефолтный голубой
+        accentColor = isDark ? '#00d4ff' : '#0096c7';
+    } else {
+        const status = statuses[state.shift] || { type: 'none' };
+        const ratio = status.ratio || 0;
+        
+        if (status.type === 'full' || status.type === 'best') {
+            accentColor = isDark ? '#2ecc71' : '#27ae60';
+        } else if (status.type === 'partial') {
+            // Градиент от желтого к красному в зависимости от процента покрытия
+            // Цвета для темной темы
+            const darkYellow = { r: 241, g: 196, b: 15 };
+            const darkPink = { r: 255, g: 71, b: 87 };
+            // Цвета для светлой темы (более темные и насыщенные)
+            const lightYellow = { r: 243, g: 156, b: 18 };
+            const lightPink = { r: 231, g: 76, b: 60 };
+            
+            const start = isDark ? darkYellow : lightYellow;
+            const end = isDark ? darkPink : lightPink;
+            
+            // ratio 1.0 (100%) = желтый, ratio 0.0 (0%) = красный.
+            // Чем больше станций доступно, тем желтее цвет.
+            const r = Math.round(start.r + (end.r - start.r) * (1 - ratio));
+            const g = Math.round(start.g + (end.g - start.g) * (1 - ratio));
+            const b = Math.round(start.b + (end.b - start.b) * (1 - ratio));
+            
+            accentColor = `rgb(${r}, ${g}, ${b})`;
+        } else { // none
+            // Берем цвет --pink напрямую из CSS, чтобы совпадало со справкой
+            accentColor = getComputedStyle(root).getPropertyValue('--pink').trim() || '#ff4757';
+        }
+    }
+    
+    root.style.setProperty('--accent', accentColor);
+    root.style.setProperty('--knob', accentColor); // Меняем цвет логотипа-КПП
+}
+
 function renderStations() {
     const list = document.getElementById("stationsList");
     list.innerHTML = "";
@@ -813,13 +870,16 @@ function renderStations() {
         }
         const nameDiv = document.createElement('div');
         nameDiv.className = 'name';
-        nameDiv.style.cursor = 'pointer';
-        nameDiv.setAttribute('title', st.name);
-        nameDiv.addEventListener('click', () => showToast(st.name));
-
+        
         const nameText = document.createElement('span');
         nameText.className = 'name-text';
         nameText.textContent = st.name;
+        nameText.style.cursor = 'pointer';
+        nameText.setAttribute('title', st.name);
+        nameText.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showToast(st.name);
+        });
         nameDiv.appendChild(nameText);
 
         const streamData = stationStreamMap[FMUse.generateCodeName(st.name)];
@@ -1004,7 +1064,16 @@ async function loadStationsData() {
             const data = await res.json();
             data.forEach(st => {
                 if (st.streams && st.streams.length > 0) {
-                    stationStreamMap[FMUse.generateCodeName(st.name)] = st;
+                    // Очищаем поля от строковых "null" и "undefined"
+                    if (st.favicon === "null" || st.favicon === "undefined") st.favicon = "";
+                    if (st.homepage === "null" || st.homepage === "undefined") st.homepage = "";
+                    
+                    // Фильтруем потоки с невалидными URL
+                    st.streams = st.streams.filter(s => s.url && s.url !== "null" && s.url !== "undefined");
+                    
+                    if (st.streams.length > 0) {
+                        stationStreamMap[FMUse.generateCodeName(st.name)] = st;
+                    }
                 }
             });
         }
@@ -1032,7 +1101,6 @@ function hideStationButton(name) {
 }
 
 // Функция попытки воспроизведения конкретного потока с таймаутом
-// Функция попытки воспроизведения конкретного потока с таймаутом
 function attemptPlay(name, streamIndex) {
     return new Promise((resolve) => {
         const streamData = stationStreamMap[FMUse.generateCodeName(name)];
@@ -1045,6 +1113,10 @@ function attemptPlay(name, streamIndex) {
         updatePlayerUI(); // Показываем загрузку
         
         let url = streamData.streams[streamIndex].url;
+        if (!url || url === 'null' || url === 'undefined' || url === '') {
+            if (settled) return; settled = true; cleanup(); resolve(false);
+            return;
+        }
         if (window.location.protocol === 'https:' && url.startsWith('http:')) {
             url = 'https:' + url.substring(5);
         }
@@ -1058,7 +1130,13 @@ function attemptPlay(name, streamIndex) {
 
         initAudioContext();
         
-        const onPlaying = () => { if (settled) return; settled = true; cleanup(); resolve(true); };
+        const onPlaying = () => { 
+            if (settled) return; 
+            settled = true; 
+            cleanup(); 
+            updateMediaSession();
+            resolve(true); 
+        };
         const onError = () => { if (settled) return; settled = true; cleanup(); resolve(false); };
         
         // Таймаут 8 секунд (некоторые станции долго буферят)
@@ -1094,7 +1172,10 @@ async function togglePlay(name) {
         return;
     }
     
-    stopPlayer();
+    // Сохраняем текущую играющую станцию, чтобы вернуться к ней в случае ошибки
+    const oldStation = currentPlayingStation;
+    const oldStreamIndex = currentStreamIndex;
+    
     const streamData = stationStreamMap[FMUse.generateCodeName(name)];
     if (!streamData || !streamData.streams || streamData.streams.length === 0) {
         showToast("Нет потока для этой станции");
@@ -1105,7 +1186,7 @@ async function togglePlay(name) {
     
     // 1. Пробуем сохраненный поток
     let savedIdx = parseInt(localStorage.getItem('fm_working_stream_' + FMUse.generateCodeName(name)));
-    if (!isNaN(savedIdx) && savedIdx < streamData.streams.length) {
+    if (!isNaN(savedIdx) && savedIdx < streamData.streams.length && !streamData.streams[savedIdx].broken) {
         played = await attemptPlay(name, savedIdx);
         if (!played) streamData.streams[savedIdx].broken = true;
     }
@@ -1138,8 +1219,17 @@ async function togglePlay(name) {
     } else {
         streamData.broken = true;
         hideStationButton(name);
-        stopPlayer();
         showToast("Станция недоступна");
+        
+        // Если до этого уже играла другая станция — возвращаемся к ней
+        if (oldStation) {
+            currentPlayingStation = oldStation;
+            currentStreamIndex = oldStreamIndex;
+            await attemptPlay(oldStation, oldStreamIndex);
+            updatePlayerUI();
+        } else {
+            stopPlayer();
+        }
     }
 }
 
@@ -1151,7 +1241,13 @@ async function skipStation(dir) {
     
     const playable = state.stations.filter(st => {
         const data = stationStreamMap[FMUse.generateCodeName(st.name)];
-        return data && data.streams && !data.broken;
+        if (!data || !data.streams || data.broken) return false;
+        // Пропускаем помеченные как мусор, если режим настроек включен
+        if (state.settingsMode) {
+            const stationData = getStationData(st.name);
+            if (stationData.type === 'trash') return false;
+        }
+        return true;
     });
     
     if (playable.length === 0) {
@@ -1292,6 +1388,43 @@ function drawSpectrum() {
     requestAnimationFrame(drawSpectrum);
 }
 
+function updateMediaSession() {
+    if (!('mediaSession' in navigator) || !currentPlayingStation) return;
+    
+    const streamData = stationStreamMap[FMUse.generateCodeName(currentPlayingStation)];
+    if (!streamData) return;
+
+    // Формируем строку с битрейтом и кодеком для поля "Artist" (нижняя строка в карточке ОС)
+    let infoStr = state.city;
+    if (streamData.streams && streamData.streams[currentStreamIndex]) {
+        const stream = streamData.streams[currentStreamIndex];
+        const infoParts = [];
+        if (streamData.streams.length > 1) infoParts.push(`Поток ${currentStreamIndex + 1}/${streamData.streams.length}`);
+        if (stream.bitrate) infoParts.push(`${stream.bitrate}k`);
+        if (stream.codec) infoParts.push(stream.codec.toUpperCase());
+        if (infoParts.length > 0) infoStr += ` • ${infoParts.join(' ')}`;
+    }
+
+    // Выбираем логотип: станции или дефолтный
+    const artwork = streamData.favicon ? [
+        { src: streamData.favicon, sizes: '96x96', type: 'image/png' },
+        { src: streamData.favicon, sizes: '256x256', type: 'image/png' },
+        { src: streamData.favicon, sizes: '512x512', type: 'image/png' }
+    ] : [
+        { src: 'img/logo_100.png', sizes: '96x96', type: 'image/png' },
+        { src: 'img/logo_100.png', sizes: '256x256', type: 'image/png' }
+    ];
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentPlayingStation,
+        artist: infoStr,
+        album: 'AutoFMShift',
+        artwork: artwork
+    });
+    
+    navigator.mediaSession.playbackState = audioPlayer.paused ? "paused" : "playing";
+}
+
 function updatePlayerUI() {
     const playerPanel = document.getElementById('playerPanel');
     const playerPlayBtn = document.getElementById('playerPlayBtn');
@@ -1304,31 +1437,58 @@ function updatePlayerUI() {
         if (streamData) {
             playerPanel.style.display = 'flex';
             
-            // Скрываем логотип, если ссылка битая
-            playerLogo.onerror = () => { playerLogo.style.display = 'none'; playerLogo.removeAttribute('src'); };
-            if (streamData.favicon) {
-                playerLogo.src = streamData.favicon;
-                playerLogo.style.display = 'block';
+            // Заменяем логотип программы на логотип станции, если он реально доступен
+            const logoBtn = document.getElementById('logoBtn');
+            const originalLogo = "img/logo_100.png";
+            if (streamData.favicon && streamData.favicon !== 'null' && streamData.favicon !== 'undefined') {
+                const img = new Image();
+                img.onload = () => {
+                    logoBtn.style.backgroundImage = `url('${streamData.favicon}')`;
+                    playerLogo.style.display = 'none'; // Прячем дубликат внутри плеера
+                };
+                img.onerror = () => {
+                    logoBtn.style.backgroundImage = `url('${originalLogo}')`;
+                    playerLogo.style.display = 'none';
+                };
+                img.src = streamData.favicon;
             } else {
+                logoBtn.style.backgroundImage = `url('${originalLogo}')`;
                 playerLogo.style.display = 'none';
-                playerLogo.removeAttribute('src');
             }
+
             playerName.textContent = currentPlayingStation;
             playerName.href = streamData.homepage || '#';
             
+            // Добавляем хинт с полным названием только если текст обрезан (есть многоточие)
+            if (playerName.offsetWidth < playerName.scrollWidth) {
+                playerName.title = currentPlayingStation;
+            } else {
+                playerName.removeAttribute('title');
+            }
+            
             if (streamData.streams && streamData.streams[currentStreamIndex]) {
                 const stream = streamData.streams[currentStreamIndex];
-                let infoText = "";
                 const genres = streamData.tags || "";
                 
-                if (streamData.streams.length > 1) {
-                    infoText += `${currentStreamIndex + 1}/${streamData.streams.length} • `;
-                }
-                infoText += `${stream.bitrate || '?'}k`;
-                if (genres) infoText += ` • ${genres}`;
+                const parts = [];
+                const titleParts = [`Поток ${currentStreamIndex + 1}/${streamData.streams.length}`];
                 
-                playerStreamInfo.textContent = infoText;
-                playerStreamInfo.title = `Поток ${currentStreamIndex + 1}/${streamData.streams.length} • ${stream.bitrate || '?'}k • ${genres}`;
+                if (streamData.streams.length > 1) parts.push(`${currentStreamIndex + 1}/${streamData.streams.length}`);
+                if (stream.bitrate) {
+                    parts.push(`${stream.bitrate}k`);
+                    titleParts.push(`${stream.bitrate}k`);
+                }
+                if (stream.codec) {
+                    parts.push(stream.codec.toUpperCase());
+                    titleParts.push(stream.codec.toUpperCase());
+                }
+                if (genres) {
+                    parts.push(genres);
+                    titleParts.push(genres);
+                }
+                
+                playerStreamInfo.textContent = parts.join(' • ');
+                playerStreamInfo.title = titleParts.join(' • ');
                 
                 if (streamData.streams.length > 1) {
                     playerStreamInfo.classList.add('active-link');
@@ -1343,9 +1503,32 @@ function updatePlayerUI() {
                 ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>' 
                 : '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
             playerPlayBtn.title = audioPlayer.paused ? 'Воспроизвести' : 'Пауза';
+            
+            updateMediaSession();
         }
     } else {
         playerPanel.style.display = 'none';
+        // Возвращаем оригинальный логотип программы при выключении плеера
+        document.getElementById('logoBtn').style.backgroundImage = `url('img/logo_100.png')`;
+    }
+
+    // Бегущая строка с названием станции в заголовке вкладки
+    if (currentPlayingStation && !audioPlayer.paused) {
+        if (!titleRotationInterval || titleRotationStation !== currentPlayingStation) {
+            if (titleRotationInterval) clearInterval(titleRotationInterval);
+            titleRotationStation = currentPlayingStation;
+            let titleStr = `AutoFMShift ▶ ${currentPlayingStation} • • • `;
+            titleRotationInterval = setInterval(() => {
+                titleStr = titleStr.substring(1) + titleStr.charAt(0);
+                document.title = titleStr;
+            }, 350);
+        }
+    } else {
+        if (titleRotationInterval) {
+            clearInterval(titleRotationInterval);
+            titleRotationInterval = null;
+        }
+        document.title = 'AutoFMShift';
     }
 
     document.querySelectorAll('.station-item').forEach(item => {
@@ -2009,15 +2192,7 @@ async function init() {
     audioPlayer.volume = savedVol !== null ? parseFloat(savedVol) : 1;
     
     document.getElementById('logoBtn').onclick = () => window.open('https://github.com/tabookot/AutoFMShift', '_blank', 'noopener');
-    document.getElementById('playerStreamInfo').onclick = () => {
-        if (currentPlayingStation) {
-            const streamData = stationStreamMap[FMUse.generateCodeName(currentPlayingStation)];
-            if (streamData && streamData.streams && streamData.streams.length > 1) {
-                currentStreamIndex = (currentStreamIndex + 1) % streamData.streams.length;
-                playStation(currentPlayingStation, currentStreamIndex, true);
-            }
-        }
-    };
+
     
     const volumeSlider = document.getElementById('volumeSlider');
     volumeSlider.value = audioPlayer.volume;
@@ -2060,7 +2235,7 @@ async function init() {
     spectrumCtx = spectrumCanvas.getContext('2d');
     drawSpectrum();
 
-    // Восстановление плеера из URL (в состоянии паузы)
+    // Восстановление плеера из URL (только UI, без загрузки потока до клика)
     const hashParams = new URLSearchParams(location.hash.slice(1));
     const playName = hashParams.get("play");
     const streamIdxParam = hashParams.get("stream");
@@ -2073,24 +2248,41 @@ async function init() {
             
             currentPlayingStation = decodedName;
             currentStreamIndex = idx;
-            
-            let urlStream = streamData.streams[idx].url;
-            if (window.location.protocol === 'https:' && urlStream.startsWith('http:')) {
-                urlStream = 'https:' + urlStream.substring(5);
-            }
-            audioPlayer.src = urlStream; // Загружаем, но не запускаем play()
-            updatePlayerUI();
+            updatePlayerUI(); // Показываем панель, но src оставляем пустым
         }
     }
 
 
-    audioPlayer.addEventListener('pause', () => updatePlayerUI());
-    audioPlayer.addEventListener('play', () => updatePlayerUI());
+    audioPlayer.addEventListener('pause', () => {
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "paused";
+        updatePlayerUI();
+    });
+    audioPlayer.addEventListener('play', () => {
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "playing";
+        updatePlayerUI();
+    });
 
     document.getElementById('playerPlayBtn').addEventListener('click', () => {
         if (currentPlayingStation) {
-            if (audioPlayer.paused) audioPlayer.play().catch(()=>{});
-            else audioPlayer.pause();
+            if (audioPlayer.paused) {
+                // Если src пустой (восстановлено из URL) — запускаем через attemptPlay
+                if (!audioPlayer.src || audioPlayer.src === window.location.href) {
+                    attemptPlay(currentPlayingStation, currentStreamIndex).then(played => {
+                        if (played) {
+                            localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), currentStreamIndex);
+                            updatePlayerUI();
+                            updateUrl();
+                        } else {
+                            showToast("Поток недоступен");
+                            stopPlayer();
+                        }
+                    });
+                } else {
+                    audioPlayer.play().catch(()=>{});
+                }
+            } else {
+                audioPlayer.pause();
+            }
             updatePlayerUI();
         }
     });
@@ -2101,52 +2293,63 @@ async function init() {
     document.getElementById('playerPrevBtn').addEventListener('click', () => skipStation(-1));
     document.getElementById('playerNextBtn').addEventListener('click', () => skipStation(1));
     
-    document.getElementById('playerStreamInfo').addEventListener('click', (e) => {
+    document.getElementById('playerStreamInfo').addEventListener('click', async (e) => {
         e.preventDefault();
-        if (currentPlayingStation) {
-            const streamData = stationStreamMap[FMUse.generateCodeName(currentPlayingStation)];
-            if (streamData && streamData.streams && streamData.streams.length > 1) {
-                currentStreamIndex = (currentStreamIndex + 1) % streamData.streams.length;
-                attemptPlay(currentPlayingStation, currentStreamIndex, true).then(played => {
-                    if (played) {
-                        localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), currentStreamIndex);
-                        updatePlayerUI();
-                        updateUrl();
-                    } else {
-                        showToast("Поток недоступен");
-                        audioPlayer.dispatchEvent(new Event('error'));
-                    }
-                });
+        // Блокируем клики, пока идет переключение потока
+        if (isSwitchingStream || !currentPlayingStation) return;
+        isSwitchingStream = true;
+        
+        const streamData = stationStreamMap[FMUse.generateCodeName(currentPlayingStation)];
+        if (streamData && streamData.streams && streamData.streams.length > 1) {
+            const oldStreamIndex = currentStreamIndex;
+            currentStreamIndex = (currentStreamIndex + 1) % streamData.streams.length;
+            
+            const played = await attemptPlay(currentPlayingStation, currentStreamIndex, true);
+            if (played) {
+                localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), currentStreamIndex);
+                updatePlayerUI();
+                updateUrl();
+            } else {
+                showToast("Поток недоступен. Возврат к предыдущему...");
+                streamData.streams[currentStreamIndex].broken = true;
+                // Возвращаемся к старому потоку
+                currentStreamIndex = oldStreamIndex;
+                await attemptPlay(currentPlayingStation, oldStreamIndex, true);
+                updatePlayerUI();
             }
         }
-    });
-    
-    document.getElementById('playerStreamInfo').addEventListener('click', (e) => {
-        e.preventDefault();
-        if (currentPlayingStation) {
-            const streamData = stationStreamMap[FMUse.generateCodeName(currentPlayingStation)];
-            if (streamData && streamData.streams && streamData.streams.length > 1) {
-                currentStreamIndex = (currentStreamIndex + 1) % streamData.streams.length;
-                attemptPlay(currentPlayingStation, currentStreamIndex, true).then(played => {
-                    if (played) {
-                        localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), currentStreamIndex);
-                        updatePlayerUI();
-                        updateUrl();
-                    } else {
-                        showToast("Поток недоступен");
-                        audioPlayer.dispatchEvent(new Event('error'));
-                    }
-                });
-            }
-        }
+        isSwitchingStream = false;
     });
 
+    // Показ полного названия станции в шапке при удержании (для мобильных)
+    const playerNameEl = document.getElementById('playerName');
+    playerNameEl.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (currentPlayingStation) showToast(currentPlayingStation);
+    }, { passive: false });    
+    
     // Поддержка системных медиа-кнопок
     if ('mediaSession' in navigator) {
-        navigator.mediaSession.setActionHandler('play', () => { if (currentPlayingStation) audioPlayer.play().catch(()=>{}); });
+        navigator.mediaSession.setActionHandler('play', () => { 
+            if (currentPlayingStation && audioPlayer.paused) {
+                // При возобновлении из паузы перезагружаем поток, 
+                // так как радио-сервер мог разорвать соединение во время паузы
+                audioPlayer.load(); 
+                audioPlayer.play().catch(()=>{});
+            }
+        });
         navigator.mediaSession.setActionHandler('pause', () => audioPlayer.pause());
         navigator.mediaSession.setActionHandler('previoustrack', () => skipStation(-1));
         navigator.mediaSession.setActionHandler('nexttrack', () => skipStation(1));
+        navigator.mediaSession.setActionHandler('stop', () => { stopPlayer(); renderStations(); });
+        
+        // Явно запрещаем перемотку. Это заставляет Android скрыть ползунок
+        // и показать кнопки Next/Prev вместо него!
+        try {
+            navigator.mediaSession.setActionHandler('seekto', null);
+            navigator.mediaSession.setActionHandler('seekbackward', null);
+            navigator.mediaSession.setActionHandler('seekforward', null);
+        } catch(e) {}
     }
 
     const html = await Api.fetchPage(Api.MAIN_PAGE);

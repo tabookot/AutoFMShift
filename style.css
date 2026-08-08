@@ -29,7 +29,7 @@
     --border: #dee2e6;
     --green: #27ae60;
     --yellow: #f39c12;
-    --pink: #e74c3c;
+    --pink: #ff4757; /* Изменили на более розовый, чтобы отличался от красно-оранжевого */
     --trash: #8e44ad;
 }
 
@@ -71,7 +71,7 @@ body {
     z-index: 10;
 }
 
-.brand { display: flex; align-items: center; min-width: 0; }
+.brand { display: flex; align-items: center; gap: 8px; min-width: 0; flex-shrink: 0; }
 .logo-img {
     width: 32px; height: 32px; flex-shrink: 0;
     background-image: url('img/logo_100.png');
@@ -84,7 +84,7 @@ body {
     align-items: center;
     justify-content: flex-start;
     gap: 15px;
-    flex-grow: 1;
+    flex: 1 1 0;
     min-width: 0;
     margin-left: 20px;
     margin-right: 10px;
@@ -94,8 +94,9 @@ body {
 }
 .player-info { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; overflow: hidden; z-index: 3; }
 .player-logo { width: 28px; height: 28px; border-radius: 4px; object-fit: contain; background: var(--panel-light); flex-shrink: 0; }
-.player-text { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
-.player-name { font-size: 12px; color: var(--text); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; overflow: hidden; width: 100%; }
+.player-name { font-size: 12px; color: var(--text); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+
 .player-name:hover { color: var(--accent); }
 .player-stream-info {
     background: none; border: none; color: var(--text-dim); font-size: 9px; cursor: default; padding: 0;
@@ -120,7 +121,6 @@ body {
     height: 100%; 
     z-index: 3; 
     flex-shrink: 0;
-    margin-left: auto;
 }
 .player-controls-row {
     display: flex; gap: 4px;
@@ -396,7 +396,6 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
         justify-content: flex-start;
     }
     .player-logo { display: none; }
-    .player-stream-info { display: none; }
 }
 
 .checkbox-wrap { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; user-select: none; }
@@ -418,6 +417,14 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 @media (hover: none) and (pointer: coarse) {
     #minFreq, #maxFreq, #bands, #presets {
         touch-action: none;
+    }
+    .select-group, .input-group {
+        min-width: 0;
+    }
+    .input-group {
+        flex: 1 1 100%; /* Перенос на новую строку */
+        flex-wrap: wrap;
+        justify-content: space-between;
     }
     .hover-trigger { display: none; }
     .col-status { width: 70px; }
