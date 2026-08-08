@@ -1,5 +1,5 @@
-// 0.5.5 | Rule: minor.major.build. build++ on full regen
-const VERSION = "0.5.18";
+// 0.5.27 | Rule: minor.major.build. build++ on full regen
+const VERSION = "0.5.27";
 const CACHE_VERSION = "4"; 
  
 const LS_KEY = "fm_adapter_calc_v10"; 
@@ -1319,12 +1319,24 @@ function updatePlayerUI() {
             if (streamData.streams && streamData.streams[currentStreamIndex]) {
                 const stream = streamData.streams[currentStreamIndex];
                 let infoText = "";
+                const genres = streamData.tags || "";
+                
                 if (streamData.streams.length > 1) {
                     infoText += `${currentStreamIndex + 1}/${streamData.streams.length} • `;
                 }
                 infoText += `${stream.bitrate || '?'}k`;
+                if (genres) infoText += ` • ${genres}`;
+                
                 playerStreamInfo.textContent = infoText;
-                playerStreamInfo.style.cursor = streamData.streams.length > 1 ? 'pointer' : 'default';
+                playerStreamInfo.title = `Поток ${currentStreamIndex + 1}/${streamData.streams.length} • ${stream.bitrate || '?'}k • ${genres}`;
+                
+                if (streamData.streams.length > 1) {
+                    playerStreamInfo.classList.add('active-link');
+                    playerStreamInfo.setAttribute('href', '#');
+                } else {
+                    playerStreamInfo.classList.remove('active-link');
+                    playerStreamInfo.removeAttribute('href');
+                }
             }
             
             playerPlayBtn.innerHTML = audioPlayer.paused 
@@ -2025,12 +2037,13 @@ async function init() {
     updateVolume(audioPlayer.volume); // Инициализация хинта и фона при старте
 
     volumeSlider.addEventListener('input', (e) => updateVolume(parseFloat(e.target.value)));
-    volumeSlider.addEventListener('wheel', (e) => {
+    const playerPanel = document.getElementById('playerPanel');
+    playerPanel.addEventListener('wheel', (e) => {
         e.preventDefault();
         let val = parseFloat(volumeSlider.value);
         if (e.deltaY < 0) val += 0.02; else val -= 0.02;
         updateVolume(val);
-    });
+    }, { passive: false });
     let volTouchY = null;
     volumeSlider.addEventListener('touchstart', (e) => { volTouchY = e.touches[0].clientY; }, { passive: true });
     volumeSlider.addEventListener('touchmove', (e) => {
@@ -2084,6 +2097,48 @@ async function init() {
     document.getElementById('playerStopBtn').addEventListener('click', () => {
         stopPlayer();
         renderStations();
+    });
+    document.getElementById('playerPrevBtn').addEventListener('click', () => skipStation(-1));
+    document.getElementById('playerNextBtn').addEventListener('click', () => skipStation(1));
+    
+    document.getElementById('playerStreamInfo').addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentPlayingStation) {
+            const streamData = stationStreamMap[FMUse.generateCodeName(currentPlayingStation)];
+            if (streamData && streamData.streams && streamData.streams.length > 1) {
+                currentStreamIndex = (currentStreamIndex + 1) % streamData.streams.length;
+                attemptPlay(currentPlayingStation, currentStreamIndex, true).then(played => {
+                    if (played) {
+                        localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), currentStreamIndex);
+                        updatePlayerUI();
+                        updateUrl();
+                    } else {
+                        showToast("Поток недоступен");
+                        audioPlayer.dispatchEvent(new Event('error'));
+                    }
+                });
+            }
+        }
+    });
+    
+    document.getElementById('playerStreamInfo').addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentPlayingStation) {
+            const streamData = stationStreamMap[FMUse.generateCodeName(currentPlayingStation)];
+            if (streamData && streamData.streams && streamData.streams.length > 1) {
+                currentStreamIndex = (currentStreamIndex + 1) % streamData.streams.length;
+                attemptPlay(currentPlayingStation, currentStreamIndex, true).then(played => {
+                    if (played) {
+                        localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), currentStreamIndex);
+                        updatePlayerUI();
+                        updateUrl();
+                    } else {
+                        showToast("Поток недоступен");
+                        audioPlayer.dispatchEvent(new Event('error'));
+                    }
+                });
+            }
+        }
     });
 
     // Поддержка системных медиа-кнопок

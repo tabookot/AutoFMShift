@@ -92,6 +92,25 @@ body {
     overflow: hidden;
     padding: 4px 0;
 }
+.player-info { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; overflow: hidden; z-index: 3; }
+.player-logo { width: 28px; height: 28px; border-radius: 4px; object-fit: contain; background: var(--panel-light); flex-shrink: 0; }
+.player-text { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.player-name { font-size: 12px; color: var(--text); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player-name:hover { color: var(--accent); }
+.player-stream-info {
+    background: none; border: none; color: var(--text-dim); font-size: 9px; cursor: default; padding: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left;
+    display: block; width: 100%; text-decoration: none;
+}
+.player-stream-info.active-link {
+    color: var(--accent); cursor: pointer;
+}
+.player-stream-info.active-link:hover { text-decoration: underline; }
+.player-stream-info.active-link {
+    color: var(--accent); cursor: pointer; pointer-events: auto;
+}
+.player-stream-info.active-link:hover { text-decoration: underline; }
+
 .player-controls-vertical {
     display: flex; 
     flex-direction: column; 
@@ -101,24 +120,17 @@ body {
     height: 100%; 
     z-index: 3; 
     flex-shrink: 0;
-    margin-left: auto; /* Прижимаем кнопки и всё, что после них, вправо */
+    margin-left: auto;
+}
+.player-controls-row {
+    display: flex; gap: 4px;
 }
 .player-btn {
     background: none; border: none; color: var(--accent); cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 22px;
 }
-.player-btn-main { width: 24px; height: 22px; }
 .player-btn-mini { width: 24px; height: 12px; opacity: 0.7; }
 .player-btn-mini:hover { opacity: 1; }
-.player-info { display: flex; align-items: center; gap: 8px; min-width: 0; z-index: 2; }
-.player-logo { width: 28px; height: 28px; border-radius: 4px; object-fit: contain; background: var(--panel-light); }
-.player-text { display: flex; flex-direction: column; min-width: 0; }
-.player-name { font-size: 12px; color: var(--text); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.player-name:hover { color: var(--accent); }
-.player-stream-info {
-    background: none; border: none; color: var(--text-dim); font-size: 9px; cursor: pointer; padding: 0;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left;
-}
-.player-stream-info:hover { color: var(--accent); }
 
 .volume-slider {
     -webkit-appearance: none; 
@@ -132,7 +144,6 @@ body {
     padding: 0; margin: 0;
     overflow: hidden;
 }
-/* Полностью скрываем стандартный ползунок (движок) */
 .volume-slider::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
     width: 0; height: 0; 
@@ -152,10 +163,6 @@ body {
 .spectrum-canvas {
     position: absolute; bottom: 0; left: 0; width: 100%; height: 18px; pointer-events: none; z-index: 1; opacity: 0.9;
 }
-/* Подняли z-index элементов, чтобы они были поверх спектра */
-.player-controls-vertical { z-index: 3; }
-.player-info { z-index: 3; }
-.volume-slider { z-index: 3; }
 
 .actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; z-index: 10; }
 .content { flex: 1; padding: var(--space); display: flex; flex-direction: column; gap: var(--space); }
