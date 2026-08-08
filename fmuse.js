@@ -18,7 +18,7 @@ const FMUse = {
         
         // 5. Удаляем мусорные слова и аббревиатуры вещателей (ГТРК, ТРВ и т.д.)
         // Используем проверку пробелов вместо \b, так как \b не работает с кириллицей
-        cleanName = cleanName.replace(/(^|\s)(радио|radio|fm|ам|тв|tv|комедия|comedy|гтрк|трв|орр)(?=\s|$)/g, ' ');
+        cleanName = cleanName.replace(/(^|\s)(радио|radio|fm|ам|тв|tv|гтрк|трв|орр)(?=\s|$)/g, ' ');
         
         // 6. Оставляем только буквы, цифры и пробелы
         cleanName = cleanName.replace(/[^\p{L}\p{N}\s-]/gu, ' ');
@@ -161,7 +161,13 @@ const FMUse = {
     // Генерация код-названия (slug)
     generateCodeName(name) {
         if (!name) return '';
-        return this.tokenizeAndClean(name).primary.join('_').substring(0, 25);
+        const slug = this.tokenizeAndClean(name).primary.join('_').substring(0, 25);
+        // Если после очистки от мусорных слов ничего не осталось (например, "Comedy Radio"),
+        // используем очищенное оригинальное название, чтобы избежать пустого ключа "".
+        if (!slug) {
+            return name.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '').substring(0, 25) || 'station';
+        }
+        return slug;
     }
 };
 
