@@ -91,8 +91,9 @@ async function run() {
             }
 
             if (oldCity && oldCity.stations.length > 0) {
-                const oldStations = oldCity.stations.map(s => s.name);
-                const newStations = newCity.stations.map(s => s.name);
+                // Оставляем только уникальные названия и выбрасываем те, что после нормализации пустые
+                const oldStations = [...new Set(oldCity.stations.map(s => s.name))].filter(n => FMUse.normalizeName(n) !== '');
+                const newStations = [...new Set(newCity.stations.map(s => s.name))].filter(n => FMUse.normalizeName(n) !== '');
                 
                 const stMatches = FMUse.matchArrays(oldStations, newStations, 0.65);
                 const matchedOldSt = new Set();
