@@ -251,6 +251,16 @@
     ]
   },
   {
+    "mainName": "Comedy Radio",
+    "count": 37,
+    "variants": [
+      "Comedy Radio",
+      "(ПЛАН) Comedy Radio",
+      "Comedy Radio\nВести FM / Вести FM — Южный Урал / ОТВ\nВести FM — Южный Урал\nРадио Ермак\nРадио Народный Хит\nВосточный Экспресс\nЭхо Москвы",
+      "(БЫЛ ПЛАН) Comedy Radio"
+    ]
+  },
+  {
     "mainName": "Радио 7 на семи холмах",
     "count": 35,
     "variants": [
@@ -261,13 +271,6 @@
       "(ПЛАН) Радио 7 на семи холмах",
       "Радио 7 — На семи холмах",
       "Радио 7 на семи холмах / Радио Салехард/(ПЛАН) МорошкаФМ"
-    ]
-  },
-  {
-    "mainName": "Comedy Radio",
-    "count": 34,
-    "variants": [
-      "Comedy Radio"
     ]
   },
   {
@@ -1717,13 +1720,6 @@
     ]
   },
   {
-    "mainName": "(ПЛАН) Comedy Radio",
-    "count": 1,
-    "variants": [
-      "(ПЛАН) Comedy Radio"
-    ]
-  },
-  {
     "mainName": "Радио 100",
     "count": 1,
     "variants": [
@@ -1749,13 +1745,6 @@
     "count": 1,
     "variants": [
       "Радио Олимп"
-    ]
-  },
-  {
-    "mainName": "Comedy Radio\nВести FM / Вести FM — Южный Урал / ОТВ\nВести FM — Южный Урал\nРадио Ермак\nРадио Народный Хит\nВосточный Экспресс\nЭхо Москвы",
-    "count": 1,
-    "variants": [
-      "Comedy Radio\nВести FM / Вести FM — Южный Урал / ОТВ\nВести FM — Южный Урал\nРадио Ермак\nРадио Народный Хит\nВосточный Экспресс\nЭхо Москвы"
     ]
   },
   {
@@ -2029,13 +2018,6 @@
     "count": 1,
     "variants": [
       "Радио Колыма"
-    ]
-  },
-  {
-    "mainName": "(БЫЛ ПЛАН) Comedy Radio",
-    "count": 1,
-    "variants": [
-      "(БЫЛ ПЛАН) Comedy Radio"
     ]
   },
   {

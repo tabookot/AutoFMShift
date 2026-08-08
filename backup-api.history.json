@@ -2073,6 +2073,51 @@
           "frequency_migrated": []
         }
       }
+    },
+    {
+      "timestamp": "2026-08-08T17:53:21.500Z",
+      "status": "success",
+      "requiresAttention": false,
+      "attentionReasons": [],
+      "changes": {
+        "cities": {
+          "new": [],
+          "deleted": [],
+          "renamed": []
+        },
+        "stations": {
+          "new": [
+            {
+              "city": "Краснодар",
+              "name": "? (Вещало на 104,1)"
+            },
+            {
+              "city": "Салехард",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Ханты-Мансийск",
+              "name": "Радио Радио"
+            }
+          ],
+          "deleted": [
+            {
+              "city": "Краснодар",
+              "name": "? (Вещало на 104,1)"
+            },
+            {
+              "city": "Салехард",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Ханты-Мансийск",
+              "name": "Радио Радио"
+            }
+          ],
+          "renamed": [],
+          "frequency_migrated": []
+        }
+      }
     }
   ]
 }
