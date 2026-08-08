@@ -3,19 +3,19 @@
     "name": "Радио России",
     "streams": [
       {
-        "url": "http://icecast.vgtrk.cdnvideo.ru/rrzonam_mp3_128kbps",
-        "bitrate": 128,
-        "codec": "MP3"
-      },
-      {
         "url": "http://icecast.vgtrk.cdnvideo.ru/rrzonam_mp3_64kbps",
         "bitrate": 64,
         "codec": "MP3"
       },
       {
-        "url": "http://icecast.vgtrk.cdnvideo.ru/rrzonam_aac_64kbps",
-        "bitrate": 64,
-        "codec": "AAC+"
+        "url": "http://icecast.vgtrk.cdnvideo.ru/rrzonam_mp3_128kbps",
+        "bitrate": 128,
+        "codec": "MP3"
+      },
+      {
+        "url": "http://icecast.vgtrk.cdnvideo.ru/rrzonam_mp3_192kbps",
+        "bitrate": 192,
+        "codec": "MP3"
       }
     ],
     "homepage": "http://www.radiorus.ru/",
@@ -26,13 +26,13 @@
     "name": "Дорожное радио",
     "streams": [
       {
-        "url": "http://dorognoe.hostingradio.ru:8000/radio",
-        "bitrate": 320,
+        "url": "http://dorognoe.hostingradio.ru:8000/dorognoe",
+        "bitrate": 64,
         "codec": "MP3"
       },
       {
-        "url": "http://dorognoe.hostingradio.ru:8000/dorognoe",
-        "bitrate": 64,
+        "url": "http://dorognoe.hostingradio.ru:8000/radio",
+        "bitrate": 320,
         "codec": "MP3"
       },
       {
@@ -41,9 +41,9 @@
         "codec": "MP3"
       }
     ],
-    "homepage": "https://dorognoe.ru/?region=piter",
+    "homepage": "https://dorognoe.ru/",
     "favicon": "https://dorognoe.ru/assets/default/i/fav_114x114.png",
-    "tags": "dorojnoe"
+    "tags": "moscow"
   },
   {
     "name": "Европа Плюс",
@@ -159,13 +159,13 @@
         "codec": "MP3"
       },
       {
-        "url": "http://radio.o2promo.ru:8030/radio",
-        "bitrate": 128,
+        "url": "https://stream2.n340.com/12_dacha_28_reg_316?type=.aac&UID=0E7ACB8332B0F838199083C383FB7F40",
+        "bitrate": 28,
         "codec": "MP3"
       },
       {
-        "url": "http://217.19.211.252:8022/RadioDacha",
-        "bitrate": 192,
+        "url": "http://radio.o2promo.ru:8030/radio",
+        "bitrate": 128,
         "codec": "MP3"
       }
     ],
@@ -222,19 +222,19 @@
         "codec": "AAC"
       },
       {
-        "url": "https://pub0102.101.ru:8000/stream/air/aac/64/199",
-        "bitrate": 0,
-        "codec": "AAC"
-      },
-      {
         "url": "http://ic7.101.ru:8000/v14_1",
         "bitrate": 256,
         "codec": "MP3"
+      },
+      {
+        "url": "https://pub0102.101.ru:8000/stream/air/aac/64/199",
+        "bitrate": 0,
+        "codec": "AAC"
       }
     ],
     "homepage": "https://detifm.ru/",
-    "favicon": "https://detifm.ru//design/images/img_for_design/icons/apple-touch-icon-precomposed.png",
-    "tags": "детям"
+    "favicon": "",
+    "tags": "разговорный"
   },
   {
     "name": "Радио Вера",
@@ -315,7 +315,12 @@
         "codec": "AAC"
       },
       {
-        "url": "https://dfm-remake.hostingradio.ru/remake96.aacp",
+        "url": "https://dfm-insomnia.hostingradio.ru/insomnia96.aacp",
+        "bitrate": 96,
+        "codec": "AAC+"
+      },
+      {
+        "url": "https://dfm-party.hostingradio.ru/dfmparty96.aacp",
         "bitrate": 96,
         "codec": "AAC+"
       }
@@ -368,12 +373,12 @@
     "name": "Хит FM",
     "streams": [
       {
-        "url": "https://hitfm.hostingradio.ru/hitfm128.mp3?48c22b78",
+        "url": "https://hitfm.hostingradio.ru/hitfm128.mp3?88b9f1",
         "bitrate": 0,
         "codec": "MP3"
       },
       {
-        "url": "https://hitfm.hostingradio.ru/hitfm128.mp3?88b9f1",
+        "url": "https://hitfm.hostingradio.ru/hitfm128.mp3?48c22b78",
         "bitrate": 0,
         "codec": "MP3"
       },
@@ -413,17 +418,17 @@
     "name": "Monte Carlo",
     "streams": [
       {
-        "url": "https://montecarlo.hostingradio.ru/montecarlo96.aacp",
-        "bitrate": 0,
-        "codec": "AAC"
-      },
-      {
         "url": "https://mc-mcbossa.hostingradio.ru/mcbossa96.aacp?listening-from-radio-garden=1645969315",
         "bitrate": 96,
         "codec": "AAC+"
       },
       {
-        "url": "http://montecarlo.hostingradio.ru/golfcup96.aacp",
+        "url": "https://montecarlo.hostingradio.ru/montecarlo96.aacp",
+        "bitrate": 0,
+        "codec": "AAC"
+      },
+      {
+        "url": "https://montecarlo.hostingradio.ru/mcgold96.aacp",
         "bitrate": 96,
         "codec": "AAC+"
       }
@@ -536,6 +541,11 @@
     "name": "Радио Монте-Карло",
     "streams": [
       {
+        "url": "https://radio.mediacdn.ru/shanson_omsk.mp3",
+        "bitrate": 0,
+        "codec": "MP3"
+      },
+      {
         "url": "http://online-1.gkvr.ru:8000/mc_rnd_64.aac",
         "bitrate": 96,
         "codec": "AAC+"
@@ -544,11 +554,6 @@
         "url": "https://mc-mcgold.hostingradio.ru/mcgold96.aacp",
         "bitrate": 96,
         "codec": "AAC+"
-      },
-      {
-        "url": "https://radio.mediacdn.ru/shanson_omsk.mp3",
-        "bitrate": 0,
-        "codec": "MP3"
       }
     ],
     "homepage": "https://top-radio.ru/rostov-na-donu/monte-karlo",
@@ -572,17 +577,17 @@
     "name": "Радио Рекорд",
     "streams": [
       {
-        "url": "http://radiorecord.hostingradio.ru/rr_main96.aacp",
+        "url": "http://radiorecord.hostingradio.ru/rmx96.aacp",
+        "bitrate": 0,
+        "codec": "AAC"
+      },
+      {
+        "url": "http://radiorecord.hostingradio.ru/mdl96.aacp",
         "bitrate": 0,
         "codec": "AAC"
       },
       {
         "url": "http://radiorecord.hostingradio.ru/rock96.aacp",
-        "bitrate": 0,
-        "codec": "AAC"
-      },
-      {
-        "url": "http://radiorecord.hostingradio.ru/rmx96.aacp",
         "bitrate": 0,
         "codec": "AAC"
       }
@@ -605,9 +610,9 @@
         "codec": "MP3"
       },
       {
-        "url": "https://pub0201.101.ru/stream/pro/aac/64/28?",
-        "bitrate": 64,
-        "codec": "AAC+"
+        "url": "https://pub0302.101.ru:8443/stream/trust/mp3/128/265",
+        "bitrate": 128,
+        "codec": "MP3"
       }
     ],
     "homepage": "https://relax-fm.ru/",
@@ -659,12 +664,12 @@
         "codec": "AAC"
       },
       {
-        "url": "https://radiorecord.hostingradio.ru/trancehouse96.aacp",
+        "url": "https://radiorecord.hostingradio.ru/workout96.aacp",
         "bitrate": 0,
         "codec": "AAC"
       },
       {
-        "url": "https://radiorecord.hostingradio.ru/workout96.aacp",
+        "url": "http://radiorecord.hostingradio.ru/ambient96.aacp",
         "bitrate": 0,
         "codec": "AAC"
       }
@@ -782,13 +787,13 @@
         "codec": "MP3"
       },
       {
-        "url": "http://jfm1.hostingradio.ru:14536/jvstream.mp3",
-        "bitrate": 128,
+        "url": "http://nashe1.hostingradio.ru/jazz-256",
+        "bitrate": 256,
         "codec": "MP3"
       },
       {
-        "url": "http://nashe1.hostingradio.ru/jazz-256",
-        "bitrate": 256,
+        "url": "http://jfm1.hostingradio.ru:14536/sjstream.mp3",
+        "bitrate": 128,
         "codec": "MP3"
       }
     ],
@@ -1172,12 +1177,12 @@
         "codec": "MP3"
       },
       {
-        "url": "http://nashe2.hostingradio.ru/rock-128.mp3",
+        "url": "https://nashe1.hostingradio.ru:80/rock-128.mp3",
         "bitrate": 0,
         "codec": "MP3"
       },
       {
-        "url": "http://nashe.streamr.ru/rock-128.mp3",
+        "url": "http://nashe2.hostingradio.ru/rock-128.mp3",
         "bitrate": 0,
         "codec": "MP3"
       }
@@ -1256,13 +1261,13 @@
     "name": "Радио Трансмит",
     "streams": [
       {
-        "url": "https://radio.transmit.ru/listen/transmit/transmit_128.mp3",
-        "bitrate": 128,
+        "url": "http://95.182.123.24:8000/transmit",
+        "bitrate": 192,
         "codec": "MP3"
       },
       {
-        "url": "http://95.182.123.24:8000/transmit",
-        "bitrate": 192,
+        "url": "https://radio.transmit.ru/listen/transmit/transmit_128.mp3",
+        "bitrate": 128,
         "codec": "MP3"
       },
       {
@@ -1271,9 +1276,9 @@
         "codec": "MP3"
       }
     ],
-    "homepage": "https://radio.transmit.ru/public/transmit",
-    "favicon": "",
-    "tags": ""
+    "homepage": "http://transmit.ru/",
+    "favicon": "http://transmit.ru/favicon.ico",
+    "tags": "hot adult contemporary, pop, talk"
   },
   {
     "name": "Радио Русский Край",
@@ -1321,9 +1326,9 @@
         "codec": "MP3"
       }
     ],
-    "homepage": "https://topradio.me/10",
-    "favicon": "https://topradio.me/assets/image/radio/100/10-petrozavodsk.png",
-    "tags": "поп-музыка, чилаут"
+    "homepage": "https://radio10.live/",
+    "favicon": "",
+    "tags": "pop music"
   },
   {
     "name": "Радио Седьмое Небо",
@@ -1842,14 +1847,14 @@
     "name": "Rock Arsenal",
     "streams": [
       {
-        "url": "http://online.rockarsenal.ru:8000/rockarsenal",
-        "bitrate": 128,
-        "codec": "MP3"
-      },
-      {
         "url": "https://online.rockarsenal.ru/rockarsenal_aacplus",
         "bitrate": 64,
         "codec": "AAC"
+      },
+      {
+        "url": "http://online.rockarsenal.ru:8000/rockarsenal",
+        "bitrate": 128,
+        "codec": "MP3"
       }
     ],
     "homepage": "https://www.rockarsenal.ru/",
