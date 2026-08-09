@@ -446,7 +446,33 @@ body.player-mode .preset-dropdown { display: none !important; }
 /* Mobile Menu & Checkboxes */
 .app-header .actions .dropdown { flex: 0 0 auto; }
 #menuBtnWrapper { display: none; }
+/* Default UI Scale 150% for large screens */
+@media (min-width: 721px) {
+    .app-container, #loadingModal, #toast {
+        zoom: 1.5;
+    }
+    .app-container .modal {
+        zoom: 0.6666; 
+    }
+    .app-container .modal-content {
+        zoom: 1.5; 
+        max-width: 540px; /* 360px * 1.5 scale */
+        max-height: 53vh; 
+    }
+}
+
+/* Mobile UI Scale 120% */
 @media (max-width: 420px) {
+    .app-container, #toast { zoom: 1.2; }
+    .app-container { max-width: 325px; } /* 325px * 1.2 = ~390px (fits most screens) */
+    #loadingModal { zoom: 1.2; }
+    .app-container .modal { zoom: 0.8333; } 
+    .app-container .modal-content { 
+        zoom: 1.2; 
+        max-width: 430px; /* 360px * 1.2 scale */
+        max-height: 66vh; 
+    } 
+    
     .app-header { flex-wrap: wrap; justify-content: space-between; }
     .app-header > *:not(#mobilePlayerControls) { flex-shrink: 0; }
     
