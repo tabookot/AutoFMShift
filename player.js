@@ -8,6 +8,51 @@ let isSkipping = false;
 let isSwitchingStream = false;
 let titleRotationInterval = null;
 let titleRotationStation = null;
+let isRestoringPlayback = false;
+
+function setPlayerLoading(isLoading, hintText = "Подключение к потоку...") {
+    const btn = document.getElementById('playerPlayBtn');
+    const hint = document.getElementById('playerHint');
+    if (!btn) return;
+    btn.classList.toggle('loading', isLoading);
+    if (hint) {
+        hint.textContent = hintText;
+        hint.classList.toggle('show', isLoading);
+    }
+    btn.title = isLoading ? hintText : (audioPlayer.paused ? 'Воспроизвести' : 'Пауза');
+}
+
+function cancelRestorePlayback() {
+    if (isRestoringPlayback) {
+        isRestoringPlayback = false;
+        setPlayerLoading(false);
+    }
+}
+
+async function restorePlayback() {
+    if (!currentPlayingStation) return;
+    isRestoringPlayback = true;
+    setPlayerLoading(true, "Восстановление воспроизведения...");
+    
+    const result = await attemptPlay(currentPlayingStation, currentStreamIndex);
+    
+    if (isRestoringPlayback) {
+        isRestoringPlayback = false;
+        if (result === true) {
+            localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), currentStreamIndex);
+            updatePlayerUI();
+            updateUrl();
+        } else if (result === 'blocked') {
+            setPlayerLoading(false);
+            updatePlayerUI();
+            showToast("Нажмите Play для возобновления");
+        } else {
+            setPlayerLoading(false);
+            showToast("Поток недоступен");
+            stopPlayer();
+        }
+    }
+}
 let audioContext = null;
 let analyser = null;
 let sourceNode = null;
@@ -55,12 +100,12 @@ function attemptPlay(name, streamIndex) {
         
         currentPlayingStation = name;
         currentStreamIndex = streamIndex;
+        setPlayerLoading(true, "Подключение к потоку...");
         updatePlayerUI();
         
         let url = streamData.streams[streamIndex].url;
         if (!url || url === 'null' || url === 'undefined' || url === '') {
-            if (settled) return; settled = true; cleanup(); resolve(false);
-            return;
+            resolve(false); return;
         }
         if (window.location.protocol === 'https:' && url.startsWith('http:')) {
             url = 'https:' + url.substring(5);
@@ -73,43 +118,60 @@ function attemptPlay(name, streamIndex) {
             audioPlayer.removeEventListener('error', onError);
         };
 
-        initAudioContext();
-        
         const onPlaying = () => { 
             if (settled) return; 
             settled = true; 
             cleanup(); 
+            initAudioContext();
             updateMediaSession();
             resolve(true); 
         };
-        const onError = () => { if (settled) return; settled = true; cleanup(); resolve(false); };
+        const onError = () => { 
+            if (settled) return; 
+            settled = true; 
+            cleanup(); 
+            resolve(false); 
+        };
         
         playTimeout = setTimeout(() => { 
             if (settled) return; settled = true; cleanup(); 
             audioPlayer.pause();
+            audioPlayer.load(); 
             resolve(false); 
-        }, 8000);
+        }, 10000);
         
         audioPlayer.addEventListener('playing', onPlaying);
         audioPlayer.addEventListener('error', onError);
         
         audioPlayer.src = url;
-        audioPlayer.play().catch(e => { 
-            if (e.name !== 'AbortError') {
-                if (settled) return; settled = true; cleanup(); resolve(false); 
-            }
-        });
+        const playPromise = audioPlayer.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(e => { 
+                if (settled) return;
+                if (e.name === 'NotAllowedError') {
+                    settled = true; cleanup();
+                    audioPlayer.pause();
+                    audioPlayer.load();
+                    resolve('blocked'); 
+                } else if (e.name !== 'AbortError') {
+                    settled = true; cleanup(); 
+                    resolve(false); 
+                }
+            });
+        }
     });
 }
 
 async function togglePlay(name) {
+    cancelRestorePlayback();
     if (currentPlayingStation === name && !audioPlayer.paused) {
         audioPlayer.pause();
         updatePlayerUI();
         return;
     }
-    if (currentPlayingStation === name && audioPlayer.paused) {
-        audioPlayer.play().catch(() => {});
+    if (currentPlayingStation === name && audioPlayer.paused && audioPlayer.src && audioPlayer.src !== window.location.href) {
+        setPlayerLoading(true, "Возобновление...");
+        audioPlayer.play().catch(() => { setPlayerLoading(false); updatePlayerUI(); });
         updatePlayerUI();
         return;
     }
@@ -128,7 +190,8 @@ async function togglePlay(name) {
     let savedIdx = parseInt(localStorage.getItem('fm_working_stream_' + FMUse.generateCodeName(name)));
     if (!isNaN(savedIdx) && savedIdx < streamData.streams.length && !streamData.streams[savedIdx].broken) {
         played = await attemptPlay(name, savedIdx);
-        if (!played) streamData.streams[savedIdx].broken = true;
+        if (played === 'blocked') played = false;
+        else if (!played) streamData.streams[savedIdx].broken = true;
     }
     
     if (!played) {
@@ -136,7 +199,8 @@ async function togglePlay(name) {
         streamData.streams.forEach((s, i) => { if (!s.broken && s.bitrate > bestBitrate) { bestBitrate = s.bitrate; bestIdx = i; } });
         if (bestIdx !== -1) {
             played = await attemptPlay(name, bestIdx);
-            if (!played) streamData.streams[bestIdx].broken = true;
+            if (played === 'blocked') played = false;
+            else if (!played) streamData.streams[bestIdx].broken = true;
         }
     }
     
@@ -144,6 +208,7 @@ async function togglePlay(name) {
         for (let i = 0; i < streamData.streams.length; i++) {
             if (!streamData.streams[i].broken) {
                 played = await attemptPlay(name, i);
+                if (played === 'blocked') { played = false; break; }
                 if (played) break;
                 streamData.streams[i].broken = true;
             }
@@ -173,6 +238,7 @@ async function togglePlay(name) {
 async function skipStation(dir) {
     if (isSkipping) return; 
     isSkipping = true;
+    cancelRestorePlayback();
     audioPlayer.pause();
     
     const playable = state.stations.filter(st => {
@@ -213,6 +279,7 @@ async function skipStation(dir) {
         for (let i = 0; i < streamData.streams.length; i++) {
             if (!streamData.streams[i].broken) {
                 played = await attemptPlay(st.name, i);
+                if (played === 'blocked') { played = false; break; }
                 if (played) break;
                 streamData.streams[i].broken = true;
             }
@@ -242,6 +309,7 @@ async function skipStation(dir) {
 }
 
 function stopPlayer() {
+    cancelRestorePlayback();
     audioPlayer.pause();
     audioPlayer.src = '';
     currentPlayingStation = null;
@@ -252,7 +320,7 @@ function stopPlayer() {
 function initAudioContext() {
     if (audioContext && audioContext.state !== 'closed') {
         if (audioContext.state === 'suspended') {
-            audioContext.resume().catch(e => console.error("AudioContext resume failed:", e));
+            audioContext.resume().catch(() => {});
         }
         return;
     }
@@ -268,10 +336,9 @@ function initAudioContext() {
         analyser.connect(audioContext.destination);
         
         if (audioContext.state === 'suspended') {
-            audioContext.resume().catch(e => console.error("AudioContext resume failed (new):", e));
+            audioContext.resume().catch(() => {});
         }
     } catch (e) { 
-        console.error("AudioContext init error. Spectrum will be disabled.", e);
         audioContext = null; 
         analyser = null;
     }
@@ -370,6 +437,7 @@ function updateMediaSession() {
 }
 
 function updatePlayerUI() {
+    localStorage.setItem('fm_player_playing', (!audioPlayer.paused && currentPlayingStation) ? currentPlayingStation : '');
     const playerPanel = document.getElementById('playerPanel');
     const playerPlayBtn = document.getElementById('playerPlayBtn');
     const playerLogo = document.getElementById('playerLogo');

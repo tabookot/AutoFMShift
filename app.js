@@ -1,5 +1,5 @@
 // Rule: minor.major.build in VERSION build++ on module regeneration
-const VERSION = "0.5.39";
+const VERSION = "0.5.44";
 const CACHE_VERSION = "4"; 
  
 const LS_KEY = "fm_adapter_calc_v10"; 
@@ -559,7 +559,16 @@ function commitState() {
     });
     state.cityData = cleanCityData;
     
-    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    // Clean broken flags before saving
+    const stateToSave = JSON.parse(JSON.stringify(state));
+    if (stateToSave.streamsData) {
+        Object.values(stateToSave.streamsData).forEach(data => {
+            data.broken = false;
+            if (data.streams) data.streams.forEach(s => s.broken = false);
+        });
+    }
+    
+    localStorage.setItem(LS_KEY, JSON.stringify(stateToSave));
     updateUrl();
 }
 function saveState() {
@@ -937,7 +946,9 @@ async function handleFileImport(event) {
 // EVENTS
 async function init() {
     const savedCacheVersion = localStorage.getItem("fm_cache_version");
-    if (savedCacheVersion !== CACHE_VERSION) {
+    if (savedCacheVersion === null) {
+        localStorage.setItem("fm_cache_version", CACHE_VERSION);
+    } else if (savedCacheVersion !== CACHE_VERSION) {
         document.getElementById('cacheModal').classList.add('show');
         return;
     }
@@ -1185,8 +1196,15 @@ async function init() {
     drawSpectrum();
 
     const hashParams = new URLSearchParams(location.hash.slice(1));
+    const isSharedLink = hashParams.get("shared") === "1";
+    if (isSharedLink) {
+        hashParams.delete("shared");
+        history.replaceState(null, "", `#${hashParams.toString()}`);
+    }
+    
     const playName = hashParams.get("play");
     const streamIdxParam = hashParams.get("stream");
+    let shouldRestore = false;
     if (playName) {
         const decodedName = decodeURIComponent(playName);
         const streamData = stationStreamMap[FMUse.generateCodeName(decodedName)];
@@ -1196,24 +1214,38 @@ async function init() {
             
             currentPlayingStation = decodedName;
             currentStreamIndex = idx;
+            
+            if (!isSharedLink && localStorage.getItem('fm_player_playing') === currentPlayingStation) {
+                shouldRestore = true;
+            }
             updatePlayerUI(); 
         }
+    } else {
+        localStorage.removeItem('fm_player_playing');
     }
 
 
-    audioPlayer.addEventListener('pause', () => {
-        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "paused";
+    audioPlayer.addEventListener('playing', () => {
+        setPlayerLoading(false);
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "playing";
         updatePlayerUI();
     });
-    audioPlayer.addEventListener('play', () => {
-        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "playing";
+    audioPlayer.addEventListener('waiting', () => {
+        setPlayerLoading(true);
+        updatePlayerUI();
+    });
+    audioPlayer.addEventListener('pause', () => {
+        setPlayerLoading(false);
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "paused";
         updatePlayerUI();
     });
 
     document.getElementById('playerPlayBtn').addEventListener('click', () => {
+        cancelRestorePlayback();
         if (currentPlayingStation) {
             if (audioPlayer.paused) {
                 if (!audioPlayer.src || audioPlayer.src === window.location.href) {
+                    setPlayerLoading(true, "Подключение к потоку...");
                     attemptPlay(currentPlayingStation, currentStreamIndex).then(played => {
                         if (played) {
                             localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), currentStreamIndex);
@@ -1225,7 +1257,8 @@ async function init() {
                         }
                     });
                 } else {
-                    audioPlayer.play().catch(()=>{});
+                    setPlayerLoading(true);
+                    audioPlayer.play().catch(() => { setPlayerLoading(false); updatePlayerUI(); });
                 }
             } else {
                 audioPlayer.pause();
@@ -1243,6 +1276,7 @@ async function init() {
     document.getElementById('playerStreamInfo').addEventListener('click', async (e) => {
         e.preventDefault();
         if (isSwitchingStream || !currentPlayingStation) return;
+        cancelRestorePlayback();
         isSwitchingStream = true;
         
         const streamData = stationStreamMap[FMUse.generateCodeName(currentPlayingStation)];
@@ -1259,8 +1293,8 @@ async function init() {
                     continue;
                 }
                 
-                const played = await attemptPlay(currentPlayingStation, currentStreamIndex, true);
-                if (played) {
+                const played = await attemptPlay(currentPlayingStation, currentStreamIndex);
+                if (played === true) {
                     localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), currentStreamIndex);
                     updatePlayerUI();
                     updateUrl();
@@ -1291,8 +1325,9 @@ async function init() {
     if ('mediaSession' in navigator) {
         navigator.mediaSession.setActionHandler('play', () => { 
             if (currentPlayingStation && audioPlayer.paused) {
+                setPlayerLoading(true);
                 audioPlayer.load(); 
-                audioPlayer.play().catch(()=>{});
+                audioPlayer.play().catch(() => { setPlayerLoading(false); updatePlayerUI(); });
             }
         });
         navigator.mediaSession.setActionHandler('pause', () => audioPlayer.pause());
@@ -1352,6 +1387,7 @@ async function init() {
     await loadCity(state.city);
     render();
     updateUrl();
+    if (shouldRestore) restorePlayback();
     if (!hasUrl && !localStorage.getItem("geo_checked")) checkGeo(false);
 }
 
@@ -1485,7 +1521,8 @@ function showToast(msg) {
 }
 
 async function copyShareLink() {
-    const url = window.location.href;
+    let url = window.location.href.replace(/&shared=1|#shared=1/, '');
+    url += (location.hash ? '&' : '#') + 'shared=1';
     if (navigator.clipboard && navigator.clipboard.writeText) {
         try { await navigator.clipboard.writeText(url); showToast("Ссылка скопирована в буфер обмена"); } 
         catch (err) { fallbackCopyTextToClipboard(url); }
