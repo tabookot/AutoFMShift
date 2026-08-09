@@ -246,7 +246,7 @@ async function skipStation(dir) {
     const playable = state.stations.filter(st => {
         const data = stationStreamMap[FMUse.generateCodeName(st.name)];
         if (!data || !data.streams || data.broken) return false;
-        if (state.settingsMode) {
+        if (state.settingsMode || state.viewMode === 'player') {
             const stationData = getStationData(st.name);
             if (stationData.type === 'trash') return false;
         }

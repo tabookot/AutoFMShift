@@ -366,17 +366,17 @@ function renderStations() {
         if (state.settingsMode || isPlayer) {
             const data = getStationData(st.name);
             if (data.type === 'trash') item.classList.add('trash');
-            let iconClass = '';
+            let iconClass = 'normal';
             let iconChar = '○';
-            let iconTitle = '';
-            if (data.type === 'fav') { iconClass = 'fav'; iconChar = '♥'; iconTitle = 'Избранное'; }
+            let iconTitle = 'Кликни для выбора - любимое, интересное, пропушенное';
+            if (data.type === 'fav') { iconClass = 'fav'; iconChar = '♥'; iconTitle = 'Любимое'; }
             else if (data.type === 'cand') { iconClass = 'cand'; iconChar = '★'; iconTitle = 'Интересное'; }
-            else if (data.type === 'trash') { iconClass = 'trash'; iconChar = '✖'; iconTitle = 'Мусор (исключается из экспорта)'; }
+            else if (data.type === 'trash') { iconClass = 'trash'; iconChar = '⊘'; iconTitle = 'Пропущено (исключается из экспорта и прокрутки станций)'; }
             const visible = isPresetVisible(data.presetIndex);
             const presetStr = visible ? formatPreset(data.presetIndex, state.bands, state.presets) : '';
             const displayStr = visible ? presetStr : '+';
             const isActive = visible;
-            const btnTitle = isActive ? `Кнопка ${presetStr}` : '';
+            const btnTitle = isActive ? `Кнопка ${presetStr}` : 'Назначить кнопку магнитолы';
             const statusCell = document.createElement('div');
             statusCell.className = 'status-cell';
             const iconSpan = document.createElement('span');
@@ -425,17 +425,20 @@ function renderStations() {
             nameDiv.appendChild(tagsSpan);
         }
 
-        if (streamData && streamData.streams && streamData.streams.length > 0) {
-            const playBtn = document.createElement('button');
-            playBtn.className = 'play-btn-row';
-            if (streamData.broken) playBtn.classList.add('hidden');
-            playBtn.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-            playBtn.dataset.name = st.name;
+        const playBtn = document.createElement('button');
+        playBtn.className = 'play-btn-row';
+        const hasStream = streamData && streamData.streams && streamData.streams.length > 0;
+        if (!hasStream || streamData.broken) {
+            playBtn.classList.add('hidden');
+        }
+        playBtn.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+        playBtn.dataset.name = st.name;
+        if (hasStream) {
             const bitrates = streamData.streams.map(s => s.bitrate ? `${s.bitrate}k` : '?').join(', ');
             playBtn.title = `Потоки: ${bitrates}`;
             playBtn.onclick = (e) => { e.stopPropagation(); togglePlay(st.name); };
-            nameDiv.appendChild(playBtn);
         }
+        nameDiv.appendChild(playBtn);
         item.appendChild(nameDiv);
         if (!isStandard) {
             const shiftedDiv = document.createElement('div');
@@ -494,9 +497,9 @@ function getStatsTooltip(stats) {
     if (!stats) return '';
     const textParts = [];
     if (stats.total) textParts.push(`${stats.total} ${pluralize(stats.total, 'станция', 'станции', 'станций')}`);
-    if (stats.fav) textParts.push(`${stats.fav} ${pluralize(stats.fav, 'любимая', 'любимые', 'любимых')}`);
+    if (stats.fav) textParts.push(`${stats.fav} ${pluralize(stats.fav, 'любимое', 'любимые', 'любимых')}`);
     if (stats.cand) textParts.push(`${stats.cand} ${pluralize(stats.cand, 'интересная', 'интересные', 'интересных')}`);
-    if (stats.trash) textParts.push(`${stats.trash} ${pluralize(stats.trash, 'мусорная', 'мусорные', 'мусорных')}`);
+    if (stats.trash) textParts.push(`${stats.trash} ${pluralize(stats.trash, 'пропущена', 'пропущены', 'пропущено')}`);
     if (stats.presets) textParts.push(`${stats.presets} ${pluralize(stats.presets, 'кнопка', 'кнопки', 'кнопок')}`);
     return textParts.join(', ');
 }
