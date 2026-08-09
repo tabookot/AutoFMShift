@@ -40,6 +40,7 @@ body {
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
+    min-width: 300px;
     font-size: 13px;
     overflow-y: auto;
     scrollbar-width: thin;
@@ -192,9 +193,9 @@ body {
 .select-group { display: flex; gap: 6px; flex: 1 1 220px; min-width: 0; }
 .input-group { display: flex; gap: 6px; flex: 1 1 180px; align-items: center; }
 
-.select-wrapper { display: flex; gap: 4px; flex: 1 1 60%; min-width: 0; }
+.select-wrapper { display: flex; gap: 4px; flex: 1 1 75%; min-width: 0; }
 .select-wrapper select { flex: 1; }
-.dropdown { position: relative; flex: 1 1 40%; min-width: 0; display: flex; }
+.dropdown { position: relative; flex: 1 1 25%; min-width: 0; display: flex; }
 
 input, select {
     background: var(--panel-light); border: 1px solid var(--border); color: var(--text);
@@ -231,7 +232,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     flex-shrink: 0;
 }
 .btn-icon:hover, .btn-icon:active { border-color: var(--accent); color: var(--accent); }
-.btn-icon.mini { height: 30px; }
+.btn-icon.mini { width: 30px; min-width: 30px; padding: 0; }
 .btn-icon.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 
 .btn-text {
@@ -377,6 +378,23 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--text); color: var(--bg); padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 2000; opacity: 0; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.3); pointer-events: none; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+.second-row-test { display: none; }
+#mobilePlayerControls { display: none; }
+.mobile-volume-slider {
+    -webkit-appearance: none; appearance: none;
+    width: 64px; height: 16px; background: var(--border); border-radius: 8px;
+    outline: none; cursor: pointer; flex-shrink: 0; padding: 0; margin-left: 12px;
+}
+.mobile-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 0; height: 0; background: transparent;
+}
+.mobile-volume-slider::-moz-range-thumb {
+    width: 0; height: 0; background: transparent; border: none;
+}
+.mobile-volume-slider::-moz-range-track {
+    width: 64px; height: 16px; background: transparent; border-radius: 8px;
+}
 /* Custom Select */
 .custom-select { position: relative; flex: 1 1 120px; min-width: 100px; }
 .custom-select-trigger {
@@ -406,6 +424,9 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .app-header .actions .dropdown { flex: 0 0 auto; }
 #menuBtnWrapper { display: none; }
 @media (max-width: 420px) {
+    .app-header { flex-wrap: wrap; }
+    .app-header > *:not(#mobilePlayerControls) { flex-shrink: 0; }
+    
     .app-header .actions > *:not(#menuBtnWrapper) { display: none !important; }
     #menuBtnWrapper { display: block !important; }
     .player-panel { 
@@ -414,6 +435,29 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
         justify-content: flex-start;
     }
     .player-logo { display: none; }
+    .player-controls-vertical { display: none; }
+    .volume-slider { display: none; }
+
+    #mobilePlayerControls.show {
+        display: flex;
+        flex: 1 1 100%;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    #mobilePlayerControls .player-btn {
+        width: 30px;
+        min-width: 30px;
+        height: 30px;
+        background: var(--panel-light);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 }
 
 .checkbox-wrap { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; user-select: none; }
@@ -457,8 +501,9 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     .freq, .shifted-freq { font-size: 14px; }
     .chip { font-size: 14px; padding: 6px 12px; }
     .btn-icon { width: 40px; height: 40px; min-width: 40px; }
+    .btn-icon.mini { width: 30px; min-width: 30px; height: 40px; }
     .btn-text { height: 40px; font-size: 13px; }
-    input, select { font-size: 15px; padding: 10px 12px; }
+    input, select, .custom-select-trigger { font-size: 15px; padding: 10px 12px; height: 40px; }
     #bands, #presets { padding: 10px 4px; flex: 1 1 30px; min-width: 30px; }
     .station-item { padding: 6px 4px; }
     .play-btn-row { opacity: 0.8; }

@@ -1,5 +1,5 @@
 // Rule: minor.major.build in VERSION build++ on module regeneration
-const VERSION = "0.5.44";
+const VERSION = "0.5.45";
 const CACHE_VERSION = "4"; 
  
 const LS_KEY = "fm_adapter_calc_v10"; 
@@ -944,6 +944,77 @@ async function handleFileImport(event) {
 }
 
 // EVENTS
+function initMobilePlayerControls() {
+    if (document.getElementById('mobilePlayerControls')) return;
+    const header = document.querySelector('.app-header');
+    const controls = document.createElement('div');
+    controls.id = 'mobilePlayerControls';
+    
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'player-btn';
+    prevBtn.title = "Предыдущая";
+    prevBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>';
+    prevBtn.onclick = () => skipStation(-1);
+    
+    const playBtn = document.createElement('button');
+    playBtn.className = 'player-btn';
+    playBtn.id = 'mobilePlayBtn';
+    playBtn.title = "Воспроизведение/Пауза";
+    playBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+    playBtn.onclick = () => {
+        cancelRestorePlayback();
+        if (currentPlayingStation) {
+            if (audioPlayer.paused) {
+                if (!audioPlayer.src || audioPlayer.src === window.location.href) {
+                    setPlayerLoading(true, "Подключение к потоку...");
+                    attemptPlay(currentPlayingStation, currentStreamIndex).then(played => {
+                        if (played) {
+                            localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), currentStreamIndex);
+                            updatePlayerUI();
+                            updateUrl();
+                        } else {
+                            showToast("Поток недоступен");
+                            stopPlayer();
+                        }
+                    });
+                } else {
+                    setPlayerLoading(true, "Возобновление...");
+                    audioPlayer.play().catch(() => { setPlayerLoading(false); updatePlayerUI(); });
+                }
+            } else {
+                audioPlayer.pause();
+            }
+            updatePlayerUI();
+        }
+    };
+
+    const stopBtn = document.createElement('button');
+    stopBtn.className = 'player-btn';
+    stopBtn.title = "Стоп";
+    stopBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>';
+    stopBtn.onclick = () => { stopPlayer(); renderStations(); };
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'player-btn';
+    nextBtn.title = "Следующая";
+    nextBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>';
+    nextBtn.onclick = () => skipStation(1);
+
+    const volSlider = document.createElement('input');
+    volSlider.type = 'range';
+    volSlider.id = 'mobileVolumeSlider';
+    volSlider.className = 'mobile-volume-slider';
+    volSlider.min = '0'; volSlider.max = '1'; volSlider.step = '0.01';
+    volSlider.title = 'Громкость';
+    
+    controls.appendChild(prevBtn);
+    controls.appendChild(playBtn);
+    controls.appendChild(stopBtn);
+    controls.appendChild(nextBtn);
+    controls.appendChild(volSlider);
+    header.appendChild(controls);
+}
+
 async function init() {
     const savedCacheVersion = localStorage.getItem("fm_cache_version");
     if (savedCacheVersion === null) {
@@ -1152,26 +1223,41 @@ async function init() {
     const savedVol = localStorage.getItem('fm_player_volume');
     audioPlayer.volume = savedVol !== null ? parseFloat(savedVol) : 1;
     
+    initMobilePlayerControls();
+    const mobileVolSlider = document.getElementById('mobileVolumeSlider');
+    
     document.getElementById('logoBtn').onclick = () => window.open('https://github.com/tabookot/AutoFMShift', '_blank', 'noopener');
 
-    
     const volumeSlider = document.getElementById('volumeSlider');
     volumeSlider.value = audioPlayer.volume;
     
     const updateVolume = (val) => {
         val = Math.max(0, Math.min(1, val));
         volumeSlider.value = val;
+        if (mobileVolSlider) mobileVolSlider.value = val;
         audioPlayer.volume = val;
         localStorage.setItem('fm_player_volume', val);
         
         const percent = Math.round(val * 100);
         volumeSlider.style.background = `linear-gradient(to top, var(--accent) ${percent}%, var(--border) ${percent}%)`;
-        
+        if (mobileVolSlider) {
+            mobileVolSlider.style.background = `linear-gradient(to right, var(--accent) ${percent}%, var(--border) ${percent}%)`;
+            mobileVolSlider.title = `Громкость: ${percent}%`;
+        }
         volumeSlider.title = `Громкость: ${percent}%`;
     };
     updateVolume(audioPlayer.volume); 
 
     volumeSlider.addEventListener('input', (e) => updateVolume(parseFloat(e.target.value)));
+    if (mobileVolSlider) {
+        mobileVolSlider.addEventListener('input', (e) => updateVolume(parseFloat(e.target.value)));
+        mobileVolSlider.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            let val = parseFloat(mobileVolSlider.value);
+            if (e.deltaY < 0) val += 0.02; else val -= 0.02;
+            updateVolume(val);
+        }, { passive: false });
+    }
     const playerPanel = document.getElementById('playerPanel');
     playerPanel.addEventListener('wheel', (e) => {
         e.preventDefault();

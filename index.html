@@ -235,6 +235,9 @@
                                 <div id="citySelectMenu" class="custom-select-menu"></div>
                             </div>
                             <button id="geoBtn" class="btn-icon mini" title="Определить ваш город по IP-адресу.">&#9873;</button>
+                            <button id="transferBtn" class="btn-icon mini" title="Скопировать настройки от другого города" style="display: none;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
                         </div>
                         <div class="dropdown">
                             <button id="templatesBtn" class="btn-text" title="Головное Устройство (ГУ) — это магнитола. Выберите диапазон частот в зависимости от рынка происхождения авто (Япония, США, РФ/Европа) или укажите свой.">RU/EU</button>
@@ -242,9 +245,6 @@
                         </div>
                     </div>
                     <div class="input-group">
-                        <button id="transferBtn" class="btn-icon mini" title="Скопировать настройки от другого города" style="display: none;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        </button>
                         <input type="number" id="minFreq" step="0.1" min="64" max="110" title="Мин. частота ГУ">
                         <input type="number" id="maxFreq" step="0.1" min="64" max="110" title="Макс. частота ГУ">
                         <input type="number" id="bands" min="1" max="5" value="1" title="Кол-во бэндов (диапазонов) ГУ" style="display: none;">

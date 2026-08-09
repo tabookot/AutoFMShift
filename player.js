@@ -12,9 +12,11 @@ let isRestoringPlayback = false;
 
 function setPlayerLoading(isLoading, hintText = "Подключение к потоку...") {
     const btn = document.getElementById('playerPlayBtn');
+    const mobileBtn = document.getElementById('mobilePlayBtn');
     const hint = document.getElementById('playerHint');
     if (!btn) return;
     btn.classList.toggle('loading', isLoading);
+    if (mobileBtn) mobileBtn.classList.toggle('loading', isLoading);
     if (hint) {
         hint.textContent = hintText;
         hint.classList.toggle('show', isLoading);
@@ -439,6 +441,16 @@ function updateMediaSession() {
 function updatePlayerUI() {
     localStorage.setItem('fm_player_playing', (!audioPlayer.paused && currentPlayingStation) ? currentPlayingStation : '');
     const playerPanel = document.getElementById('playerPanel');
+    const mobileControls = document.getElementById('mobilePlayerControls');
+    const mobilePlayBtn = document.getElementById('mobilePlayBtn');
+    if (mobileControls) {
+        mobileControls.classList.toggle('show', !!currentPlayingStation);
+        if (mobilePlayBtn) {
+            mobilePlayBtn.innerHTML = audioPlayer.paused 
+                ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>' 
+                : '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
+        }
+    }
     const playerPlayBtn = document.getElementById('playerPlayBtn');
     const playerLogo = document.getElementById('playerLogo');
     const playerName = document.getElementById('playerName');
