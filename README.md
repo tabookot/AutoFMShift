@@ -75,13 +75,13 @@
 
 ## 🚀 Газуем
 
+<img src="img/bandit.png" width="250" align="right" style="opacity: 0.15; filter: grayscale(100%); margin-left: 15px; border-radius: 8px;">
+
 Так как проект не имеет зависимостей и сборки, достаточно просто скачать все файлы и открыть `index.html` в браузере, никаких установок, регистраций. Данные никуда не уходят и остаются в браузере пользователя. 
 
 Можно запустить локальный сервер (например, через Live Server в VS Code или `python -m http.server`) для корректной работы GeoIP, шрифтов и API запросов (для избежания CORS-проблем при открытии через `file://`).
 
 ## 📁 Расклад
-
-<img src="img/bandit.png" width="250" align="right" style="opacity: 0.15; filter: grayscale(100%); margin-left: 15px; border-radius: 8px;">
 
 ```text
 AutoFMShift/
