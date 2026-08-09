@@ -8,14 +8,14 @@
         "codec": "MP3"
       },
       {
-        "url": "http://icecast.vgtrk.cdnvideo.ru/rrzonam_mp3_192kbps",
-        "bitrate": 192,
-        "codec": "MP3"
-      },
-      {
         "url": "http://icecast.vgtrk.cdnvideo.ru/rrzonam_mp3_64kbps",
         "bitrate": 64,
         "codec": "MP3"
+      },
+      {
+        "url": "http://icecast.vgtrk.cdnvideo.ru/rrzonam_aac_32kbps",
+        "bitrate": 32,
+        "codec": "AAC+"
       }
     ],
     "homepage": "http://www.radiorus.ru/",
@@ -262,13 +262,13 @@
         "codec": "MP3"
       },
       {
-        "url": "http://nashe1.hostingradio.ru/nashe-256",
-        "bitrate": 256,
+        "url": "https://nashe1.hostingradio.ru:80/nashe-128.mp3",
+        "bitrate": 0,
         "codec": "MP3"
       },
       {
-        "url": "https://nashe1.hostingradio.ru:80/nashe-128.mp3",
-        "bitrate": 0,
+        "url": "http://nashe1.hostingradio.ru/nashe-256",
+        "bitrate": 256,
         "codec": "MP3"
       }
     ],
@@ -320,7 +320,7 @@
         "codec": "AAC+"
       },
       {
-        "url": "https://dfm-disco.hostingradio.ru/disco96.aacp",
+        "url": "https://dfm-dfmclub.hostingradio.ru/dfmclub96.aacp",
         "bitrate": 96,
         "codec": "AAC+"
       }
@@ -387,14 +387,14 @@
         "codec": "MP3"
       },
       {
-        "url": "https://hitfm.hostingradio.ru/hitfm96.aacp",
-        "bitrate": 0,
+        "url": "https://hls-01-hitfm.hostingradio.ru/hitfm/playlist.m3u8",
+        "bitrate": 100,
         "codec": "AAC"
       },
       {
-        "url": "https://hitfm.hostingradio.ru/hitfm128.mp3?88b9f1",
+        "url": "https://hitfm.hostingradio.ru/hitfm96.aacp",
         "bitrate": 0,
-        "codec": "MP3"
+        "codec": "AAC"
       }
     ],
     "homepage": "",
@@ -518,7 +518,16 @@
   },
   {
     "name": "Авторадио",
-    "streams": []
+    "streams": [
+      {
+        "url": "https://cast.mediaonline.net.ua/avtoradio",
+        "bitrate": 128,
+        "codec": "MP3"
+      }
+    ],
+    "homepage": "https://cast.mediaonline.net.ua/avtoradio",
+    "favicon": "null",
+    "tags": "music"
   },
   {
     "name": "Маруся FM",
@@ -541,14 +550,14 @@
     "name": "Радио Монте-Карло",
     "streams": [
       {
-        "url": "https://radio.mediacdn.ru/shanson_omsk.mp3",
-        "bitrate": 0,
-        "codec": "MP3"
-      },
-      {
         "url": "https://mc-mcgold.hostingradio.ru/mcgold96.aacp",
         "bitrate": 96,
         "codec": "AAC+"
+      },
+      {
+        "url": "https://radio.mediacdn.ru/shanson_omsk.mp3",
+        "bitrate": 0,
+        "codec": "MP3"
       },
       {
         "url": "http://online-1.gkvr.ru:8000/mc_rnd_64.aac",
@@ -582,12 +591,12 @@
         "codec": "MP3"
       },
       {
-        "url": "http://radiorecord.hostingradio.ru/rmx96.aacp",
+        "url": "http://radiorecord.hostingradio.ru/rr_main96.aacp",
         "bitrate": 0,
         "codec": "AAC"
       },
       {
-        "url": "http://radiorecord.hostingradio.ru/mdl96.aacp",
+        "url": "http://radiorecord.hostingradio.ru/groovetribal96.aacp",
         "bitrate": 0,
         "codec": "AAC"
       }
@@ -610,9 +619,9 @@
         "codec": "MP3"
       },
       {
-        "url": "https://pub0302.101.ru:8443/stream/trust/mp3/128/265",
-        "bitrate": 128,
-        "codec": "MP3"
+        "url": "https://pub0302.101.ru:8443/stream/air/aac/64/200",
+        "bitrate": 0,
+        "codec": "AAC"
       }
     ],
     "homepage": "https://relax-fm.ru/",
@@ -664,12 +673,12 @@
         "codec": "AAC"
       },
       {
-        "url": "https://radiorecord.hostingradio.ru/mix96.aacp",
+        "url": "http://radiorecord.hostingradio.ru/ambient96.aacp",
         "bitrate": 0,
         "codec": "AAC"
       },
       {
-        "url": "http://radiorecord.hostingradio.ru/phonk96.aacp",
+        "url": "https://radiorecord.hostingradio.ru/trancehouse96.aacp",
         "bitrate": 0,
         "codec": "AAC"
       }
@@ -782,17 +791,17 @@
     "name": "Радио JAZZ",
     "streams": [
       {
+        "url": "http://jfm1.hostingradio.ru:14536/sjstream.mp3",
+        "bitrate": 128,
+        "codec": "MP3"
+      },
+      {
         "url": "http://jfm1.hostingradio.ru:14536/ijstream.mp3",
         "bitrate": 128,
         "codec": "MP3"
       },
       {
-        "url": "http://nashe1.hostingradio.ru/jazz-256",
-        "bitrate": 256,
-        "codec": "MP3"
-      },
-      {
-        "url": "http://jfm1.hostingradio.ru:14536/sjstream.mp3",
+        "url": "http://jfm1.hostingradio.ru:14536/jvstream.mp3",
         "bitrate": 128,
         "codec": "MP3"
       }
@@ -1124,14 +1133,14 @@
     "name": "Культура",
     "streams": [
       {
-        "url": "https://icecast-vgtrk.cdnvideo.ru/kulturafm_aac_64kbps",
-        "bitrate": 64,
-        "codec": "AAC+"
-      },
-      {
         "url": "http://icecast.vgtrk.cdnvideo.ru/kulturafm_mp3_192kbps",
         "bitrate": 192,
         "codec": "MP3"
+      },
+      {
+        "url": "https://icecast-vgtrk.cdnvideo.ru/kulturafm_aac_64kbps",
+        "bitrate": 64,
+        "codec": "AAC+"
       },
       {
         "url": "http://icecast.vgtrk.cdnvideo.ru/kulturafm",
@@ -1139,9 +1148,9 @@
         "codec": "MP3"
       }
     ],
-    "homepage": "https://www.cultradio.ru/",
+    "homepage": "http://www.cultradio.ru/",
     "favicon": "",
-    "tags": "64 kbps aac+, classical, cultural news, folk, jazz"
+    "tags": "folk, jazz, moscow, music"
   },
   {
     "name": "Москва FM",
@@ -1326,9 +1335,9 @@
         "codec": "MP3"
       }
     ],
-    "homepage": "https://radio10.live/",
-    "favicon": "",
-    "tags": "pop music"
+    "homepage": "https://topradio.me/10",
+    "favicon": "https://topradio.me/assets/image/radio/100/10-petrozavodsk.png",
+    "tags": "поп-музыка, чилаут"
   },
   {
     "name": "Радио Седьмое Небо",
