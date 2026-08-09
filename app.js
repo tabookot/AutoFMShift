@@ -1,5 +1,5 @@
 // Rule: minor.major.build in VERSION build++ on module regeneration
-const VERSION = "0.5.45";
+const VERSION = "0.5.48";
 const CACHE_VERSION = "4"; 
  
 const LS_KEY = "fm_adapter_calc_v10"; 
@@ -41,6 +41,7 @@ const DEFAULT_STATE = {
     shift: 0,
     stations: [],
     settingsMode: false,
+    viewMode: 'setup',
     bands: 1,
     presets: 6,
     cityData: {},
@@ -124,13 +125,33 @@ function toggleSettings() {
     render();
 }
 function applySettingsMode() {
+    const isPlayer = state.viewMode === 'player';
+    const showStatus = state.settingsMode || isPlayer;
     const display = state.settingsMode ? 'block' : 'none';
     document.getElementById('bands').style.display = display;
     document.getElementById('presets').style.display = display;
-    document.getElementById('statusHeader').style.display = state.settingsMode ? 'block' : 'none';
+    document.getElementById('statusHeader').style.display = showStatus ? 'block' : 'none';
     const settingsBtn = document.getElementById('settingsBtn');
     settingsBtn.classList.toggle('active', state.settingsMode);
     settingsBtn.setAttribute('aria-pressed', state.settingsMode ? 'true' : 'false');
+}
+function toggleViewMode() {
+    state.viewMode = state.viewMode === 'player' ? 'setup' : 'player';
+    commitState();
+    applyViewMode();
+    render();
+}
+function applyViewMode() {
+    document.body.classList.toggle('player-mode', state.viewMode === 'player');
+    const modeBtn = document.getElementById('modeBtn');
+    if (state.viewMode === 'player') {
+        modeBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>';
+        modeBtn.title = "Режим: Плеер (нажмите для Настройки)";
+    } else {
+        modeBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>';
+        modeBtn.title = "Режим: Настройка (нажмите для Плеера)";
+    }
+    applySettingsMode();
 }
 function getStationData(name) {
     return state.cityData[state.city]?.stations?.[name] || { type: 'normal', presetIndex: null };
@@ -309,6 +330,7 @@ function renderStations() {
     }
     const sorted = [...state.stations].sort((a, b) => a.freq - b.freq);
     const isStandard = state.min === RU_MIN && state.max === RU_MAX;
+    const isPlayer = state.viewMode === 'player';
     const frag = document.createDocumentFragment();
     sorted.forEach(st => {
         const item = document.createElement("div");
@@ -318,11 +340,30 @@ function renderStations() {
         const isAvail = isAvailable(st.freq);
         const freqClass = isAvail ? 'ok' : 'err';
         if (!isAvail) item.classList.add("unavailable");
+        const streamData = stationStreamMap[FMUse.generateCodeName(st.name)];
+        
+        const logoDiv = document.createElement('div');
+        logoDiv.className = 'station-logo';
+        if (streamData && streamData.favicon && streamData.favicon !== 'null' && streamData.favicon !== 'undefined') {
+            const img = document.createElement('img');
+            img.src = streamData.favicon;
+            img.alt = '';
+            img.onerror = () => logoDiv.classList.add('no-logo');
+            logoDiv.appendChild(img);
+        } else {
+            logoDiv.classList.add('no-logo');
+        }
+        item.appendChild(logoDiv);
+
         const freqDiv = document.createElement('div');
         freqDiv.className = 'freq';
         freqDiv.textContent = formatFreq(st.freq);
+        const freqHint = `Оригинальная частота: ${formatFreq(st.freq)} МГц`;
+        freqDiv.title = freqHint;
+        freqDiv.style.cursor = 'pointer';
+        freqDiv.addEventListener('click', (e) => { e.stopPropagation(); showToast(freqHint); });
         item.appendChild(freqDiv);
-        if (state.settingsMode) {
+        if (state.settingsMode || isPlayer) {
             const data = getStationData(st.name);
             if (data.type === 'trash') item.classList.add('trash');
             let iconClass = '';
@@ -371,12 +412,16 @@ function renderStations() {
         });
         nameDiv.appendChild(nameText);
 
-        const streamData = stationStreamMap[FMUse.generateCodeName(st.name)];
         if (streamData && streamData.tags) {
             const tagsSpan = document.createElement('span');
             tagsSpan.className = 'tags';
             tagsSpan.textContent = streamData.tags;
             tagsSpan.title = streamData.tags;
+            tagsSpan.style.cursor = 'pointer';
+            tagsSpan.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showToast(streamData.tags);
+            });
             nameDiv.appendChild(tagsSpan);
         }
 
@@ -386,6 +431,8 @@ function renderStations() {
             if (streamData.broken) playBtn.classList.add('hidden');
             playBtn.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
             playBtn.dataset.name = st.name;
+            const bitrates = streamData.streams.map(s => s.bitrate ? `${s.bitrate}k` : '?').join(', ');
+            playBtn.title = `Потоки: ${bitrates}`;
             playBtn.onclick = (e) => { e.stopPropagation(); togglePlay(st.name); };
             nameDiv.appendChild(playBtn);
         }
@@ -394,6 +441,10 @@ function renderStations() {
             const shiftedDiv = document.createElement('div');
             shiftedDiv.className = `shifted-freq ${freqClass}`;
             shiftedDiv.textContent = shiftedNum >= FM_BAND_MIN ? formatFreq(shiftedNum) : "—";
+            const shiftedHint = shiftedNum >= FM_BAND_MIN ? `На ГУ (с адаптером): ${formatFreq(shiftedNum)} МГц` : "Вне диапазона ГУ";
+            shiftedDiv.title = shiftedHint;
+            shiftedDiv.style.cursor = 'pointer';
+            shiftedDiv.addEventListener('click', (e) => { e.stopPropagation(); showToast(shiftedHint); });
             item.appendChild(shiftedDiv);
         }
         frag.appendChild(item);
@@ -580,6 +631,7 @@ function updateUrl() {
         city: state.city, min: state.min, max: state.max, shift: state.shift,
         mode: state.settingsMode ? 1 : 0, bands: state.bands, presets: state.presets
     });
+    if (state.viewMode === 'player') params.set('view', 'player');
     if (currentPlayingStation) {
         params.set('play', currentPlayingStation);
         params.set('stream', currentStreamIndex);
@@ -594,6 +646,7 @@ function loadFromUrl() {
     const max = parseFloat(params.get("max")); if (!isNaN(max) && max >= 64 && max <= 110 && max > state.min) state.max = max;
     const shift = parseInt(params.get("shift")); if (!isNaN(shift) && shift >= 0 && shift <= 30) state.shift = shift;
     const mode = params.get("mode"); if (mode === "1") state.settingsMode = true;
+    const view = params.get("view"); state.viewMode = view === 'player' ? 'player' : 'setup';
     const bands = parseInt(params.get("bands")); if (!isNaN(bands) && bands >= 1 && bands <= 5) state.bands = bands;
     const presets = parseInt(params.get("presets")); if (!isNaN(presets) && presets >= 1 && presets <= 18) state.presets = presets;
     const matched = TEMPLATES.find(t => t.range[0] === state.min && t.range[1] === state.max);
@@ -1129,6 +1182,7 @@ async function init() {
     document.getElementById('cancelExportBtn').addEventListener('click', () => document.getElementById('exportModal').classList.remove('show'));
     document.getElementById('doExportBtn').addEventListener('click', doExport);
 
+    document.getElementById('modeBtn').addEventListener('click', toggleViewMode);
     document.getElementById('settingsBtn').addEventListener('click', (e) => { 
         e.stopPropagation(); 
         toggleSettings(); 
@@ -1168,6 +1222,10 @@ async function init() {
             const iconShare = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; vertical-align:middle;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>';
             const iconTheme = '<span style="display:inline-block; width:14px; text-align:center; margin-right:8px;">☾</span>';
             const iconHelp = '<span style="display:inline-block; width:14px; text-align:center; margin-right:8px; font-weight:bold;">?</span>';
+            const iconMode = state.viewMode === 'player' 
+                ? '<span style="display:inline-block; width:14px; text-align:center; margin-right:8px;">⚙️</span>' 
+                : '<span style="display:inline-block; width:14px; text-align:center; margin-right:8px;">🎧</span>';
+            const textMode = state.viewMode === 'player' ? 'Настройка' : 'Плеер';
             
             menu.innerHTML = `
                 <div class="dropdown-item" data-action="download-png">${iconDownload}Скачать PNG</div>
@@ -1177,6 +1235,7 @@ async function init() {
                 <div class="dropdown-item" data-action="share">${iconShare}Поделиться</div>
                 <div class="dropdown-item" data-action="theme">${iconTheme}Сменить тему</div>
                 <div class="dropdown-item" data-action="help">${iconHelp}Инструкция</div>
+                <div class="dropdown-item" data-action="viewmode">${iconMode}Режим: ${textMode}</div>
             `;
         }
         menu.classList.toggle('show');
@@ -1195,6 +1254,7 @@ async function init() {
         else if (action === 'download-xlsx') exportXLSX();
         else if (action === 'download-json') openExportModal();
         else if (action === 'share') copyShareLink();
+        else if (action === 'viewmode') toggleViewMode();
         document.getElementById('menuDropdown').classList.remove('show');
     });
 
@@ -1217,7 +1277,7 @@ async function init() {
     }
     
     await loadStationsData();
-    applySettingsMode();
+    applyViewMode();
 
     audioPlayer = document.getElementById('audioPlayer');
     const savedVol = localStorage.getItem('fm_player_volume');
