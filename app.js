@@ -1500,7 +1500,7 @@ async function init() {
         }
     } else {
         try {
-            const res = await fetch('backup-api.json');
+            const res = await fetch('data/backup-api.json');
             if (res.ok) {
                 const data = await res.json();
                 if (data.type === 'api-cache') {

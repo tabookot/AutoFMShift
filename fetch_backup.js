@@ -16,11 +16,11 @@ async function run() {
     };
 
     let oldData = null;
-    if (fs.existsSync('backup-api.json')) {
+    if (fs.existsSync('data/backup-api.json')) {
         try {
-            oldData = JSON.parse(fs.readFileSync('backup-api.json', 'utf8'));
+            oldData = JSON.parse(fs.readFileSync('data/backup-api.json', 'utf8'));
         } catch (e) {
-            console.log("Старый backup-api.json поврежден, игнорируем.");
+            console.log("Старый data/backup-api.json поврежден, игнорируем.");
         }
     }
 
@@ -119,8 +119,8 @@ async function run() {
         }
     }
 
-    fs.writeFileSync('backup-api.json', JSON.stringify(newData, null, 2));
-    console.log("Готово! backup-api.json обновлен.");
+    fs.writeFileSync('data/backup-api.json', JSON.stringify(newData, null, 2));
+    console.log("Готово! data/backup-api.json обновлен.");
 
     saveHistory(report);
 
@@ -131,16 +131,16 @@ async function run() {
 
 // --- ФУНКЦИИ ГЕНЕРАЦИИ СПИСКОВ ---
 async function generateLists(data, citiesMap) {
-    if (!fs.existsSync('lists')) {
-        fs.mkdirSync('lists', { recursive: true });
+    if (!fs.existsSync('data')) {
+        fs.mkdirSync('data', { recursive: true });
     }
 
     // 1. Список городов (Markdown)
     const cityNames = Object.keys(citiesMap).sort();
     let citiesMd = `# Список городов (${cityNames.length} шт.)\n\n`;
     cityNames.forEach((c, i) => citiesMd += `${i + 1}. ${c}\n`);
-    fs.writeFileSync('lists/cities_list.md', citiesMd);
-    console.log("Сохранен lists/cities_list.md");
+    fs.writeFileSync('data/cities_list.md', citiesMd);
+    console.log("Сохранен data/cities_list.md");
 
     // 2. Группировка станций
     const freqMap = {};
@@ -186,8 +186,8 @@ async function generateLists(data, citiesMap) {
     groups.sort((a, b) => b.count - a.count);
 
     // Сохраняем станции в JSON (для API запросов)
-    fs.writeFileSync('lists/stations_groups.json', JSON.stringify(groups, null, 2));
-    console.log(`Сохранен lists/stations_groups.json (${groups.length} уникальных групп)`);
+    fs.writeFileSync('data/stations_groups.json', JSON.stringify(groups, null, 2));
+    console.log(`Сохранен data/stations_groups.json (${groups.length} уникальных групп)`);
 
     // Сохраняем в Markdown (для чтения нейросетью/человеком)
     let stationsMd = `# Список станций (${groups.length} групп)\n\n`;
@@ -199,8 +199,8 @@ async function generateLists(data, citiesMap) {
             stationsMd += `\n`;
         }
     });
-    fs.writeFileSync('lists/stations_list.md', stationsMd);
-    console.log("Сохранен lists/stations_list.md");
+    fs.writeFileSync('data/stations_list.md', stationsMd);
+    console.log("Сохранен data/stations_list.md");
 
     // 3. Обогащение данных через radio-browser.info
     await enrichStationsData(groups);
@@ -263,22 +263,22 @@ async function enrichStationsData(groups) {
         await new Promise(r => setTimeout(r, 250));
     }
 
-    fs.writeFileSync('lists/stations_data.json', JSON.stringify(enrichedList, null, 2));
-    console.log(`Сохранен lists/stations_data.json (${enrichedList.length} записей)`);
+    fs.writeFileSync('data/stations_data.json', JSON.stringify(enrichedList, null, 2));
+    console.log(`Сохранен data/stations_data.json (${enrichedList.length} записей)`);
 }
 
 function saveHistory(report) {
     let history = { sessions: [] };
-    if (fs.existsSync('backup-api.history.json')) {
+    if (fs.existsSync('data/backup-api.history.json')) {
         try {
-            history = JSON.parse(fs.readFileSync('backup-api.history.json', 'utf8'));
+            history = JSON.parse(fs.readFileSync('data/backup-api.history.json', 'utf8'));
         } catch (e) {}
     }
     history.sessions.push(report);
     // Ограничиваем историю последними 100 записями
     if (history.sessions.length > 100) history.sessions.shift();
-    fs.writeFileSync('backup-api.history.json', JSON.stringify(history, null, 2));
-    console.log("История обновлена в backup-api.history.json");
+    fs.writeFileSync('data/backup-api.history.json', JSON.stringify(history, null, 2));
+    console.log("История обновлена в data/backup-api.history.json");
 }
 
 async function createIssue(report) {

@@ -64,7 +64,7 @@ let spectrumCtx = null;
 // PLAYER LOGIC
 async function loadStationsData() {
     try {
-        const res = await fetch('lists/stations_data.json');
+        const res = await fetch('data/stations_data.json');
         if (res.ok) {
             const data = await res.json();
             data.forEach(st => {
