@@ -18,7 +18,7 @@ const FMUse = {
         
         // 5. Удаляем мусорные слова и аббревиатуры вещателей (ГТРК, ТРВ и т.д.)
         // Используем проверку пробелов вместо \b, так как \b не работает с кириллицей
-        cleanName = cleanName.replace(/(^|\s)(радио|radio|fm|ам|тв|tv|гтрк|трв|орр)(?=\s|$)/g, ' ');
+        cleanName = cleanName.replace(/(^|\s)(радио|radio|фм|fm|ам|тв|tv|гтрк|трв|орр)(?=\s|$)/g, ' ');
         
         // 6. Оставляем только буквы, цифры и пробелы
         cleanName = cleanName.replace(/[^\p{L}\p{N}\s-]/gu, ' ');
@@ -156,6 +156,39 @@ const FMUse = {
         if (matchRate >= 0.5 && avgScore >= 0.5) return 3;   
         if (matchRate >= 0.2) return 2;                      
         return 1; 
+    },
+
+    // Очистка имени потока от названия станции, города и мусора для красивого вывода
+    cleanStreamName(name, stationName, cityName, tags) {
+        if (!name) return '';
+        let cleaned = name.toLowerCase();
+        
+        const removeStr = (str) => {
+            if (!str) return;
+            const escapedStr = str.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            cleaned = cleaned.replace(new RegExp(escapedStr, 'g'), ' ');
+        };
+
+        removeStr(this.normalizeName(stationName));
+        removeStr(stationName.toLowerCase());
+        removeStr(cityName);
+        removeStr(tags);
+
+        const junkWords = ['радио', 'radio', 'fm', 'фм', 'ам', 'тв', 'tv', 'гтрк', 'трв', 'орр', 'онлайн', 'online', 'прямой', 'эфир'];
+        junkWords.forEach(word => {
+            // Используем Unicode-границы слов (?<!\p{L}\p{N}), так как стандартный \b не работает с кириллицей
+            const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            cleaned = cleaned.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escapedWord}(?![\\p{L}\\p{N}])`, 'gu'), ' ');
+        });
+
+        cleaned = cleaned.replace(/[\[\]\(\)\{\}]/g, ' ');
+        cleaned = cleaned.replace(/[-\/\\|_]+/g, ' ');
+        cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+        if (cleaned.length > 0) {
+            cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+        }
+        return cleaned;
     },
 
     // Генерация код-названия (slug)

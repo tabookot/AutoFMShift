@@ -64,11 +64,13 @@ let spectrumCtx = null;
 // PLAYER LOGIC
 async function loadStationsData() {
     try {
-        const res = await fetch('data/stations_data.json');
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const ver = isLocalhost ? Date.now() : (typeof VERSION !== 'undefined' ? VERSION : '1');
+        const res = await fetch(`data/stations_data.json?v=${ver}`, { cache: 'no-cache' });
         if (res.ok) {
             const data = await res.json();
             data.forEach(st => {
-                if (st.streams && st.streams.length > 0) {
+                if (st.streams) { // Убрали проверку length > 0, чтобы перезаписывать пустые массивы
                     const code = FMUse.generateCodeName(st.name);
                     stationStreamMap[code] = st;
                     if (!state.streamsData) state.streamsData = {};
@@ -463,17 +465,24 @@ function updatePlayerUI() {
             
             const logoBtn = document.getElementById('logoBtn');
             const originalLogo = "img/logo_100.png";
-            if (streamData.favicon && streamData.favicon !== 'null' && streamData.favicon !== 'undefined') {
+            
+            // Используем логотип текущего потока, если есть, иначе станции
+            const currentStream = streamData.streams[currentStreamIndex];
+            const currentFav = (currentStream && currentStream.favicon && currentStream.favicon !== 'null' && currentStream.favicon !== 'undefined') 
+                ? currentStream.favicon 
+                : (streamData.favicon && streamData.favicon !== 'null' && streamData.favicon !== 'undefined' ? streamData.favicon : null);
+                
+            if (currentFav) {
                 const img = new Image();
                 img.onload = () => {
-                    logoBtn.style.backgroundImage = `url('${streamData.favicon}')`;
+                    logoBtn.style.backgroundImage = `url('${currentFav}')`;
                     playerLogo.style.display = 'none'; 
                 };
                 img.onerror = () => {
                     logoBtn.style.backgroundImage = `url('${originalLogo}')`;
                     playerLogo.style.display = 'none';
                 };
-                img.src = streamData.favicon;
+                img.src = currentFav;
             } else {
                 logoBtn.style.backgroundImage = `url('${originalLogo}')`;
                 playerLogo.style.display = 'none';
@@ -490,7 +499,13 @@ function updatePlayerUI() {
             
             if (streamData.streams && streamData.streams[currentStreamIndex]) {
                 const stream = streamData.streams[currentStreamIndex];
-                const genres = streamData.tags || "";
+                let genres = (stream.tags) ? stream.tags : (streamData.tags || "");
+                if (stream.name) {
+                    const cleanedName = FMUse.cleanStreamName(stream.name, currentPlayingStation, state.city, genres);
+                    if (cleanedName) {
+                        genres = genres ? `${genres} (${cleanedName})` : `(${cleanedName})`;
+                    }
+                }
                 
                 const parts = [];
                 const titleParts = [`Поток ${currentStreamIndex + 1}/${streamData.streams.length}`];

@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Песочница fetch_backup</title>
+    <style>
+        :root {
+            --bg: #0f1115;
+            --panel: #181c23;
+            --panel-light: #222730;
+            --text: #e4e6eb;
+            --text-dim: #8b909a;
+            --accent: #00d4ff;
+            --border: #2a2f38;
+            --green: #2ecc71;
+            --pink: #ff4757;
+            --yellow: #f1c40f;
+            --radius: 12px;
+            --radius-sm: 6px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* Top Bar */
+        .top-bar { flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; }
+        .progress-container { height: 4px; background: var(--panel-light); }
+        .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s; }
+        .player-bar { padding: 8px 15px; display: flex; align-items: center; gap: 15px; }
+        .pp-btn { background: var(--panel-light); border: 1px solid var(--border); color: var(--accent); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .pp-btn:hover { border-color: var(--accent); }
+        .vol-slider { -webkit-appearance: none; appearance: none; width: 100px; height: 6px; background: var(--border); border-radius: 3px; outline: none; cursor: pointer; }
+        .vol-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; background: var(--accent); border-radius: 50%; cursor: pointer; }
+        .vol-slider::-moz-range-thumb { width: 12px; height: 12px; background: var(--accent); border-radius: 50%; cursor: pointer; border: none; }
+        .now-playing { font-size: 12px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+
+        /* Main Layout */
+        .main-content { flex: 1; display: flex; overflow: hidden; }
+        .log-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .button-panel { width: 200px; flex-shrink: 0; border-left: 1px solid var(--border); background: var(--panel); padding: 20px 15px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        
+        .step-group { display: flex; flex-direction: column; gap: 5px; }
+        .step-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; }
+        .step-btns { display: flex; gap: 6px; }
+        .btn {
+            background: var(--panel-light); border: 1px solid var(--border); color: var(--text);
+            padding: 8px; border-radius: var(--radius-sm); cursor: pointer; font-size: 12px;
+            transition: all 0.2s; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
+        }
+        .btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .btn-danger { border-color: var(--pink); color: var(--pink); margin-top: auto; }
+        .btn svg { width: 14px; height: 14px; }
+
+        /* Log Entries */
+        .log-entry { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; flex-shrink: 0; }
+        .log-header { padding: 10px 15px; background: var(--panel-light); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; gap: 15px; }
+        .log-header:hover { color: var(--accent); }
+        .log-title { font-weight: bold; font-size: 13px; flex: 1; min-width: 0; }
+        .header-right { display: flex; align-items: center; gap: 15px; flex-shrink: 0; }
+        .log-time { font-size: 11px; color: var(--text-dim); text-align: right; white-space: nowrap; }
+        .log-body { padding: 0 15px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+        .log-body.open { max-height: 75vh; overflow-y: auto; padding: 15px; }
+        
+        /* JSON Tree */
+        .json-tree { font-family: 'Courier New', monospace; font-size: 12px; }
+        .json-key { color: var(--accent); }
+        .json-string { color: var(--green); }
+        .json-number { color: var(--yellow); }
+        .json-boolean { color: var(--pink); }
+        .json-null { color: var(--text-dim); }
+        details { margin-left: 20px; padding: 2px 0; }
+        summary { cursor: pointer; user-select: none; outline: none; }
+        summary::-webkit-details-marker { color: var(--text-dim); }
+        .stream-item { display: flex; align-items: center; gap: 8px; margin: 5px 0; margin-left: 20px; }
+        .play-stream-btn { background: var(--panel-light); border: 1px solid var(--accent); color: var(--accent); padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px; }
+        .play-stream-btn:hover { background: var(--accent); color: var(--bg); }
+        .lazy-btn { background: var(--panel-light); border: 1px dashed var(--accent); color: var(--accent); padding: 5px 10px; border-radius: 4px; cursor: pointer; margin: 5px 0; font-size: 12px; }
+        
+        /* Save Actions in Header */
+        .save-actions { display: flex; gap: 8px; }
+        .save-btn { background: var(--panel); border: 1px solid var(--green); color: var(--green); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap; }
+        .save-btn:hover { background: var(--green); color: var(--bg); }
+
+        /* Help Modal */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; }
+        .modal.show { display: flex; }
+        .modal-content { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .modal-title { font-size: 16px; font-weight: bold; color: var(--accent); }
+        .close-btn { background: transparent; border: none; color: var(--text-dim); font-size: 20px; cursor: pointer; }
+        .help-text { font-size: 13px; line-height: 1.6; color: var(--text); }
+        .help-text h3 { font-size: 14px; margin-top: 15px; margin-bottom: 5px; color: var(--text-dim); text-transform: uppercase; }
+        .help-text ul { margin-left: 20px; }
+        .help-text code { background: var(--panel-light); padding: 2px 4px; border-radius: 4px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div class="progress-container"><div id="progressBar" class="progress-bar"></div></div>
+        <div class="player-bar">
+            <button id="ppBtn" class="pp-btn" title="Play/Pause">▶</button>
+            <input type="range" id="volSlider" class="vol-slider" min="0" max="1" step="0.01" value="1" title="Громкость">
+            <span id="nowPlaying" class="now-playing">Остановлено</span>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div id="logContainer" class="log-container"></div>
+        
+        <div class="button-panel">
+            <div class="step-group">
+                <div class="step-label">1. Старые данные</div>
+                <div class="step-btns">
+                    <button class="btn" id="btn1_api" onclick="runStep('load-old')" title="Загрузить старые данные из JSON">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Auto
+                    </button>
+                </div>
+            </div>
+
+            <div class="step-group">
+                <div class="step-label">2. Города</div>
+                <div class="step-btns">
+                    <button class="btn" id="btn2_api" onclick="runStep('fetch-cities')" title="Получить список городов с API Fandom">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                        API
+                    </button>
+                </div>
+            </div>
+
+            <div class="step-group">
+                <div class="step-label">3. Станции</div>
+                <div class="step-btns">
+                    <button class="btn" id="btn3_api" onclick="runStep('fetch-stations')" title="Собрать станции по всем городам">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                        API
+                    </button>
+                    <button class="btn" id="btn3_file" onclick="document.getElementById('file3').click()" title="Загрузить backup-api.json">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                        File
+                    </button>
+                    <input type="file" id="file3" accept=".json" style="display:none" onchange="handleFileUpload(3, this)">
+                </div>
+            </div>
+
+            <div class="step-group">
+                <div class="step-label">4. Потоки</div>
+                <div class="step-btns">
+                    <button class="btn" id="btn4_api" onclick="runStep('enrich')" title="Обогатить данные через radio-browser.info">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                        API
+                    </button>
+                    <button class="btn" id="btn4_file" onclick="document.getElementById('file4').click()" title="Загрузить stations_data.json">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                        File
+                    </button>
+                    <input type="file" id="file4" accept=".json" style="display:none" onchange="handleFileUpload(4, this)">
+                </div>
+            </div>
+
+            <div class="step-group">
+                <div class="step-label">5. Сравнить</div>
+                <div class="step-btns">
+                    <button class="btn" id="btn5_api" onclick="runStep('compare')" title="Сравнить старые и новые данные">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"></path></svg>
+                        Run
+                    </button>
+                </div>
+            </div>
+
+            <button class="btn" onclick="document.getElementById('helpModal').classList.add('show')">❓ Справка</button>
+            <button class="btn btn-danger" onclick="clearContext()">Очистить лог</button>
+        </div>
+    </div>
+
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Инструкция к песочнице</div>
+                <button class="close-btn" onclick="document.getElementById('helpModal').classList.remove('show')">&times;</button>
+            </div>
+            <div class="help-text">
+                <p>Эта песочница предназначена для локального тестирования скрипта <code>fetch_backup.js</code> без запуска GitHub Action.</p>
+                
+                <h3>Порядок работы</h3>
+                <ul>
+                    <li><b>Шаг 1.</b> Загружает предыдущую версию данных из папки <code>data/</code> для последующего сравнения. Выполняется автоматически при старте.</li>
+                    <li><b>Шаг 2.</b> Получает список городов с API Fandom. <i>(Можно пропустить, если сразу грузить файл на шаге 3).</i></li>
+                    <li><b>Шаг 3.</b> Собирает частоты и названия станций. Порождает основные файлы.</li>
+                    <li><b>Шаг 4.</b> Обогащает данные (ищет потоки, логотипы, жанры).</li>
+                    <li><b>Шаг 5.</b> Сравнивает старые и новые данные, формирует отчет.</li>
+                </ul>
+
+                <h3>Файлы и их назначение</h3>
+                <ul>
+                    <li><code>backup-api.json</code> — главная база городов и станций. Формируется на Шаге 3.</li>
+                    <li><code>cities_list.md</code> — простой список городов. Формируется на Шаге 3.</li>
+                    <li><code>stations_groups.json</code> — сгруппированные уникальные названия станций. Нужен для Шага 4. Формируется на Шаге 3.</li>
+                    <li><code>stations_list.md</code> — человекочитаемый список групп станций. Формируется на Шаге 3.</li>
+                    <li><code>stations_data.json</code> — данные о потоках, логотипах и жанрах. Формируется на Шаге 4.</li>
+                    <li><code>backup-api.history.json</code> — история изменений API. Формируется на Шаге 5.</li>
+                </ul>
+
+                <h3>Протаскивание данных через файлы</h3>
+                <p>Если вы не хотите делать долгие запросы к API (Шаги 2-4), вы можете использовать кнопки <code>[File]</code>:</p>
+                <ul>
+                    <li>На Шаге 3 можно загрузить готовый <code>backup-api.json</code>. Песочница сама извлечет из него города, сформирует группы и списки, а также активирует Шаг 4.</li>
+                    <li>На Шаге 4 можно загрузить готовый <code>stations_data.json</code>, чтобы пропустить долгий опрос radio-browser.info.</li>
+                </ul>
+                <p>Все сгенерированные файлы можно скачать прямо из карточек логов (зеленые кнопки в заголовке карточки).</p>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <audio id="audio"></audio>
+
+    <script src="../api.js"></script>
+    <script src="../fmuse.js"></script>
+    <script src="../fetch_backup.js"></script>
+    <script>
+        const state = {
+            oldData: null,
+            oldEnrichedList: [],
+            citiesMap: null,
+            newData: null,
+            groups: [],
+            citiesMd: '',
+            stationsMd: '',
+            enrichedList: [],
+            enrichedStats: null,
+            history: null
+        };
+
+        let context = { steps: [] };
+
+        // --- LS Context Management ---
+        function loadContext() {
+            try {
+                const saved = localStorage.getItem('sandboxContext');
+                if (saved) context = JSON.parse(saved);
+            } catch (e) {}
+        }
+
+        function saveContext() {
+            try {
+                localStorage.setItem('sandboxContext', JSON.stringify(context));
+            } catch (e) {
+                const trimmedSteps = context.steps.map(s => {
+                    const size = JSON.stringify(s.data || '').length;
+                    if (size > 100000) {
+                        if (s.id === 'load-old') return { ...s, data: { lazy: true, file: '../data/backup-api.json' } };
+                        if (s.id === 'fetch-stations') return { ...s, data: { lazy: true, file: '../data/backup-api.json' } };
+                        if (s.id === 'enrich') return { ...s, data: { lazy: true, file: '../data/stations_data.json', stats: s.data.stats, groupsCount: s.data.groupsCount } };
+                        return { ...s, data: { error: "Данные утеряны при перезагрузке (превышен лимит LS). Перезапустите шаг." } };
+                    }
+                    return s;
+                });
+                try { localStorage.setItem('sandboxContext', JSON.stringify({ steps: trimmedSteps })); } catch (e2) {}
+            }
+        }
+
+        function clearContext() {
+            if (!confirm('Очистить весь лог и сбросить состояние?')) return;
+            localStorage.removeItem('sandboxContext');
+            localStorage.removeItem('sandboxHistory');
+            location.reload();
+        }
+
+        function getStepData(id) {
+            const steps = context.steps.filter(s => s.id === id && !s.isError && s.data && !s.data.error && !s.data.lazy);
+            return steps.length > 0 ? steps[steps.length - 1].data : null;
+        }
+
+        function restoreState() {
+            const s1 = getStepData('load-old');
+            if (s1) { state.oldData = s1.oldData; state.oldEnrichedList = s1.oldEnrichedList || []; }
+            
+            const s2 = getStepData('fetch-cities');
+            if (s2) state.citiesMap = s2.citiesMap;
+            
+            const s3 = getStepData('fetch-stations');
+            if (s3) {
+                state.newData = s3.newData;
+                state.groups = s3.groups || [];
+                state.citiesMd = s3.citiesMd || '';
+                state.stationsMd = s3.stationsMd || '';
+            }
+            
+            const s4 = getStepData('enrich');
+            if (s4) {
+                state.enrichedStats = s4.stats;
+                state.enrichedList = s4.enrichedList || [];
+            }
+
+            const savedHist = localStorage.getItem('sandboxHistory');
+            if (savedHist) state.history = JSON.parse(savedHist);
+        }
+
+        // --- UI Rendering ---
+        function updateUI() {
+            document.getElementById('btn1_api').disabled = false;
+            document.getElementById('btn2_api').disabled = false;
+            
+            const hasCities = !!state.citiesMap;
+            document.getElementById('btn3_api').disabled = !hasCities;
+            document.getElementById('btn3_file').disabled = false; // Всегда разрешаем загрузку файла
+            document.getElementById('btn3_api').title = hasCities ? "Собрать станции по всем городам" : "Сначала получите города (Шаг 2)";
+            
+            const hasNewData = !!state.newData;
+            document.getElementById('btn4_api').disabled = !hasNewData;
+            document.getElementById('btn4_file').disabled = !hasNewData;
+            document.getElementById('btn4_api').title = hasNewData ? "Обогатить данные через radio-browser.info" : "Сначала получите станции (Шаг 3)";
+            
+            document.getElementById('btn5_api').disabled = !hasNewData;
+            document.getElementById('btn5_api').title = hasNewData ? "Сравнить старые и новые данные" : "Сначала получите станции (Шаг 3)";
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = `${percent}%`;
+        }
+
+        function downloadJson(filename, data) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadText(filename, text) {
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function appendLog(id, title, data, isError = false, startTime = '', endTime = '', saveActions = []) {
+            const container = document.getElementById('logContainer');
+            
+            const existing = document.querySelector(`[data-step-id="${id}"]`);
+            if (existing) existing.remove();
+            context.steps = context.steps.filter(s => s.id !== id);
+
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.dataset.stepId = id;
+            
+            const header = document.createElement('div');
+            header.className = 'log-header';
+            header.style.borderLeft = isError ? '3px solid var(--pink)' : '3px solid var(--green)';
+            
+            const headerRight = document.createElement('div');
+            headerRight.className = 'header-right';
+
+            const timeStr = (startTime && endTime) ? `${startTime} - ${endTime}` : (startTime || endTime);
+            const timeSpan = document.createElement('span');
+            timeSpan.className = 'log-time';
+            timeSpan.textContent = timeStr;
+            headerRight.appendChild(timeSpan);
+
+            if (saveActions && saveActions.length > 0) {
+                const saveContainer = document.createElement('div');
+                saveContainer.className = 'save-actions';
+                saveActions.forEach(sa => {
+                    const btn = document.createElement('button');
+                    btn.className = 'save-btn';
+                    btn.textContent = `💾 ${sa.filename}`;
+                    btn.onclick = (e) => { 
+                        e.stopPropagation(); 
+                        if (sa.isText) downloadText(sa.filename, sa.data); 
+                        else downloadJson(sa.filename, sa.data); 
+                    };
+                    saveContainer.appendChild(btn);
+                });
+                headerRight.appendChild(saveContainer);
+            }
+
+            header.innerHTML = `<span class="log-title">${title}</span>`;
+            header.appendChild(headerRight);
+            
+            const body = document.createElement('div');
+            body.className = 'log-body open';
+            
+            if (isError) {
+                const errDiv = document.createElement('div');
+                errDiv.style.color = 'var(--pink)';
+                errDiv.textContent = data.error || data.message;
+                body.appendChild(errDiv);
+            } else if (data.lazy) {
+                const btn = document.createElement('button');
+                btn.className = 'lazy-btn';
+                btn.textContent = `Подгрузить данные из файла...`;
+                btn.onclick = async (e) => {
+                    e.stopPropagation();
+                    btn.textContent = "Загрузка...";
+                    try {
+                        const res = await fetch(data.file);
+                        const fileData = await res.json();
+                        const treeContainer = document.createElement('div');
+                        treeContainer.appendChild(renderTree(fileData, 'data', true));
+                        btn.replaceWith(treeContainer);
+                    } catch (e) {
+                        btn.textContent = `Ошибка: ${e.message}`;
+                        btn.style.color = 'var(--pink)';
+                    }
+                };
+                body.appendChild(btn);
+            } else {
+                body.appendChild(renderTree(data, 'data', true));
+            }
+            
+            entry.appendChild(header);
+            entry.appendChild(body);
+            container.appendChild(entry);
+            
+            header.onclick = () => {
+                body.classList.toggle('open');
+            };
+            
+            context.steps.push({ id, title, startTime, endTime, data, isError });
+            saveContext();
+            
+            entry.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+
+        function getArrayItemName(item) {
+            if (!item || typeof item !== 'object') return '';
+            if (item.name) return item.name;
+            if (item.mainName) return item.mainName;
+            if (item.city) return item.city;
+            if (item.url) return item.url.split('/').pop();
+            if (item.from && item.to) return `${item.from} -> ${item.to}`;
+            return '';
+        }
+
+        function renderTree(data, name = 'root', isRoot = false) {
+            const div = document.createElement('div');
+            div.className = 'json-tree';
+            
+            if (data === null) {
+                div.innerHTML = `<span class="json-key">${name}:</span> <span class="json-null">null</span>`;
+                return div;
+            }
+            if (typeof data !== 'object') {
+                const type = typeof data;
+                const val = type === 'string' ? `"${data}"` : data;
+                div.innerHTML = `<span class="json-key">${name}:</span> <span class="json-${type}">${val}</span>`;
+                return div;
+            }
+
+            if (name === 'streams' && Array.isArray(data)) {
+                const details = document.createElement('details');
+                details.open = isRoot;
+                const summary = document.createElement('summary');
+                summary.innerHTML = `<span class="json-key">streams</span>: <span style="color: var(--text-dim);">Array(${data.length})</span>`;
+                details.appendChild(summary);
+                
+                data.forEach(stream => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'stream-item';
+                    const btn = document.createElement('button');
+                    btn.className = 'play-stream-btn';
+                    btn.textContent = '▶';
+                    btn.title = `Play ${stream.url}`;
+                    btn.onclick = (e) => { e.stopPropagation(); playStream(stream.url, stream.bitrate || ''); };
+                    itemDiv.appendChild(btn);
+                    
+                    const info = document.createElement('span');
+                    info.innerHTML = `<span class="json-string">"${stream.url}"</span> <span class="json-number">${stream.bitrate || '?'}</span> <span class="json-string">${stream.codec || ''}</span>`;
+                    itemDiv.appendChild(info);
+                    
+                    details.appendChild(itemDiv);
+                });
+                div.appendChild(details);
+                return div;
+            }
+
+            const isArray = Array.isArray(data);
+            const keys = Object.keys(data);
+            const summary = isArray ? `Array(${keys.length})` : `Object {${keys.length}}`;
+            
+            const details = document.createElement('details');
+            details.open = isRoot;
+            
+            const summaryEl = document.createElement('summary');
+            summaryEl.innerHTML = `<span class="json-key">${name}</span>: <span style="color: var(--text-dim);">${summary}</span>`;
+            details.appendChild(summaryEl);
+            
+            const limit = 500;
+            keys.slice(0, limit).forEach(k => {
+                let childName = k;
+                if (isArray) {
+                    const itemName = getArrayItemName(data[k]);
+                    if (itemName) childName = itemName;
+                }
+                details.appendChild(renderTree(data[k], childName));
+            });
+            
+            if (keys.length > limit) {
+                const more = document.createElement('div');
+                more.style.color = 'var(--text-dim)';
+                more.textContent = `... еще ${keys.length - limit} элементов`;
+                details.appendChild(more);
+            }
+            
+            div.appendChild(details);
+            return div;
+        }
+
+        // --- Player Logic ---
+        const audio = document.getElementById('audio');
+        const ppBtn = document.getElementById('ppBtn');
+        const volSlider = document.getElementById('volSlider');
+        const nowPlaying = document.getElementById('nowPlaying');
+
+        const savedVol = parseFloat(localStorage.getItem('sandboxVol'));
+        audio.volume = isNaN(savedVol) ? 1 : savedVol;
+        volSlider.value = audio.volume;
+
+        function playStream(url, bitrate) {
+            if (audio.src === url && !audio.paused) {
+                audio.pause();
+                return;
+            }
+            audio.src = url;
+            audio.play().catch(e => console.error(e));
+            nowPlaying.textContent = `${bitrate}k - ${url}`;
+        }
+
+        audio.addEventListener('play', () => ppBtn.textContent = '⏸');
+        audio.addEventListener('pause', () => ppBtn.textContent = '▶');
+        
+        ppBtn.onclick = () => {
+            if (audio.src) {
+                if (audio.paused) audio.play(); else audio.pause();
+            }
+        };
+
+        volSlider.oninput = (e) => {
+            audio.volume = e.target.value;
+            localStorage.setItem('sandboxVol', e.target.value);
+        };
+        volSlider.onwheel = (e) => {
+            e.preventDefault();
+            let val = parseFloat(volSlider.value);
+            val += e.deltaY < 0 ? 0.05 : -0.05;
+            val = Math.max(0, Math.min(1, val));
+            volSlider.value = val;
+            audio.volume = val;
+            localStorage.setItem('sandboxVol', val);
+        };
+
+        // --- File Upload Handler ---
+        function handleFileUpload(step, input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                const startTime = new Date().toLocaleTimeString();
+                try {
+                    if (step === 3) {
+                        const data = JSON.parse(text);
+                        if (!data.cities) throw new Error("Неверный формат backup-api.json (нет объекта cities)");
+                        state.newData = data;
+                        
+                        // Если города не были получены на шаге 2, извлекаем их из загруженного файла
+                        if (!state.citiesMap || Object.keys(state.citiesMap).length === 0) {
+                            state.citiesMap = {};
+                            Object.keys(state.newData.cities).forEach(slug => {
+                                const cName = state.newData.cities[slug].name || slug;
+                                state.citiesMap[cName] = cName;
+                            });
+                            // Добавляем лог о том, что города восстановлены
+                            appendLog("fetch-cities", "2. Города (восстановлены из файла)", {
+                                citiesCount: Object.keys(state.citiesMap).length,
+                                citiesMap: state.citiesMap
+                            }, false, startTime, new Date().toLocaleTimeString());
+                        }
+                        
+                        const listsData = FetchBackup.generateLists(state.newData, state.citiesMap);
+                        state.groups = listsData.groups;
+                        state.citiesMd = listsData.citiesMd;
+                        state.stationsMd = listsData.stationsMd;
+
+                        appendLog("fetch-stations", "3. Сбор станций (из файла)", {
+                            newCitiesCount: Object.keys(state.newData.cities).length,
+                            newData: state.newData,
+                            groups: state.groups
+                        }, false, startTime, new Date().toLocaleTimeString(), [
+                            { filename: 'backup-api.json', data: state.newData },
+                            { filename: 'cities_list.md', data: state.citiesMd, isText: true },
+                            { filename: 'stations_list.md', data: state.stationsMd, isText: true },
+                            { filename: 'stations_groups.json', data: state.groups }
+                        ]);
+                    } 
+                    else if (step === 4) {
+                        const data = JSON.parse(text);
+                        if (!Array.isArray(data)) throw new Error("Неверный формат stations_data.json (ожидался массив)");
+                        state.enrichedList = data;
+                        state.enrichedStats = { new: 0, changed: 0, deleted: 0, note: "Загружено из файла без сравнения со старым", changedStations: [] };
+                        state.groups = state.groups || [];
+                        appendLog("enrich", "4. Обогащение данных (из файла)", {
+                            stats: state.enrichedStats,
+                            enrichedList: state.enrichedList
+                        }, false, startTime, new Date().toLocaleTimeString(), [
+                            { filename: 'stations_data.json', data: state.enrichedList }
+                        ]);
+                    }
+                    updateUI();
+                } catch (err) {
+                    appendLog(`file-${step}`, `Ошибка загрузки файла`, { error: err.message }, true, startTime, new Date().toLocaleTimeString());
+                }
+                input.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // --- Steps Execution ---
+        async function runStep(step) {
+            const btnId = `btn${['load-old', 'fetch-cities', 'fetch-stations', 'enrich', 'compare'].indexOf(step) + 1}_api`;
+            const btn = document.getElementById(btnId);
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = "⏳";
+            btn.disabled = true;
+            
+            const startTime = new Date().toLocaleTimeString();
+            try {
+                if (step === 'load-old') {
+                    const res = await fetch('../data/backup-api.json');
+                    if (res.ok) state.oldData = await res.json();
+                    const res2 = await fetch('../data/stations_data.json');
+                    if (res2.ok) state.oldEnrichedList = await res2.json();
+
+                    appendLog("load-old", "1. Загрузка старых данных", {
+                        oldData: state.oldData,
+                        oldEnrichedList: state.oldEnrichedList
+                    }, false, startTime, new Date().toLocaleTimeString());
+                } 
+                else if (step === 'fetch-cities') {
+                    const html = await Api.fetchPage(Api.MAIN_PAGE);
+                    if (!html) throw new Error("Не удалось получить данные API");
+                    state.citiesMap = Api.parseCities(html);
+                    if (Object.keys(state.citiesMap).length === 0) throw new Error("Города не распознаны");
+                    
+                    appendLog("fetch-cities", "2. Получение городов", {
+                        citiesCount: Object.keys(state.citiesMap).length,
+                        citiesMap: state.citiesMap
+                    }, false, startTime, new Date().toLocaleTimeString());
+                } 
+                else if (step === 'fetch-stations') {
+                    if (!state.citiesMap) throw new Error("Сначала получите список городов");
+                    
+                    let progressCounter = 0;
+                    const totalCities = Object.keys(state.citiesMap).length;
+                    state.newData = await Api.generateApiBackup(state.citiesMap, "sandbox-test", () => {
+                        progressCounter++;
+                        const percent = Math.round((progressCounter / totalCities) * 100);
+                        updateProgress(percent);
+                        return false;
+                    });
+                    updateProgress(0);
+                    
+                    const listsData = FetchBackup.generateLists(state.newData, state.citiesMap);
+                    state.groups = listsData.groups;
+                    state.citiesMd = listsData.citiesMd;
+                    state.stationsMd = listsData.stationsMd;
+                    
+                    appendLog("fetch-stations", "3. Сбор станций завершен", {
+                        newCitiesCount: Object.keys(state.newData.cities).length,
+                        newData: state.newData,
+                        groups: state.groups
+                    }, false, startTime, new Date().toLocaleTimeString(), [
+                        { filename: 'backup-api.json', data: state.newData },
+                        { filename: 'cities_list.md', data: state.citiesMd, isText: true },
+                        { filename: 'stations_list.md', data: state.stationsMd, isText: true },
+                        { filename: 'stations_groups.json', data: state.groups }
+                    ]);
+                } 
+                else if (step === 'enrich') {
+                    if (!state.newData) throw new Error("Сначала получите данные станций");
+                    if (!state.groups || state.groups.length === 0) throw new Error("Группы станций не найдены (перезапустите шаг 3)");
+
+                    const enrichResult = await FetchBackup.enrichStationsData(state.groups, state.oldEnrichedList, updateProgress);
+                    state.enrichedList = enrichResult.list;
+                    state.enrichedStats = {
+                        new: enrichResult.new,
+                        changed: enrichResult.changed,
+                        deleted: enrichResult.deleted,
+                        changedStations: enrichResult.changedStations
+                    };
+                    updateProgress(0);
+                    
+                    appendLog("enrich", "4. Обогащение данных завершено", {
+                        groupsCount: state.groups.length,
+                        stats: state.enrichedStats,
+                        enrichedList: state.enrichedList
+                    }, false, startTime, new Date().toLocaleTimeString(), [
+                        { filename: 'stations_data.json', data: state.enrichedList }
+                    ]);
+                } 
+                else if (step === 'compare') {
+                    if (!state.newData) throw new Error("Сначала получите данные станций");
+                    const report = FetchBackup.compareData(state.oldData, state.newData);
+                    report.timestamp = new Date().toISOString();
+                    if (state.enrichedStats) report.radioBrowser = state.enrichedStats;
+                    
+                    state.history = FetchBackup.saveHistory(state.history, report);
+                    localStorage.setItem('sandboxHistory', JSON.stringify(state.history));
+                    
+                    appendLog("compare", "5. Отчет о сравнении сформирован", report, false, startTime, new Date().toLocaleTimeString(), [
+                        { filename: 'report.json', data: report },
+                        { filename: 'backup-api.history.json', data: state.history }
+                    ]);
+                }
+            } catch (e) {
+                appendLog(step, `Ошибка на шаге`, { error: e.message }, true, startTime, new Date().toLocaleTimeString());
+                console.error(e);
+            }
+            
+            btn.innerHTML = originalHTML;
+            updateUI();
+        }
+
+        // --- Init ---
+        loadContext();
+        
+        context.steps.forEach(step => {
+            let saveActions = [];
+            if (!step.isError && !step.data.lazy) {
+                if (step.id === 'fetch-stations' && state.newData) {
+                    saveActions.push({ filename: 'backup-api.json', data: state.newData });
+                    if (state.citiesMd) saveActions.push({ filename: 'cities_list.md', data: state.citiesMd, isText: true });
+                    if (state.stationsMd) saveActions.push({ filename: 'stations_list.md', data: state.stationsMd, isText: true });
+                    if (state.groups.length > 0) saveActions.push({ filename: 'stations_groups.json', data: state.groups });
+                }
+                if (step.id === 'enrich' && state.enrichedList.length > 0) {
+                    saveActions.push({ filename: 'stations_data.json', data: state.enrichedList });
+                }
+                if (step.id === 'compare') {
+                    saveActions.push({ filename: 'report.json', data: step.data });
+                    if (state.history) saveActions.push({ filename: 'backup-api.history.json', data: state.history });
+                }
+            }
+            appendLog(step.id, step.title, step.data, step.isError, step.startTime, step.endTime, saveActions);
+        });
+
+        restoreState();
+        updateUI();
+
+        // Autostart Step 1 if not in context or if data is missing
+        const step1 = context.steps.find(s => s.id === 'load-old');
+        if (!step1 || step1.isError || !state.oldData) {
+            runStep('load-old');
+        }
+    </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 // Rule: minor.major.build in VERSION build++ on module regeneration
-const VERSION = "0.5.56";
+const VERSION = "0.5.67";
 const CACHE_VERSION = "4"; 
  
 const LS_KEY = "fm_adapter_calc_v10"; 
@@ -412,15 +412,22 @@ function renderStations() {
         });
         nameDiv.appendChild(nameText);
 
-        if (streamData && streamData.tags) {
+        if (streamData && (streamData.tags || (streamData.streams && streamData.streams.length > 0 && streamData.streams[0].name))) {
             const tagsSpan = document.createElement('span');
             tagsSpan.className = 'tags';
-            tagsSpan.textContent = streamData.tags;
-            tagsSpan.title = streamData.tags;
+            let tagsText = streamData.tags || "";
+            if (streamData.streams && streamData.streams.length > 0 && streamData.streams[0].name) {
+                const cleanedName = FMUse.cleanStreamName(streamData.streams[0].name, st.name, state.city, tagsText);
+                if (cleanedName) {
+                    tagsText = tagsText ? `${tagsText} (${cleanedName})` : `(${cleanedName})`;
+                }
+            }
+            tagsSpan.textContent = tagsText;
+            tagsSpan.title = tagsText;
             tagsSpan.style.cursor = 'pointer';
             tagsSpan.addEventListener('click', (e) => {
                 e.stopPropagation();
-                showToast(streamData.tags);
+                showToast(tagsText);
             });
             nameDiv.appendChild(tagsSpan);
         }
@@ -1584,14 +1591,8 @@ async function loadCity(city) {
         state.cityData[city].allStations = newStations.map(s => ({ name: s.name, freq: s.freq }));
         state.cityData[city].totalStations = state.stations.length;
         
-        if (source === 'cache' && state.streamsData) {
-            state.stations.forEach(st => {
-                const code = FMUse.generateCodeName(st.name);
-                if (state.streamsData[code]) {
-                    stationStreamMap[code] = state.streamsData[code];
-                }
-            });
-        }
+        // Блок удален: он перезаписывал свежие потоки из stations_data.json 
+        // старыми данными из LocalStorage.
         
         const ls = localStorage.getItem(LS_KEY);
         let cachedSettings = {};
