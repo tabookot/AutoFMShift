@@ -211,11 +211,11 @@
         "tags": "news, talk"
       },
       {
-        "name": "Вести FM",
-        "url": "https://icecast-vgtrk.cdnvideo.ru/vestifm",
-        "bitrate": 320,
+        "name": "вести фм (Vesti FM)",
+        "url": "http://icecast.vgtrk.cdnvideo.ru/vestifm_mp3_64kbps",
+        "bitrate": 64,
         "codec": "MP3",
-        "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
+        "favicon": "",
         "tags": ""
       },
       {
@@ -383,19 +383,19 @@
     "name": "Юмор FM",
     "streams": [
       {
-        "name": "Юмор ФМ",
-        "url": "https://fed.fmplay.ru:8000/humor-32.aac",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
         "name": "Юмор FM",
         "url": "http://pub0101.101.ru:8000/stream/air/aac/64/102",
         "bitrate": 0,
         "codec": "AAC",
         "favicon": "https://www.veseloeradio.ru/design/images/assets/img/icons/touch-icon-ipad.png",
+        "tags": ""
+      },
+      {
+        "name": "Юмор ФМ",
+        "url": "https://fed.fmplay.ru:8000/humor-32.aac",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "",
         "tags": ""
       }
     ],
@@ -509,14 +509,6 @@
         "codec": "AAC",
         "favicon": "",
         "tags": "club, dance, edm, electronic, pop dance"
-      },
-      {
-        "name": "DFM",
-        "url": "https://dfm.hostingradio.ru/dfm96.aacp?5c80d70c",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
       }
     ],
     "homepage": "https://www.dfm.ru/",
@@ -718,19 +710,19 @@
     "name": "Радио Искатель",
     "streams": [
       {
-        "name": "Искатель",
-        "url": "http://iskatel.hostingradio.ru:8015/iskatel-128.mp3",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://upload.wikimedia.org/wikipedia/ru/2/28/Iskatel-logo-colors.png",
-        "tags": ""
-      },
-      {
         "name": "Радио Искатель",
         "url": "https://iskatel.hostingradio.ru:8015/iskatel-128.mp3",
         "bitrate": 128,
         "codec": "MP3",
         "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "Искатель",
+        "url": "http://iskatel.hostingradio.ru:8015/iskatel-128.mp3",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "https://upload.wikimedia.org/wikipedia/ru/2/28/Iskatel-logo-colors.png",
         "tags": ""
       }
     ],
@@ -1682,20 +1674,20 @@
         "tags": "folk, jazz, moscow, music"
       },
       {
-        "name": "Культура (AAC+)",
-        "url": "https://icecast-vgtrk.cdnvideo.ru/kulturafm_aac_64kbps",
-        "bitrate": 64,
-        "codec": "AAC+",
-        "favicon": "",
-        "tags": "64 kbps aac+, classical, cultural news, folk, jazz"
-      },
-      {
         "name": "Радио Культура",
         "url": "http://icecast.vgtrk.cdnvideo.ru/kulturafm",
         "bitrate": 320,
         "codec": "MP3",
         "favicon": "",
         "tags": "classical, culture, experimental, folk, jazz"
+      },
+      {
+        "name": "Культура (AAC+)",
+        "url": "https://icecast-vgtrk.cdnvideo.ru/kulturafm_aac_64kbps",
+        "bitrate": 64,
+        "codec": "AAC+",
+        "favicon": "",
+        "tags": "64 kbps aac+, classical, cultural news, folk, jazz"
       }
     ],
     "homepage": "http://www.cultradio.ru/",
