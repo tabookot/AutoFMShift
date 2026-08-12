@@ -1,7 +1,7 @@
 {
   "sessions": [
     {
-      "timestamp": "2026-08-12T02:54:32.848Z",
+      "timestamp": "2026-08-12T08:07:17.612Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -15,70 +15,14 @@
           "new": [],
           "deleted": [],
           "renamed": [],
-          "frequency_migrated": [
-            {
-              "city": "Петрозаводск",
-              "name": "(ПЛАН) Вести FM\n(ТЕСТ) Дорожное радио",
-              "oldFreq": 98,
-              "newFreq": 106.3
-            },
-            {
-              "city": "Петрозаводск",
-              "name": "Вести FM",
-              "oldFreq": 106.3,
-              "newFreq": 98
-            },
-            {
-              "city": "Самара",
-              "name": "Маруся FM",
-              "oldFreq": 90.6,
-              "newFreq": 101
-            },
-            {
-              "city": "Самара",
-              "name": "Маруся FM\nБизнес FM\nМилицейская волна\nРадио Шансон (до 01.12.2002 г.)",
-              "oldFreq": 101,
-              "newFreq": 90.6
-            },
-            {
-              "city": "Саратов",
-              "name": "Ретро FM",
-              "oldFreq": 102.1,
-              "newFreq": 104.3
-            },
-            {
-              "city": "Саратов",
-              "name": "Ретро FM\nLove Radio\nРадио Танго",
-              "oldFreq": 104.3,
-              "newFreq": 102.1
-            },
-            {
-              "city": "Смоленск",
-              "name": "Радио России / ГТРК Смоленск",
-              "oldFreq": 95.2,
-              "newFreq": 105.2
-            },
-            {
-              "city": "Смоленск",
-              "name": "Радио России / ГТРК Смоленск&#160;",
-              "oldFreq": 105.2,
-              "newFreq": 95.2
-            }
-          ]
+          "frequency_migrated": []
         }
       },
       "radioBrowser": {
-        "new": 16,
-        "changed": 50,
-        "deleted": 42,
+        "new": 0,
+        "changed": 14,
+        "deleted": 0,
         "changedStations": [
-          {
-            "name": "Вести FM",
-            "changes": [
-              "homepage",
-              "streams"
-            ]
-          },
           {
             "name": "Говорит Москва",
             "changes": [
@@ -99,151 +43,42 @@
             ]
           },
           {
-            "name": "Кавказ радио",
-            "changes": [
-              "tags"
-            ]
-          },
-          {
-            "name": "Калина Красная",
+            "name": "Культура",
             "changes": [
               "streams"
-            ]
-          },
-          {
-            "name": "Мега FM",
-            "changes": [
-              "homepage"
             ]
           },
           {
             "name": "Милицейская волна",
             "changes": [
-              "tags",
               "streams"
-            ]
-          },
-          {
-            "name": "Москва FM",
-            "changes": [
-              "favicon",
-              "tags"
-            ]
-          },
-          {
-            "name": "Мост Радио",
-            "changes": [
-              "tags"
-            ]
-          },
-          {
-            "name": "Новая волна",
-            "changes": [
-              "favicon",
-              "tags",
-              "streams"
-            ]
-          },
-          {
-            "name": "Первое радио",
-            "changes": [
-              "homepage",
-              "tags"
             ]
           },
           {
             "name": "Первое сетевое",
             "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио 7",
+            "changes": [
+              "homepage",
               "tags",
               "streams"
-            ]
-          },
-          {
-            "name": "Радио 53",
-            "changes": [
-              "favicon",
-              "tags"
-            ]
-          },
-          {
-            "name": "Радио Искатель",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Китап",
-            "changes": [
-              "favicon",
-              "tags"
-            ]
-          },
-          {
-            "name": "Радио Маяк",
-            "changes": [
-              "homepage"
-            ]
-          },
-          {
-            "name": "Радио Монте-Карло",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Ностальжи",
-            "changes": [
-              "favicon",
-              "tags"
-            ]
-          },
-          {
-            "name": "Радио Прибой",
-            "changes": [
-              "favicon",
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Рекорд",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Роксана",
-            "changes": [
-              "favicon",
-              "tags"
             ]
           },
           {
             "name": "Радио России",
             "changes": [
-              "homepage",
-              "favicon",
               "streams"
             ]
           },
           {
-            "name": "Радио Русский Хит",
+            "name": "Радио Си",
             "changes": [
               "homepage",
-              "favicon",
-              "tags",
               "streams"
-            ]
-          },
-          {
-            "name": "Радио Седьмое Небо",
-            "changes": [
-              "tags"
-            ]
-          },
-          {
-            "name": "Радио Сибирь",
-            "changes": [
-              "favicon"
             ]
           },
           {
@@ -251,53 +86,6 @@
             "changes": [
               "homepage",
               "streams"
-            ]
-          },
-          {
-            "name": "Радио Югра",
-            "changes": [
-              "homepage",
-              "favicon"
-            ]
-          },
-          {
-            "name": "Радио JAZZ",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Nostalgie",
-            "changes": [
-              "tags"
-            ]
-          },
-          {
-            "name": "Радио Z",
-            "changes": [
-              "homepage",
-              "tags",
-              "streams"
-            ]
-          },
-          {
-            "name": "Релакс FM",
-            "changes": [
-              "favicon",
-              "tags"
-            ]
-          },
-          {
-            "name": "Ретро FM",
-            "changes": [
-              "homepage"
-            ]
-          },
-          {
-            "name": "Рок Радио",
-            "changes": [
-              "favicon",
-              "tags"
             ]
           },
           {
@@ -313,21 +101,10 @@
             ]
           },
           {
-            "name": "Такси FM",
-            "changes": [
-              "favicon"
-            ]
-          },
-          {
-            "name": "Татар радиосы",
-            "changes": [
-              "tags"
-            ]
-          },
-          {
             "name": "Ульяновск FM",
             "changes": [
-              "homepage"
+              "homepage",
+              "streams"
             ]
           },
           {
@@ -335,37 +112,6 @@
             "changes": [
               "homepage",
               "favicon",
-              "tags",
-              "streams"
-            ]
-          },
-          {
-            "name": "Comedy Radio",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "DFM",
-            "changes": [
-              "homepage"
-            ]
-          },
-          {
-            "name": "Heart FM",
-            "changes": [
-              "favicon"
-            ]
-          },
-          {
-            "name": "Like FM",
-            "changes": [
-              "favicon"
-            ]
-          },
-          {
-            "name": "Love Radio",
-            "changes": [
               "streams"
             ]
           },
@@ -378,29 +124,12 @@
           {
             "name": "Radio Record",
             "changes": [
-              "favicon",
-              "tags",
               "streams"
             ]
           },
           {
             "name": "Rock Arsenal",
             "changes": [
-              "tags",
-              "streams"
-            ]
-          },
-          {
-            "name": "Rock FM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Royal Radio",
-            "changes": [
-              "favicon",
-              "tags",
               "streams"
             ]
           },
