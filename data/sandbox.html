@@ -570,6 +570,8 @@
                         const data = JSON.parse(text);
                         if (!data.cities) throw new Error("Неверный формат backup-api.json (нет объекта cities)");
                         state.newData = data;
+                        state.newData.exportDate = Date.now();
+                        state.newData = FetchBackup.mergeData(state.oldData, state.newData);
                         
                         // Если города не были получены на шаге 2, извлекаем их из загруженного файла
                         if (!state.citiesMap || Object.keys(state.citiesMap).length === 0) {
@@ -660,13 +662,15 @@
                     
                     let progressCounter = 0;
                     const totalCities = Object.keys(state.citiesMap).length;
-                    state.newData = await Api.generateApiBackup(state.citiesMap, "sandbox-test", () => {
+                    const apiData = await Api.generateApiBackup(state.citiesMap, "sandbox-test", () => {
                         progressCounter++;
                         const percent = Math.round((progressCounter / totalCities) * 100);
                         updateProgress(percent);
                         return false;
                     });
                     updateProgress(0);
+                    apiData.exportDate = Date.now();
+                    state.newData = FetchBackup.mergeData(state.oldData, apiData);
                     
                     const listsData = FetchBackup.generateLists(state.newData, state.citiesMap);
                     state.groups = listsData.groups;
@@ -688,7 +692,7 @@
                     if (!state.newData) throw new Error("Сначала получите данные станций");
                     if (!state.groups || state.groups.length === 0) throw new Error("Группы станций не найдены (перезапустите шаг 3)");
 
-                    const enrichResult = await FetchBackup.enrichStationsData(state.groups, state.oldEnrichedList, updateProgress);
+                    const enrichResult = await FetchBackup.enrichStationsData(state.groups, state.oldEnrichedList, updateProgress, state.citiesMap || {});
                     state.enrichedList = enrichResult.list;
                     state.enrichedStats = {
                         new: enrichResult.new,
@@ -712,6 +716,10 @@
                     report.timestamp = new Date().toISOString();
                     if (state.enrichedStats) report.radioBrowser = state.enrichedStats;
                     
+                    // Добавляем лог восстановленных данных в отчет
+                    if (state.newData.restoredLog && state.newData.restoredLog.length > 0) {
+                        report.restored = state.newData.restoredLog;
+                    }
                     state.history = FetchBackup.saveHistory(state.history, report);
                     localStorage.setItem('sandboxHistory', JSON.stringify(state.history));
                     

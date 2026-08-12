@@ -1573,7 +1573,7 @@ async function loadCity(city) {
             newStations = [];
         }
     } else if (window.apiBackupData && window.apiBackupData.cities[FMUse.generateCodeName(city)]) {
-        newStations = window.apiBackupData.cities[FMUse.generateCodeName(city)].stations.map(s => ({ name: s.name, freq: s.freq }));
+        newStations = window.apiBackupData.cities[FMUse.generateCodeName(city)].stations.filter(s => !s.isDeleted).map(s => ({ name: s.name, freq: s.freq }));
         source = "backup";
         if (lastDataSource !== 'backup') { showToast("Нет сети. Используем backup-api.json"); lastDataSource = 'backup'; }
     } else if (state.cityData[city]?.allStations) {
