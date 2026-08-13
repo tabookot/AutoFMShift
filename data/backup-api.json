@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "0.5.1-github-action",
-  "exportDate": 1786521913635,
+  "exportDate": 1786608342396,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -4402,7 +4402,7 @@
           "deletedAt": null
         },
         {
-          "name": "Хит FM (Россия)",
+          "name": "Хит FM (Россия) (страница не существует)",
           "freq": 104.2,
           "isDeleted": false,
           "deletedAt": null
@@ -8630,7 +8630,7 @@
           "deletedAt": null
         },
         {
-          "name": "Хит FM (Россия)",
+          "name": "Хит FM (Россия) (страница не существует)",
           "freq": 106.6,
           "isDeleted": false,
           "deletedAt": null
@@ -10629,7 +10629,7 @@
           "deletedAt": null
         },
         {
-          "name": "Хит FM (Россия)",
+          "name": "Хит FM (Россия) (страница не существует)",
           "freq": 98.8,
           "isDeleted": false,
           "deletedAt": null
@@ -10963,7 +10963,7 @@
           "deletedAt": null
         },
         {
-          "name": "Хит FM (Россия)",
+          "name": "Хит FM (Россия) (страница не существует)",
           "freq": 87.6,
           "isDeleted": false,
           "deletedAt": null

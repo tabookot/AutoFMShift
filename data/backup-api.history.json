@@ -1,7 +1,7 @@
 {
   "sessions": [
     {
-      "timestamp": "2026-08-12T08:07:17.612Z",
+      "timestamp": "2026-08-13T08:07:58.064Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -20,9 +20,15 @@
       },
       "radioBrowser": {
         "new": 0,
-        "changed": 14,
+        "changed": 21,
         "deleted": 0,
         "changedStations": [
+          {
+            "name": "Вести FM",
+            "changes": [
+              "streams"
+            ]
+          },
           {
             "name": "Говорит Москва",
             "changes": [
@@ -30,20 +36,7 @@
             ]
           },
           {
-            "name": "Детское радио",
-            "changes": [
-              "tags",
-              "streams"
-            ]
-          },
-          {
             "name": "Европа Плюс",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Культура",
             "changes": [
               "streams"
             ]
@@ -55,8 +48,25 @@
             ]
           },
           {
+            "name": "Первое радио",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags"
+            ]
+          },
+          {
             "name": "Первое сетевое",
             "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио 10",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
               "streams"
             ]
           },
@@ -69,8 +79,32 @@
             ]
           },
           {
+            "name": "Радио Дача",
+            "changes": [
+              "tags",
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио Монте-Карло",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams"
+            ]
+          },
+          {
             "name": "Радио России",
             "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио Русский Хит",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
               "streams"
             ]
           },
@@ -85,6 +119,12 @@
             "name": "Радио Трансмит",
             "changes": [
               "homepage",
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио JAZZ",
+            "changes": [
               "streams"
             ]
           },
@@ -116,19 +156,35 @@
             ]
           },
           {
+            "name": "Comedy Radio",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
             "name": "Monte Carlo",
             "changes": [
+              "homepage",
+              "tags",
               "streams"
             ]
           },
           {
             "name": "Radio Record",
             "changes": [
+              "homepage",
+              "favicon",
               "streams"
             ]
           },
           {
             "name": "Rock Arsenal",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Rock FM",
             "changes": [
               "streams"
             ]
