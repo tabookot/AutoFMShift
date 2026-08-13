@@ -1,5 +1,5 @@
 // Rule: minor.major.build in VERSION build++ on module regeneration
-const VERSION = "0.6.24";
+const VERSION = "0.6.27";
 const CACHE_VERSION = "4"; 
  
 const LS_KEY = "fm_adapter_calc_v10"; 
@@ -149,11 +149,13 @@ function applyViewMode() {
     document.body.classList.toggle('player-mode', state.viewMode === 'player');
     const modeBtn = document.getElementById('modeBtn');
     if (state.viewMode === 'player') {
-        modeBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>';
-        modeBtn.title = "Режим: Плеер (нажмите для Настройки)";
-    } else {
+        // Если мы в режиме Плеера, показываем иконку Настроек (переход при клике)
         modeBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>';
-        modeBtn.title = "Режим: Настройка (нажмите для Плеера)";
+        modeBtn.title = "Перейти в режим: Настройка";
+    } else {
+        // Если мы в режиме Настройки, показываем иконку Плеера (переход при клике)
+        modeBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>';
+        modeBtn.title = "Перейти в режим: Плеер";
     }
     applySettingsMode();
 }
@@ -285,6 +287,31 @@ function renderAdapters() {
     };
     SHIFTS.forEach(s => addChip(s, statuses[s] || { type: 'none' }));
 }
+// Функция для создания приглушенного, сероватого свечения из любого цвета
+function getAccentGlow(color) {
+    let r = 0, g = 0, b = 0;
+    if (color.startsWith('#')) {
+        let hex = color.replace('#', '');
+        if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+        r = parseInt(hex.substring(0, 2), 16);
+        g = parseInt(hex.substring(2, 4), 16);
+        b = parseInt(hex.substring(4, 6), 16);
+    } else if (color.startsWith('rgb')) {
+        const match = color.match(/\d+/g);
+        if (match && match.length >= 3) {
+            r = parseInt(match[0]); g = parseInt(match[1]); b = parseInt(match[2]);
+        }
+    } else { return color; }
+    
+    // Смешиваем с серым цветом (128, 128, 128) на 50%, чтобы снизить яркость
+    r = Math.round(r * 0.5 + 128 * 0.5);
+    g = Math.round(g * 0.5 + 128 * 0.5);
+    b = Math.round(b * 0.5 + 128 * 0.5);
+    
+    // Делаем полупрозрачным
+    return `rgba(${r}, ${g}, ${b}, 0.25)`;
+}
+
 function updateAccentColor(statuses) {
     const root = document.documentElement;
     const isDark = root.getAttribute('data-theme') === 'dark' || !root.getAttribute('data-theme');
@@ -320,6 +347,10 @@ function updateAccentColor(statuses) {
     
     root.style.setProperty('--accent', accentColor);
     root.style.setProperty('--knob', accentColor); 
+    
+    // Динамически обновляем цвет свечения
+    const glowColor = getAccentGlow(accentColor);
+    root.style.setProperty('--accent-glow', glowColor);
 }
 
 function renderStations() {
@@ -646,7 +677,9 @@ function initDialKnob(canvas) {
         // Background Circle (glow source)
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI*2);
-        ctx.strokeStyle = getCSSVar('--accent'); // Заменили серый на акцентный
+        // Делаем фон прозрачным, чтобы он перенимал цвет панели кнопок (var(--bg))
+        ctx.clearRect(cx - r, cy - r, r * 2, r * 2);
+        ctx.strokeStyle = getCSSVar('--accent');
         ctx.lineWidth = 1;
         ctx.stroke();
         
@@ -2066,34 +2099,52 @@ document.getElementById('cacheResetBtn').addEventListener('click', () => {
 function setupWheelInput(id, min, max, step, stateProp) {
     const el = document.getElementById(id);
     el.setAttribute("min", min); el.setAttribute("max", max);
-    const applyChange = (val) => {
+    
+    const updateState = (val, forceClamp = false) => {
         if (isNaN(val)) return false;
-        val = Math.max(min, Math.min(max, val));
+        if (forceClamp) val = Math.max(min, Math.min(max, val));
         val = Math.round(val * 100) / 100;
-        if (parseFloat(el.value) === val) return false;
-        el.value = val;
+        
         if (stateProp === 'min' || stateProp === 'max') {
              if (stateProp === 'min') state.min = val; else state.max = val;
              const matched = TEMPLATES.find(t => t.range[0] === state.min && t.range[1] === state.max);
              state.template = matched ? matched.name : "Свой вариант";
              state.templateShort = matched ? matched.short : "свой";
-        } else { state[stateProp] = Math.round(val); }
+        } else { 
+            val = Math.round(val);
+            if (state[stateProp] === val) return false;
+            state[stateProp] = val; 
+        }
         return true;
     };
+    
+    // При вводе с клавиатуры не ограничиваем жестко значение, чтобы не ломать ввод
     el.addEventListener("input", (e) => {
-        if (e.target.value === "") return; 
-        let val = parseFloat(e.target.value);
-        if (applyChange(val)) { saveState(); render(); }
+        if (e.target.value === "" || isNaN(parseFloat(e.target.value))) return;
+        if (updateState(parseFloat(e.target.value), false)) { saveState(); render(); }
     });
+    
+    // При потере фокуса исправляем значение, если оно вышло за пределы
     el.addEventListener("blur", () => {
-        if (el.value === "" || isNaN(parseFloat(el.value))) { applyChange(min); commitState(); render(); }
+        let val = parseFloat(el.value);
+        if (isNaN(val)) val = min;
+        updateState(val, true);
+        el.value = state[stateProp];
+        commitState(); 
+        render();
     });
+    
     el.addEventListener("wheel", (e) => {
         e.preventDefault();
         let val = parseFloat(el.value) || min;
         if (e.deltaY < 0) val += step; else val -= step;
-        if (applyChange(val)) { saveState(); render(); }
+        if (updateState(val, true)) { 
+            el.value = Math.max(min, Math.min(max, Math.round(val * 100) / 100));
+            saveState(); 
+            render(); 
+        }
     }, { passive: false });
+    
     let touchStartY = null; let touchStartVal = null;
     el.addEventListener('touchstart', (e) => {
         touchStartY = e.touches[0].clientY; touchStartVal = parseFloat(el.value) || min;
@@ -2105,7 +2156,9 @@ function setupWheelInput(id, min, max, step, stateProp) {
         const deltaY = touchStartY - currentY;
         const steps = Math.round(deltaY / 15);
         let newVal = touchStartVal + (steps * step);
-        if (applyChange(newVal)) { /* Throttle render */ }
+        if (updateState(newVal, true)) {
+            el.value = Math.max(min, Math.min(max, Math.round(newVal * 100) / 100));
+        }
     }, { passive: false });
     el.addEventListener('touchend', () => {
         if (touchStartY !== null) { commitState(); render(); }

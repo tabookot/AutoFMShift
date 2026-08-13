@@ -297,7 +297,10 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .dial-presets {
     position: absolute; bottom: 0; left: 0; right: 0; height: 76px;
     display: flex; align-items: stretch; gap: 8px;
-    padding: 4px 8px; border-top: 1px solid var(--border); background: var(--panel-light);
+    padding: 4px 8px; 
+    background: var(--bg); /* Фон как у шкалы */
+    /* Эффект свечения вдоль периметра (только снизу и по бокам) */
+    box-shadow: inset 0 0 15px var(--border), inset 0 -8px 20px var(--accent-glow);
 }
 .dial-knob-wrap {
     width: 44px; height: 100%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -814,7 +817,8 @@ body.player-mode .preset-dropdown { display: none !important; }
     display: none; 
     font-family: 'Orbitron', monospace; font-weight: 700; font-size: 10px;
     color: var(--accent); text-shadow: 0 0 6px var(--accent), 0 0 12px var(--accent-glow);
-    background: rgba(0,0,0,0.6); 
+    background: var(--panel-light); 
+    opacity: 0.85;
     padding: 1px 4px; 
     border-radius: 4px;
     pointer-events: none; z-index: 10; white-space: nowrap;
