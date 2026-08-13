@@ -1,5 +1,5 @@
 // Rule: minor.major.build in VERSION build++ on module regeneration
-const VERSION = "0.5.67";
+const VERSION = "0.6.24";
 const CACHE_VERSION = "4"; 
  
 const LS_KEY = "fm_adapter_calc_v10"; 
@@ -42,6 +42,10 @@ const DEFAULT_STATE = {
     stations: [],
     settingsMode: false,
     viewMode: 'setup',
+    dialView: 'narrow',
+    dialFreqView: 'orig',
+    dialCurrentBand: 1,
+    dialControlsVisible: null, // null = по умолчанию (зависит от settingsMode), true/false = ручное перекрытие
     bands: 1,
     presets: 6,
     cityData: {},
@@ -342,18 +346,16 @@ function renderStations() {
         if (!isAvail) item.classList.add("unavailable");
         const streamData = stationStreamMap[FMUse.generateCodeName(st.name)];
         
-        const logoDiv = document.createElement('div');
-        logoDiv.className = 'station-logo';
+        const logoEl = document.createElement('div');
+        logoEl.className = 'station-logo';
         if (streamData && streamData.favicon && streamData.favicon !== 'null' && streamData.favicon !== 'undefined') {
             const img = document.createElement('img');
             img.src = streamData.favicon;
             img.alt = '';
-            img.onerror = () => logoDiv.classList.add('no-logo');
-            logoDiv.appendChild(img);
-        } else {
-            logoDiv.classList.add('no-logo');
+            img.onerror = () => img.remove();
+            logoEl.appendChild(img);
         }
-        item.appendChild(logoDiv);
+        item.appendChild(logoEl);
 
         const freqDiv = document.createElement('div');
         freqDiv.className = 'freq';
@@ -460,6 +462,275 @@ function renderStations() {
         frag.appendChild(item);
     });
     list.appendChild(frag);
+}
+
+// DIAL CONTROLS RENDER
+function renderDialControls() {
+    const container = document.getElementById('dialPresets');
+    if (!container) return;
+    container.innerHTML = '';
+
+    // 1. Volume Knob (Canvas)
+    const knobWrap = document.createElement('div');
+    knobWrap.className = 'dial-knob-wrap';
+    const knobCanvas = document.createElement('canvas');
+    knobCanvas.id = 'dialKnob';
+    knobCanvas.width = 32; knobCanvas.height = 32;
+    knobWrap.appendChild(knobCanvas);
+    container.appendChild(knobWrap);
+    initDialKnob(knobCanvas);
+
+    // Right Area (2 rows)
+    const rightArea = document.createElement('div');
+    rightArea.className = 'dial-right-area';
+
+    // --- РЯД 1: Управление, Статусы и Бэнды ---
+    const row1 = document.createElement('div');
+    row1.className = 'dial-row dial-row-top';
+
+    // Player Controls
+    const controls = [
+        { svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>', action: () => skipPreset(-1), title: "Предыдущая (по кнопкам)" },
+        { svg: audioPlayer.paused ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>' : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>', action: () => { if(currentPlayingStation) togglePlay(currentPlayingStation); }, title: "Play/Pause" },
+        { svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>', action: () => stopPlayer(), title: "Стоп" },
+        { svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>', action: () => skipPreset(1), title: "Следующая (по кнопкам)" }
+    ];
+    controls.forEach(c => {
+        const btn = document.createElement('div');
+        btn.className = 'chip-btn control-chip';
+        btn.innerHTML = c.svg;
+        btn.title = c.title;
+        btn.onclick = c.action;
+        row1.appendChild(btn);
+    });
+
+    // Отступ между плеером и статусами
+    if (currentPlayingStation) {
+        const gapSpacer = document.createElement('div');
+        gapSpacer.style.width = '8px';
+        gapSpacer.style.flexShrink = '0';
+        row1.appendChild(gapSpacer);
+    }
+
+    if (currentPlayingStation) {
+        const data = getStationData(currentPlayingStation);
+        const statuses = [
+            { type: 'normal', char: '○', title: 'Без статуса' },
+            { type: 'fav', char: '♥', title: 'Любимое' },
+            { type: 'cand', char: '★', title: 'Интересное' },
+            { type: 'trash', char: '⊘', title: 'Пропущено' }
+        ];
+        statuses.forEach(s => {
+            const btn = document.createElement('div');
+            btn.className = 'chip-btn status-chip' + (data.type === s.type ? ' assigned-active' : '');
+            btn.textContent = s.char;
+            btn.title = s.title;
+            btn.onclick = () => {
+                const d = ensureStationData(currentPlayingStation);
+                d.type = s.type;
+                updateCityStats(state.city);
+                commitState();
+                render();
+            };
+            row1.appendChild(btn);
+        });
+    }
+
+    const spacer = document.createElement('div');
+    spacer.className = 'dial-spacer';
+    row1.appendChild(spacer);
+
+    if (state.bands > 1) {
+        for (let b = 1; b <= state.bands; b++) {
+            const btn = document.createElement('div');
+            btn.className = 'chip-btn band-chip' + (state.dialCurrentBand === b ? ' active' : '');
+            btn.textContent = `FM${b}`;
+            btn.onclick = () => { state.dialCurrentBand = b; render(); };
+            row1.appendChild(btn);
+        }
+    }
+    rightArea.appendChild(row1);
+
+    // --- РЯД 2: Номерные кнопки (с переносом) ---
+    const row2 = document.createElement('div');
+    row2.className = 'dial-row dial-row-presets';
+
+    const cityStations = state.cityData[state.city]?.stations || {};
+    for (let i = 1; i <= state.presets; i++) {
+        const absoluteIdx = (state.dialCurrentBand - 1) * state.presets + i;
+        const btn = document.createElement('div');
+        btn.className = 'chip-btn';
+        btn.textContent = i;
+        
+        let assignedStation = null;
+        let hasStreams = false;
+        for (const name in cityStations) {
+            if (cityStations[name].presetIndex === absoluteIdx) {
+                assignedStation = name;
+                const streamData = stationStreamMap[FMUse.generateCodeName(name)];
+                // Добавлена проверка !streamData.broken
+                hasStreams = streamData && streamData.streams && streamData.streams.length > 0 && !streamData.broken;
+                break;
+            }
+        }
+
+        if (assignedStation) {
+            btn.classList.add('occupied');
+            btn.title = assignedStation + (hasStreams ? '' : ' (нет потоков)');
+            if (currentPlayingStation === assignedStation) {
+                btn.classList.add('assigned-active');
+            }
+            if (!hasStreams) {
+                btn.classList.add('disabled');
+            }
+        }
+
+        let pressTimer = null;
+        let isLongPress = false;
+
+        const startPress = (e) => {
+            e.stopPropagation();
+            isLongPress = false;
+            pressTimer = setTimeout(() => {
+                isLongPress = true;
+                if (currentPlayingStation) {
+                    assignPreset(currentPlayingStation, absoluteIdx);
+                    showToast(`Кнопка ${state.bands > 1 ? state.dialCurrentBand + '.' : ''}${i} назначена: ${currentPlayingStation}`);
+                } else {
+                    showToast("Сначала включите станцию");
+                }
+            }, 500);
+        };
+
+        const endPress = (e) => {
+            e.stopPropagation();
+            if (pressTimer) clearTimeout(pressTimer);
+            if (!isLongPress && assignedStation && hasStreams) {
+                togglePlay(assignedStation);
+            }
+        };
+
+        btn.addEventListener('mousedown', startPress);
+        btn.addEventListener('mouseup', endPress);
+        btn.addEventListener('mouseleave', () => { if (pressTimer) clearTimeout(pressTimer); });
+        btn.addEventListener('touchstart', startPress, { passive: true });
+        btn.addEventListener('touchend', endPress);
+
+        row2.appendChild(btn);
+    }
+    rightArea.appendChild(row2);
+    container.appendChild(rightArea);
+}
+
+// DIAL KNOB (Volume)
+function initDialKnob(canvas) {
+    const ctx = canvas.getContext('2d');
+    const drawKnob = () => {
+        const w = canvas.width; const h = canvas.height;
+        const cx = w/2; const cy = h/2; const r = 14;
+        ctx.clearRect(0, 0, w, h);
+        
+        const vol = audioPlayer.volume;
+        const startAngle = 0.75 * Math.PI; 
+        const endAngle = startAngle + (1.5 * Math.PI * vol);
+        
+        // Inward glow trick: Clip to circle, then stroke with shadow
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI*2);
+        ctx.clip();
+        
+        ctx.shadowColor = getCSSVar('--accent');
+        ctx.shadowBlur = 10;
+        
+        // Background Circle (glow source)
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI*2);
+        ctx.strokeStyle = getCSSVar('--accent'); // Заменили серый на акцентный
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        // Volume Arc (glow source)
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, startAngle, endAngle);
+        ctx.strokeStyle = getCSSVar('--accent');
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        
+        ctx.restore();
+        
+        // Knob Indicator (Tick)
+        const lineAngle = startAngle + (1.5 * Math.PI * vol);
+        const x1 = cx + Math.cos(lineAngle) * (r);
+        const y1 = cy + Math.sin(lineAngle) * (r);
+        const x2 = cx + Math.cos(lineAngle) * (r - 6);
+        const y2 = cy + Math.sin(lineAngle) * (r - 6);
+        
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = getCSSVar('--accent');
+        ctx.lineWidth = 2; 
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        
+        // Volume Text
+        ctx.fillStyle = getCSSVar('--accent');
+        ctx.font = 'bold 9px Orbitron, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(Math.round(vol * 100), cx, cy);
+        
+        canvas.title = `Громкость: ${Math.round(vol * 100)}%`;
+    };
+    drawKnob();
+    
+    const updateVol = (deltaY) => {
+        let val = audioPlayer.volume;
+        if (deltaY < 0) val += 0.02; else val -= 0.02; // Шаг 2%
+        if (window.updateVolume) {
+            window.updateVolume(val);
+            drawKnob();
+        }
+    };
+    
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        updateVol(e.deltaY);
+    }, { passive: false });
+    
+    const handleMove = (clientX, clientY) => {
+        const rect = canvas.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = clientX - cx;
+        const dy = clientY - cy;
+        let angle = Math.atan2(dy, dx);
+        
+        if (angle < 0) angle += Math.PI * 2;
+        let minAngle = 0.75 * Math.PI;
+        let maxAngle = 2.25 * Math.PI;
+        
+        if (angle < minAngle && angle > maxAngle - Math.PI*2) angle = minAngle;
+        if (angle > maxAngle) angle = maxAngle;
+        
+        let val = (angle - minAngle) / (maxAngle - minAngle);
+        val = Math.max(0, Math.min(1, val));
+        
+        if (window.updateVolume) {
+            window.updateVolume(val);
+            drawKnob();
+        }
+    };
+    
+    let isDragging = false;
+    canvas.addEventListener('mousedown', (e) => { isDragging = true; handleMove(e.clientX, e.clientY); });
+    window.addEventListener('mousemove', (e) => { if(isDragging) handleMove(e.clientX, e.clientY); });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    
+    canvas.addEventListener('touchstart', (e) => { isDragging = true; handleMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive: true});
+    window.addEventListener('touchmove', (e) => { if(isDragging && e.touches[0]) { e.preventDefault(); handleMove(e.touches[0].clientX, e.touches[0].clientY); } }, {passive: false});
+    window.addEventListener('touchend', () => { isDragging = false; });
 }
 
 // CITY STATS & UI
@@ -592,8 +863,61 @@ function render() {
         });
     }
     document.getElementById("templatesBtn").textContent = state.templateShort || "свой";
+    
+    if (document.getElementById('fmDialWrapper')) {
+        const dialToggle = document.getElementById('dialToggleBtn');
+        const dialFreqToggle = document.getElementById('dialFreqToggleBtn');
+        if (state.stations.length > 0) {
+            document.getElementById('fmDialWrapper').style.display = 'block';
+            dialToggle.style.display = 'flex';
+            const isFull = state.dialView === 'full';
+            dialToggle.innerHTML = isFull 
+                ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>'
+                : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
+            dialToggle.title = isFull 
+                ? "Эффективная шкала: сжимает диапазон до частот станций текущего города. Удобно, когда станции сгруппированы." 
+                : "Полная шкала: показывает весь вещательный диапазон FM (76.0 - 108.0 МГц).";
+            
+            // Переключатель "На ГУ / Оригинал". Доступен для любого нестандартного диапазона ГУ, даже если сдвиг 0.
+            const showFreqToggle = !(state.min === RU_MIN && state.max === RU_MAX);
+            dialFreqToggle.style.display = showFreqToggle ? 'flex' : 'none';
+            const isShiftedView = state.dialFreqView === 'shifted';
+            dialFreqToggle.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>';
+            dialFreqToggle.title = isShiftedView ? "Показывать оригинальные частоты" : "Показывать частоты на ГУ (с адаптером)";
+            dialFreqToggle.style.color = isShiftedView ? 'var(--accent)' : 'var(--text-dim)';
+
+            // Видимость панели кнопок под шкалой
+            const controlsVisible = state.dialControlsVisible !== null ? state.dialControlsVisible : state.settingsMode;
+            const dialWrapper = document.getElementById('fmDialWrapper');
+            if (dialWrapper) {
+                dialWrapper.classList.toggle('controls-hidden', !controlsVisible);
+            }
+            const dialControlsToggle = document.getElementById('dialControlsToggleBtn');
+            if (dialControlsToggle) {
+                dialControlsToggle.style.display = 'flex';
+                dialControlsToggle.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2" ry="2"></rect><path d="M6 10h0M10 10h0M14 10h0M18 10h0M8 14h8"></path></svg>';
+                dialControlsToggle.title = controlsVisible ? "Скрыть кнопки шкалы" : "Показать кнопки шкалы";
+                dialControlsToggle.style.color = controlsVisible ? 'var(--accent)' : 'var(--text-dim)';
+            }
+
+            if (typeof renderDialControls === 'function' && controlsVisible) {
+                renderDialControls();
+            }
+
+            if (typeof dialAnimId !== 'undefined' && !dialAnimId && typeof dialLoop !== 'undefined') dialLoop();
+        } else {
+            document.getElementById('fmDialWrapper').style.display = 'none';
+            if (typeof dialAnimId !== 'undefined' && dialAnimId) { cancelAnimationFrame(dialAnimId); dialAnimId = null; }
+        }
+    }
+    
     renderAdapters(); 
     renderStations();
+    
+    // Если меняется сдвиг, нужно немедленно обновить частоту в шапке
+    if (currentPlayingStation && typeof updatePlayerUI !== 'undefined') {
+        updatePlayerUI();
+    }
     
     if (state.settingsMode) {
         transferBtn.style.display = 'flex';
@@ -642,6 +966,9 @@ function updateUrl() {
         mode: state.settingsMode ? 1 : 0, bands: state.bands, presets: state.presets
     });
     if (state.viewMode === 'player') params.set('view', 'player');
+    if (state.dialView === 'full') params.set('dial', 'full');
+    if (state.dialFreqView === 'shifted') params.set('dfreq', 'shifted');
+    if (state.dialControlsVisible !== null) params.set('dctrl', state.dialControlsVisible ? '1' : '0');
     if (currentPlayingStation) {
         params.set('play', currentPlayingStation);
         params.set('stream', currentStreamIndex);
@@ -657,6 +984,9 @@ function loadFromUrl() {
     const shift = parseInt(params.get("shift")); if (!isNaN(shift) && shift >= 0 && shift <= 30) state.shift = shift;
     const mode = params.get("mode"); if (mode === "1") state.settingsMode = true;
     const view = params.get("view"); state.viewMode = view === 'player' ? 'player' : 'setup';
+    const dial = params.get("dial"); state.dialView = dial === 'full' ? 'full' : 'narrow';
+    const dfreq = params.get("dfreq"); state.dialFreqView = dfreq === 'shifted' ? 'shifted' : 'orig';
+    const dctrl = params.get("dctrl"); state.dialControlsVisible = dctrl === '1' ? true : dctrl === '0' ? false : null;
     const bands = parseInt(params.get("bands")); if (!isNaN(bands) && bands >= 1 && bands <= 5) state.bands = bands;
     const presets = parseInt(params.get("presets")); if (!isNaN(presets) && presets >= 1 && presets <= 18) state.presets = presets;
     const matched = TEMPLATES.find(t => t.range[0] === state.min && t.range[1] === state.max);
@@ -800,7 +1130,7 @@ function doTransfer() {
     } else if (matches.length > 0) {
         showToast(`Совпадений: ${matches.length}, но нет настроек для копирования`);
     } else {
-        showToast("Совпадающих станций не найдено");
+        showToast("Совпадающих станций не найдены");
     }
 }
 
@@ -1288,6 +1618,35 @@ async function init() {
     
     await loadStationsData();
     applyViewMode();
+    if (typeof initDial === 'function') initDial();
+    
+    const dialBtn = document.getElementById('dialToggleBtn');
+    if (dialBtn) {
+        dialBtn.addEventListener('click', () => {
+            state.dialView = state.dialView === 'full' ? 'narrow' : 'full';
+            if (typeof dialAnim !== 'undefined') dialAnim.x = 0;
+            render();
+        });
+    }
+
+    const dialFreqBtn = document.getElementById('dialFreqToggleBtn');
+    if (dialFreqBtn) {
+        dialFreqBtn.addEventListener('click', () => {
+            state.dialFreqView = state.dialFreqView === 'shifted' ? 'orig' : 'shifted';
+            if (typeof dialAnim !== 'undefined') dialAnim.x = 0;
+            render();
+        });
+    }
+
+    const dialControlsBtn = document.getElementById('dialControlsToggleBtn');
+    if (dialControlsBtn) {
+        dialControlsBtn.addEventListener('click', () => {
+            const currentVisible = state.dialControlsVisible !== null ? state.dialControlsVisible : state.settingsMode;
+            state.dialControlsVisible = !currentVisible;
+            commitState();
+            render();
+        });
+    }
 
     audioPlayer = document.getElementById('audioPlayer');
     const savedVol = localStorage.getItem('fm_player_volume');
@@ -1301,7 +1660,7 @@ async function init() {
     const volumeSlider = document.getElementById('volumeSlider');
     volumeSlider.value = audioPlayer.volume;
     
-    const updateVolume = (val) => {
+    window.updateVolume = (val) => {
         val = Math.max(0, Math.min(1, val));
         volumeSlider.value = val;
         if (mobileVolSlider) mobileVolSlider.value = val;
@@ -1590,9 +1949,6 @@ async function loadCity(city) {
         if (!state.cityData[city]) state.cityData[city] = { stations: {} };
         state.cityData[city].allStations = newStations.map(s => ({ name: s.name, freq: s.freq }));
         state.cityData[city].totalStations = state.stations.length;
-        
-        // Блок удален: он перезаписывал свежие потоки из stations_data.json 
-        // старыми данными из LocalStorage.
         
         const ls = localStorage.getItem(LS_KEY);
         let cachedSettings = {};

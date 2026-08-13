@@ -7,6 +7,9 @@
     <link rel="icon" type="image/png" href="img/logo_100.png">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cstyle%3E:root{--plate-bg:%23f8f9fa;--plate-border:%23adb5bd;--track:%23212529;--knob:%2300b4d8}@media(prefers-color-scheme:dark){:root{--plate-bg:%23212529;--plate-border:%23495057;--track:%23f8f9fa;--knob:%2300d4ff}}.plate{fill:var(--plate-bg);stroke:var(--plate-border);stroke-width:2}.track{stroke:var(--track);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;fill:none}.knob{fill:var(--knob)}%3C/style%3E%3Crect class='plate' x='2' y='2' width='28' height='28' rx='6'/%3E%3Cpath class='track' d='M10 8v16 M22 8v16 M10 16 l4-5 l4 10 l4-5'/%3E%3Ccircle class='knob' cx='22' cy='8' r='4' style='fill:var(--knob)'/%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="img/logo_100.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     
     <!-- ES5 Compatibility Guard for IE11 and older -->
@@ -51,7 +54,9 @@
     <div class="app-container">
         <header class="app-header">
             <div class="brand">
-                <div id="logoBtn" class="logo-img" title="AutoFMShift" role="button" tabindex="0" aria-label="Логотип"></div>
+                <div id="logoBtn" class="logo-img" title="AutoFMShift" role="button" tabindex="0" aria-label="Логотип">
+                    <div id="headerFreq" class="header-freq"></div>
+                </div>
             </div>
             <div class="player-panel" id="playerPanel">
                 <div class="player-info">
@@ -267,6 +272,16 @@
                     <div class="hover-trigger" id="hoverTrigger" title="Наведите или удерживайте для подсказки"></div>
                 </section>
 
+                <div id="fmDialWrapper" class="fm-dial-wrapper" style="display: none;">
+                    <div class="fm-dial-controls">
+                        <button id="dialFreqToggleBtn" class="btn-icon" title="Оригинальные частоты" style="display: none; margin-right: 4px;"></button>
+                        <button id="dialToggleBtn" class="btn-icon" title="Эффективная шкала"></button>
+                        <button id="dialControlsToggleBtn" class="btn-icon" title="Кнопки шкалы"></button>
+                    </div>
+                    <canvas id="fmDialCanvas"></canvas>
+                    <div id="dialPresets" class="dial-presets"></div>
+                </div>
+                <div id="dialTooltip" class="dial-tooltip"></div>
                 <section class="panel stations-panel">
                     <div class="error-msg" id="errorMsg"></div>
                     <div class="stations-header">
@@ -274,6 +289,20 @@
                         <span class="col-status" id="statusHeader" title="Пометки и номера кнопок. Клик по иконке меняет статус, клик по номеру открывает меню назначения кнопки магнитолы." style="display: none;">Статус</span>
                         <span class="col-name" title="Название радиостанции. Кликните, чтобы увидеть полное имя, если оно обрезано.">Станция</span>
                         <span class="col-shifted" title="Частота на магнитоле после установки адаптера. Зеленый — доступна, красный — вне диапазона.">На ГУ</span>
+                    </div>
+                    <div id="fmDial" class="fm-dial-container" style="display: none;">
+                        <div class="fm-dial-controls">
+                            <button id="dialToggleBtn" class="btn-text" style="height: 24px; font-size: 10px; padding: 0 6px;">Оригинал</button>
+                        </div>
+                        <div class="fm-dial-scale" id="fmDialScale"></div>
+                        <div class="fm-dial-indicator" id="fmDialIndicator"></div>
+                    </div>
+                    <div id="fmDialWrapper" class="fm-dial-wrapper" style="display: none;">
+                        <div class="fm-dial-controls">
+                            <button id="dialToggleBtn" class="btn-icon" title="Эффективная шкала"></button>
+                        </div>
+                        <canvas id="fmDialCanvas"></canvas>
+                        <div id="dialTooltip" class="dial-tooltip"></div>
                     </div>
                     <div class="stations-list" id="stationsList"></div>
                 </section>
@@ -298,6 +327,7 @@
     <script src="api.js"></script>
     <script src="fmuse.js"></script>
     <script src="exports.js"></script>
+    <script src="dial.js"></script>
     <script src="player.js"></script>
     <script src="app.js"></script>
 </body>
