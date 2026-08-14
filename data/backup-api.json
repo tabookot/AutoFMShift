@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "0.5.1-github-action",
-  "exportDate": 1786608342396,
+  "exportDate": 1786694483582,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -12177,12 +12177,6 @@
           "deletedAt": null
         },
         {
-          "name": "(ПЛАН) Like FM",
-          "freq": 92.1,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
           "name": "Вести FM",
           "freq": 87.5,
           "isDeleted": false,
@@ -12311,6 +12305,12 @@
         {
           "name": "DFM\nЕвропа Плюс",
           "freq": 102,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Like FM",
+          "freq": 92.1,
           "isDeleted": false,
           "deletedAt": null
         },
