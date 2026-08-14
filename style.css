@@ -291,7 +291,11 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     100% { opacity: 1; }
 }
 .fm-dial-controls { position: absolute; top: 6px; right: 6px; z-index: 10; display: flex; gap: 4px; }
-.fm-dial-controls .btn-icon { width: 24px; height: 24px; background: var(--panel-light); border-color: var(--border); color: var(--accent); }
+.fm-dial-controls .chip-btn.control-chip { 
+    width: 24px; height: 24px; min-width: 24px; padding: 0; 
+    background: linear-gradient(180deg, var(--panel-light) 0%, var(--bg) 100%);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+}
 #fmDialCanvas { width: 100%; height: 84px; display: block; cursor: pointer; }
 
 .dial-presets {
@@ -303,44 +307,44 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     box-shadow: inset 0 0 15px var(--border), inset 0 -8px 20px var(--accent-glow);
 }
 .dial-knob-wrap {
-    width: 44px; height: 100%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 70px; height: 100%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-#dialKnob { width: 40px; height: 40px; cursor: ns-resize; }
+#dialKnob { width: 64px; height: 64px; cursor: ns-resize; }
 .dial-right-area {
     flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; min-width: 0;
 }
 .dial-row {
-    display: flex; align-items: center; gap: 3px; height: 26px;
+    display: flex; align-items: center; gap: 4px; height: 28px;
     overflow: hidden; scrollbar-width: none;
 }
 .dial-row::-webkit-scrollbar { display: none; }
 .dial-row-top { flex-shrink: 0; }
 .dial-row-presets {
-    flex-wrap: wrap; height: 42px; align-content: flex-start;
+    flex-wrap: wrap; height: 40px; align-content: flex-start;
 }
 .dial-spacer { flex: 1; }
 
 .chip-btn {
     position: relative;
-    height: 22px; min-width: 22px; padding: 0 4px;
+    height: 16px; min-width: 16px; padding: 0 2px;
     border: 1px solid transparent; /* Убрали старый контур */
-    border-radius: 3px; 
-    background: var(--bg); 
+    border-radius: 4px; 
+    background: var(--bg); /* Фон, адаптивный под тему */
     color: var(--text-dim); 
     cursor: pointer; 
-    font-family: 'Orbitron', monospace; font-size: 9px; font-weight: bold;
+    font-family: 'Orbitron', monospace; font-size: 8px; font-weight: bold;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     transition: all 0.1s; user-select: none;
     overflow: visible;
     z-index: 1;
 }
-/* Эффект неравномерного неонового свечения (уменьшен) */
+/* Эффект мерцающего неонового свечения (2 пикселя) */
 .chip-btn::after {
     content: '';
     position: absolute;
     inset: 0;
-    border-radius: 3px;
-    box-shadow: 0 0 3px var(--accent);
+    border-radius: 4px;
+    box-shadow: 0 0 2px var(--accent);
     opacity: 0.8;
     animation: neon-flicker 8s infinite steps(60);
     pointer-events: none;
@@ -354,40 +358,47 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 }
 
 .chip-btn:hover { color: var(--accent); }
-/* Уменьшенные кнопки бэндов */
 .chip-btn.band-chip { 
     font-size: 7px; 
-    min-width: 16px; 
+    min-width: 14px; 
     padding: 0 2px;
 }
 .chip-btn.band-chip.active { color: var(--accent); }
 
 .chip-btn.control-chip { 
-    color: var(--accent); 
+    padding: 0;
+    width: 16px; height: 16px;
 }
+.chip-btn.control-chip svg { width: 9px; height: 9px; }
 
 .chip-btn.occupied {
     color: var(--accent); 
 }
 .chip-btn.assigned-active { 
     background: var(--accent); color: var(--bg); 
+    box-shadow: 0 0 4px var(--accent);
 }
 .chip-btn.assigned-active::after {
     opacity: 1; animation: none; box-shadow: 0 0 4px var(--accent);
 }
-/* Кнопки с мертвыми потоками - цвет между серым и акцентным */
 .chip-btn.disabled {
-    color: #5a7d99; 
+    color: #5a7d99;
+    opacity: 0.7;
 }
-/* Увеличенные иконки статусов */
-.chip-btn.status-chip { font-size: 14px; }
-.chip-btn.status-chip.assigned-active { background: transparent; color: var(--accent); }
-.chip-btn.control-chip svg { width: 12px; height: 12px; }
+.chip-btn.status-chip.assigned-active { 
+    background: transparent; 
+    color: var(--accent); 
+}
+.chip-btn.status-chip { font-size: 10px; }
 
-/* Уменьшаем кнопки в ряду пресетов */
+/* 2 ряд кнопок (пресеты) */
 .dial-row-presets .chip-btn {
-    height: 20px; min-width: 20px; font-size: 9px; padding: 0 2px;
+    height: 16px; min-width: 16px; font-size: 8px; padding: 0 2px;
 }
+.dial-row-presets .chip-btn.control-chip {
+    height: 16px; min-width: 16px; width: 16px;
+}
+.dial-row-presets .chip-btn.control-chip svg { width: 9px; height: 9px; }
 
 .dial-tooltip {
     position: fixed; transform: translate(-50%, -100%);

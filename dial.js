@@ -448,8 +448,8 @@ function renderDialControls() {
   kW.className = 'dial-knob-wrap';
   const kC = document.createElement('canvas');
   kC.id = 'dialKnob';
-  kC.width = 40;
-  kC.height = 40;
+  kC.width = 64;
+  kC.height = 64;
   kW.appendChild(kC);
   c.appendChild(kW);
   initDialKnob(kC);
@@ -578,104 +578,137 @@ function renderDialControls() {
 }
 
 function initDialKnob(canvas) {
-  const ctx = canvas.getContext('2d');
-  const dK = () => {
-    const w = canvas.width;
-    const h = canvas.height;
-    const cx = w / 2;
-    const cy = h / 2;
-    const r = 14;
-    ctx.clearRect(0, 0, w, h);
-    const vol = audioPlayer.volume;
-    const sA = 0.75 * Math.PI;
-    const eA = sA + (1.5 * Math.PI * vol);
+    const ctx = canvas.getContext('2d');
+    const dK = () => {
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const r = 28;
+      ctx.clearRect(0, 0, w, h);
+      
+      const accent = getCSSVar('--accent');
+      const textDim = getCSSVar('--text-dim');
+      const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+      
+      const vol = audioPlayer.volume;
+      const startAngle = 0.75 * Math.PI;
+      
+      // 1. Draw Tick Marks (Scale)
+      const tickCount = 40;
+      for (let i = 0; i < tickCount; i++) {
+        const angle = startAngle + (1.5 * Math.PI) * (i / tickCount);
+        const isLong = i % 5 === 0;
+        const r1 = r;
+        const r2 = r - (isLong ? 6 : 4);
+        
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(angle) * r1, cy + Math.sin(angle) * r1);
+        ctx.lineTo(cx + Math.cos(angle) * r2, cy + Math.sin(angle) * r2);
+        ctx.strokeStyle = (i / tickCount) <= vol ? accent : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.15)');
+        ctx.lineWidth = isLong ? 2 : 1;
+        ctx.stroke();
+      }
+  
+      // 2. Draw 3D Body (Retro Knob)
+      // Outer dark ring
+      ctx.beginPath();
+      ctx.arc(cx, cy, 24, 0, Math.PI * 2);
+      ctx.fillStyle = isDark ? '#111418' : '#adb5bd';
+      ctx.fill();
+  
+      // Inner gradient circle
+      const grad = ctx.createRadialGradient(cx - 8, cy - 8, 2, cx, cy, 22);
+      grad.addColorStop(0, isDark ? '#3a4049' : '#ffffff');
+      grad.addColorStop(1, isDark ? '#1a1d22' : '#e9ecef');
+      ctx.beginPath();
+      ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+  
+    // 3. Draw Glowing Pointer Dot
+    const pAngle = startAngle + (1.5 * Math.PI * vol);
+    const pX = cx + Math.cos(pAngle) * 17;
+    const pY = cy + Math.sin(pAngle) * 17;
+    
     ctx.save();
     ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.shadowColor = getCSSVar('--accent');
+    ctx.arc(pX, pY, 1.5, 0, Math.PI * 2); // Уменьшен радиус в 4 раза
+    ctx.fillStyle = accent;
+    ctx.shadowColor = accent;
     ctx.shadowBlur = 10;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.clearRect(cx - r, cy - r, r * 2, r * 2);
-    ctx.strokeStyle = getCSSVar('--accent');
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, sA, eA);
-    ctx.strokeStyle = getCSSVar('--accent');
-    ctx.lineWidth = 3;
-    ctx.stroke();
+    ctx.fill();
     ctx.restore();
-    const lA = sA + (1.5 * Math.PI * vol);
-    const x1 = cx + Math.cos(lA) * r;
-    const y1 = cy + Math.sin(lA) * r;
-    const x2 = cx + Math.cos(lA) * (r - 6);
-    const y2 = cy + Math.sin(lA) * (r - 6);
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.strokeStyle = getCSSVar('--accent');
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-    ctx.fillStyle = getCSSVar('--accent');
-    ctx.font = 'bold 9px Orbitron, monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(Math.round(vol * 100), cx, cy);
-    canvas.title = `Громкость: ${Math.round(vol * 100)}%`;
-  };
-  dK();
-  window.updateDialKnob = dK; // Expose globally for header slider sync
   
-  const uV = (dY) => {
-    let v = audioPlayer.volume;
-    if (dY < 0) v += 0.02;
-    else v -= 0.02;
-    if (window.updateVolume) window.updateVolume(v);
-  };
-  
-  canvas.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    uV(e.deltaY);
-  }, { passive: false });
-  
-  const hM = (cX, cY) => {
-    const r = canvas.getBoundingClientRect();
-    const cx = r.left + r.width / 2;
-    const cy = r.top + r.height / 2;
-    const dx = cX - cx;
-    const dy = cY - cy;
-    let a = Math.atan2(dy, dx);
-    if (a < 0) a += Math.PI * 2;
-    let mA = 0.75 * Math.PI;
-    let maxA = 2.25 * Math.PI;
-    if (a < mA && a > maxA - Math.PI * 2) a = mA;
-    if (a > maxA) a = maxA;
-    let v = (a - mA) / (maxA - mA);
-    v = Math.max(0, Math.min(1, v));
-    if (window.updateVolume) window.updateVolume(v);
-  };
-  
-  let isD = false;
-  canvas.addEventListener('mousedown', (e) => {
-    isD = true;
-    hM(e.clientX, e.clientY);
-  });
-  window.addEventListener('mousemove', (e) => {
-    if (isD) hM(e.clientX, e.clientY);
-  });
-  window.addEventListener('mouseup', () => isD = false);
-  canvas.addEventListener('touchstart', (e) => {
-    isD = true;
-    hM(e.touches[0].clientX, e.touches[0].clientY);
-  }, { passive: true });
-  window.addEventListener('touchmove', (e) => {
-    if (isD && e.touches[0]) {
+      // 4. Center Volume Text
+      ctx.fillStyle = accent;
+      ctx.font = 'bold 10px Orbitron, monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = accent;
+      ctx.shadowBlur = 4;
+      ctx.fillText(Math.round(vol * 100), cx, cy);
+      ctx.shadowBlur = 0;
+      
+      canvas.title = `Громкость: ${Math.round(vol * 100)}%`;
+    };
+    
+    dK();
+    window.updateDialKnob = dK;
+    
+    // Redraw on theme change
+    const observer = new MutationObserver(() => {
+      if (typeof window.updateDialKnob === 'function') window.updateDialKnob();
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    
+    const uV = (dY) => {
+      let v = audioPlayer.volume;
+      if (dY < 0) v += 0.02;
+      else v -= 0.02;
+      if (window.updateVolume) window.updateVolume(v);
+    };
+    
+    canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
+      uV(e.deltaY);
+    }, { passive: false });
+    
+    const hM = (cX, cY) => {
+      const r = canvas.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const dx = cX - cx;
+      const dy = cY - cy;
+      let a = Math.atan2(dy, dx);
+      if (a < 0) a += Math.PI * 2;
+      let mA = 0.75 * Math.PI;
+      let maxA = 2.25 * Math.PI;
+      if (a < mA && a > maxA - Math.PI * 2) a = mA;
+      if (a > maxA) a = maxA;
+      let v = (a - mA) / (maxA - mA);
+      v = Math.max(0, Math.min(1, v));
+      if (window.updateVolume) window.updateVolume(v);
+    };
+    
+    let isD = false;
+    canvas.addEventListener('mousedown', (e) => {
+      isD = true;
+      hM(e.clientX, e.clientY);
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (isD) hM(e.clientX, e.clientY);
+    });
+    window.addEventListener('mouseup', () => isD = false);
+    canvas.addEventListener('touchstart', (e) => {
+      isD = true;
       hM(e.touches[0].clientX, e.touches[0].clientY);
-    }
-  }, { passive: false });
-  window.addEventListener('touchend', () => isD = false);
-}
+    }, { passive: true });
+    window.addEventListener('touchmove', (e) => {
+      if (isD && e.touches[0]) {
+        e.preventDefault();
+        hM(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: false });
+    window.addEventListener('touchend', () => isD = false);
+  }

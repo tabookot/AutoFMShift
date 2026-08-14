@@ -399,11 +399,11 @@ async function init() {
         stopPlayer();
         renderStations();
       });
-      try {
-        navigator.mediaSession.setActionHandler('seekto', null);
-        navigator.mediaSession.setActionHandler('seekbackward', null);
-        navigator.mediaSession.setActionHandler('seekforward', null);
-      } catch (e) {}
+      // Фикс для iOS/Safari: он игнорирует previoustrack/nexttrack для live-стримов,
+      // превращая их в кнопки перемотки на 15с. Вешаем переключение станций на них.
+      try { navigator.mediaSession.setActionHandler('seekbackward', () => skipStation(-1)); } catch (e) {}
+      try { navigator.mediaSession.setActionHandler('seekforward', () => skipStation(1)); } catch (e) {}
+      try { navigator.mediaSession.setActionHandler('seekto', null); } catch (e) {}
     }
   
     const h = await Api.fetchPage(Api.MAIN_PAGE);

@@ -13,7 +13,6 @@ let sourceNode = null;
 let spectrumCanvas = null;
 let spectrumCtx = null;
 let isRestoringPlayback = false;
-let isSkipping = false; // Lock for rapid skipping
 
 async function loadStationsData() {
   try {
@@ -94,91 +93,131 @@ async function restorePlayback() {
   }
 }
 
-function attemptPlay(name, sI) {
+function attemptPlay(name, streamIndex) {
   return new Promise((resolve) => {
-    const sd = stationStreamMap[FMUse.generateCodeName(name)];
-    if (!sd || !sd.streams || sI >= sd.streams.length || sd.streams[sI].broken) {
+    const streamData = stationStreamMap[FMUse.generateCodeName(name)];
+    if (!streamData || !streamData.streams || streamIndex >= streamData.streams.length || streamData.streams[streamIndex].broken) {
       resolve(false);
       return;
     }
+    
     currentPlayingStation = name;
-    currentStreamIndex = sI;
+    currentStreamIndex = streamIndex;
     setPlayerLoading(true, 'Подключение...');
     updatePlayerUI();
-    let url = sd.streams[sI].url;
-    if (!url || url === 'null' || url === 'undefined') {
+    
+    let url = streamData.streams[streamIndex].url;
+    if (!url || url === 'null' || url === 'undefined' || url === '') {
       resolve(false);
       return;
     }
-    if (window.location.protocol === 'https:' && url.startsWith('http:')) url = 'https:' + url.substring(5);
+    if (window.location.protocol === 'https:' && url.startsWith('http:')) {
+      url = 'https:' + url.substring(5);
+    }
+    
     let settled = false;
     const cleanup = () => {
       clearTimeout(playTimeout);
       audioPlayer.removeEventListener('playing', onPlaying);
       audioPlayer.removeEventListener('error', onError);
+      audioPlayer.removeEventListener('abort', onAbort);
     };
-    const onPlaying = () => {
-      if (settled) return;
-      if (name !== currentPlayingStation) {
-        settled = true;
-        cleanup();
-        resolve('aborted');
-        return;
-      }
-      settled = true;
-      cleanup();
+
+    const onPlaying = () => { 
+      if (settled) return; 
+      settled = true; 
+      cleanup(); 
       initAudioContext();
       updateMediaSession();
-      localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(name), sI);
-      resolve(true);
+      localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(name), streamIndex);
+      resolve(true); 
     };
-    const onError = () => {
+    
+    const onError = () => { 
+      if (settled) return; 
+      settled = true; 
+      cleanup(); 
+      resolve(false); 
+    };
+    
+    // Отмена загрузки при быстрой перемотке
+    const onAbort = () => {
       if (settled) return;
-      if (name !== currentPlayingStation) {
-        settled = true;
-        cleanup();
-        resolve('aborted');
-        return;
-      }
       settled = true;
       cleanup();
-      resolve(false);
+      resolve('aborted');
     };
-    playTimeout = setTimeout(() => {
-      if (settled) return;
-      if (name !== currentPlayingStation) {
-        settled = true;
-        cleanup();
-        resolve('aborted');
-        return;
-      }
-      settled = true;
-      cleanup();
+    
+    playTimeout = setTimeout(() => { 
+      if (settled) return; 
+      settled = true; 
+      cleanup(); 
       audioPlayer.pause();
-      audioPlayer.load();
-      resolve(false);
+      audioPlayer.load(); 
+      resolve(false); 
     }, 10000);
+    
     audioPlayer.addEventListener('playing', onPlaying);
     audioPlayer.addEventListener('error', onError);
+    audioPlayer.addEventListener('abort', onAbort);
+    
     audioPlayer.src = url;
-    const pP = audioPlayer.play();
-    if (pP !== undefined) {
-      pP.catch((e) => {
+    const playPromise = audioPlayer.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((e) => { 
         if (settled) return;
         if (e.name === 'NotAllowedError') {
-          settled = true;
-          cleanup();
+          settled = true; cleanup();
           audioPlayer.pause();
           audioPlayer.load();
-          resolve('blocked');
-        } else if (e.name !== 'AbortError') {
-          settled = true;
-          cleanup();
-          resolve(false);
+          resolve('blocked'); 
+        } else if (e.name === 'AbortError') {
+            if (settled) return;
+            settled = true; cleanup();
+            // Проверяем, был ли это реальный запрос новой станции (тогда src изменился)
+            // или просто баг iOS при загрузке потока.
+            if (!audioPlayer.src || audioPlayer.src.indexOf(url) === -1) {
+              resolve('aborted'); // Это была новая перемотка, останавливаем цикл
+            } else {
+              resolve(false); // Это сбой iOS, считаем потоком недоступным и идем к следующему
+            }
+          } else {
+          settled = true; cleanup(); 
+          resolve(false); 
         }
       });
     }
   });
+}
+
+async function tryPlayStation(st) {
+  const streamData = stationStreamMap[FMUse.generateCodeName(st.name)];
+  if (!streamData || !streamData.streams || streamData.broken) return false;
+  
+  let played = false;
+  let savedIdx = parseInt(localStorage.getItem('fm_working_stream_' + FMUse.generateCodeName(st.name)));
+  if (!isNaN(savedIdx) && savedIdx < streamData.streams.length && !streamData.streams[savedIdx].broken) {
+    played = await attemptPlay(st.name, savedIdx);
+    if (played === true || played === 'blocked' || played === 'aborted') return played;
+    if (!played) streamData.streams[savedIdx].broken = true;
+  }
+  
+  let bestBitrate = -1, bestIdx = -1;
+  streamData.streams.forEach((s, i) => { if (!s.broken && s.bitrate > bestBitrate) { bestBitrate = s.bitrate; bestIdx = i; } });
+  if (bestIdx !== -1) {
+    played = await attemptPlay(st.name, bestIdx);
+    if (played === true || played === 'blocked' || played === 'aborted') return played;
+    if (!played) streamData.streams[bestIdx].broken = true;
+  }
+  
+  for (let i = 0; i < streamData.streams.length; i++) {
+    if (!streamData.streams[i].broken) {
+      played = await attemptPlay(st.name, i);
+      if (played === true || played === 'blocked' || played === 'aborted') return played;
+      if (!played) streamData.streams[i].broken = true;
+    }
+  }
+  return false;
 }
 
 async function togglePlay(name) {
@@ -197,53 +236,28 @@ async function togglePlay(name) {
     updatePlayerUI();
     return;
   }
+  
   const oS = currentPlayingStation;
   const oI = currentStreamIndex;
-  const sd = stationStreamMap[FMUse.generateCodeName(name)];
-  if (!sd || !sd.streams || sd.streams.length === 0) {
+  
+  const streamData = stationStreamMap[FMUse.generateCodeName(name)];
+  if (!streamData || !streamData.streams || streamData.streams.length === 0) {
     showToast('Нет потока');
     return;
   }
-  let played = false;
-  let sI = parseInt(localStorage.getItem('fm_working_stream_' + FMUse.generateCodeName(name)));
-  if (!isNaN(sI) && sI < sd.streams.length && !sd.streams[sI].broken) {
-    played = await attemptPlay(name, sI);
-    if (played === 'blocked') played = false;
-    else if (!played) sd.streams[sI].broken = true;
-  }
-  if (!played) {
-    let bB = -1, bI = -1;
-    sd.streams.forEach((s, i) => {
-      if (!s.broken && s.bitrate > bB) {
-        bB = s.bitrate;
-        bI = i;
-      }
-    });
-    if (bI !== -1) {
-      played = await attemptPlay(name, bI);
-      if (played === 'blocked') played = false;
-      else if (!played) sd.streams[bI].broken = true;
-    }
-  }
-  if (!played) {
-    for (let i = 0; i < sd.streams.length; i++) {
-      if (!sd.streams[i].broken) {
-        played = await attemptPlay(name, i);
-        if (played === 'blocked') {
-          played = false;
-          break;
-        }
-        if (played) break;
-        sd.streams[i].broken = true;
-      }
-    }
-  }
-  if (played) {
+  
+  const result = await tryPlayStation({ name: name });
+  
+  if (result === true) {
     localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(name), currentStreamIndex);
     updatePlayerUI();
     updateUrl();
+  } else if (result === 'blocked') {
+    showToast('Нажмите Play для возобновления');
+  } else if (result === 'aborted') {
+    // Ничего не делаем, пользователь нажал другую станцию
   } else {
-    sd.broken = true;
+    streamData.broken = true;
     hideStationButton(name);
     showToast('Станция недоступна');
     updatePlayerUI();
@@ -258,85 +272,63 @@ async function togglePlay(name) {
   }
 }
 
-async function tryPlayStation(st) {
-  const sd = stationStreamMap[FMUse.generateCodeName(st.name)];
-  if (!sd || !sd.streams || sd.broken) return false;
-  let p = false;
-  let sI = parseInt(localStorage.getItem('fm_working_stream_' + FMUse.generateCodeName(st.name)));
-  if (!isNaN(sI) && sI < sd.streams.length && !sd.streams[sI].broken) {
-    p = await attemptPlay(st.name, sI);
-    if (p === true || p === 'blocked' || p === 'aborted') return p;
-    if (!p) sd.streams[sI].broken = true;
-  }
-  for (let i = 0; i < sd.streams.length; i++) {
-    if (!sd.streams[i].broken) {
-      p = await attemptPlay(st.name, i);
-      if (p === true || p === 'blocked' || p === 'aborted') return p;
-      sd.streams[i].broken = true;
-    }
-  }
-  return false;
-}
-
 async function skipStation(dir) {
-  if (isSkipping) return;
-  isSkipping = true;
-  cancelRestorePlayback();
-  audioPlayer.pause();
-  audioPlayer.load();
-  if (state.stations.length === 0) {
+    cancelRestorePlayback();
+    audioPlayer.pause();
+    if (state.stations.length === 0) {
     showToast('Нет станций');
     stopPlayer();
     renderStations();
-    isSkipping = false;
     return;
   }
+  
   const sorted = [...state.stations].sort((a, b) => a.freq - b.freq);
   let cI = sorted.findIndex((st) => st.name === currentPlayingStation);
   if (cI === -1) cI = dir === 1 ? -1 : sorted.length;
   let nI = cI;
+  
   for (let i = 0; i < sorted.length; i++) {
     nI += dir;
     if (nI < 0) nI = sorted.length - 1;
     if (nI >= sorted.length) nI = 0;
+    
     const st = sorted[nI];
     const sd = stationStreamMap[FMUse.generateCodeName(st.name)];
     if (!sd || !sd.streams || sd.broken) continue;
+    
     if (state.settingsMode || state.viewMode === 'player') {
       const sD = getStationData(st.name);
       if (sD.type === 'trash') continue;
     }
+    
     const r = await tryPlayStation(st);
+    
     if (r === true) {
       localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(st.name), currentStreamIndex);
       updatePlayerUI();
       updateUrl();
-      isSkipping = false;
       return;
     } else if (r === 'blocked') {
-      break;
+      break; // Прерываем перемотку, если браузер заблокировал автовоспроизведение
     } else if (r === 'aborted') {
-      isSkipping = false;
-      return; // New skip started, just exit
+      return; // Тихо выходим, если началась новая перемотка
     } else {
+      // Реальная ошибка потока
       sd.broken = true;
       hideStationButton(st.name);
       if (typeof renderDialControls === 'function') renderDialControls();
     }
   }
+  
   showToast('Потоки не найдены');
   stopPlayer();
   renderStations();
-  isSkipping = false;
 }
 
 async function skipPreset(dir) {
-  if (isSkipping) return;
-  isSkipping = true;
-  cancelRestorePlayback();
-  audioPlayer.pause();
-  audioPlayer.load();
-  const bS = (state.dialCurrentBand - 1) * state.presets + 1;
+    cancelRestorePlayback();
+    audioPlayer.pause();
+    const bS = (state.dialCurrentBand - 1) * state.presets + 1;
   const bE = bS + state.presets - 1;
   const cs = state.cityData[state.city]?.stations || {};
   const pS = [];
@@ -348,11 +340,12 @@ async function skipPreset(dir) {
     }
   }
   pS.sort((a, b) => a.idx - b.idx);
+  
   if (pS.length === 0) {
     showToast('Нет станций на кнопках');
-    isSkipping = false;
     return;
   }
+  
   let cI = currentPlayingStation ? pS.findIndex((s) => s.name === currentPlayingStation) : -1;
   let nI;
   if (cI === -1) nI = dir === 1 ? 0 : pS.length - 1;
@@ -361,45 +354,46 @@ async function skipPreset(dir) {
     if (nI < 0) nI = pS.length - 1;
     if (nI >= pS.length) nI = 0;
   }
+  
   let a = 0;
   while (a <= pS.length) {
     const sN = pS[nI].name;
     const r = await tryPlayStation({ name: sN });
+    
     if (r === true) {
       localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(sN), currentStreamIndex);
       updatePlayerUI();
       updateUrl();
-      isSkipping = false;
       return;
     } else if (r === 'blocked') {
       break;
     } else if (r === 'aborted') {
-      isSkipping = false;
-      return;
+      return; // Тихо выходим
     } else {
       const sd = stationStreamMap[FMUse.generateCodeName(sN)];
       sd.broken = true;
       hideStationButton(sN);
       if (typeof renderDialControls === 'function') renderDialControls();
     }
+    
     nI += dir;
     if (nI < 0) nI = pS.length - 1;
     if (nI >= pS.length) nI = 0;
     a++;
   }
+  
   showToast('Потоки не найдены');
   stopPlayer();
-  isSkipping = false;
 }
 
 function stopPlayer() {
-  cancelRestorePlayback();
-  audioPlayer.pause();
-  audioPlayer.src = '';
-  currentPlayingStation = null;
-  updatePlayerUI();
-  updateUrl();
-}
+    cancelRestorePlayback();
+    audioPlayer.pause();
+    // Не очищаем src полностью, чтобы iOS не закрывала аудиосессию и не передавала управление Яндекс.Музыке
+    currentPlayingStation = null;
+    updatePlayerUI();
+    updateUrl();
+  }
 
 function initAudioContext() {
   if (audioContext && audioContext.state !== 'closed') {

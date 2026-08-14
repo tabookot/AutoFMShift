@@ -474,7 +474,7 @@ function render() {
       const showFT = !(state.min === RU_MIN && state.max === RU_MAX);
       dFT.style.display = showFT ? 'flex' : 'none';
       const isSV = state.dialFreqView === 'shifted';
-      dFT.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>';
+      dFT.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"></path><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"></path><circle cx="12" cy="12" r="2"></circle><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"></path><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"></path></svg>';
       dFT.title = isSV ? 'Показывать оригинальные частоты' : 'Показывать частоты на ГУ';
       dFT.style.color = isSV ? 'var(--accent)' : 'var(--text-dim)';
       const cV = state.dialControlsVisible !== null ? state.dialControlsVisible : state.settingsMode;
