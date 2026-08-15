@@ -1,7 +1,7 @@
 {
   "sessions": [
     {
-      "timestamp": "2026-08-14T08:03:34.118Z",
+      "timestamp": "2026-08-15T04:18:38.464Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -20,24 +20,11 @@
       },
       "radioBrowser": {
         "new": 0,
-        "changed": 33,
+        "changed": 16,
         "deleted": 0,
         "changedStations": [
           {
             "name": "Вести FM",
-            "changes": [
-              "tags",
-              "streams"
-            ]
-          },
-          {
-            "name": "Волгоград FM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Восток FM",
             "changes": [
               "streams"
             ]
@@ -49,38 +36,7 @@
             ]
           },
           {
-            "name": "Джем FM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Диалог FM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
             "name": "Европа Плюс",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Красноярск FM",
-            "changes": [
-              "homepage",
-              "streams"
-            ]
-          },
-          {
-            "name": "Маруся FM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Мега FM",
             "changes": [
               "streams"
             ]
@@ -106,16 +62,15 @@
             ]
           },
           {
-            "name": "Планета FM",
+            "name": "Радио 107",
             "changes": [
               "streams"
             ]
           },
           {
-            "name": "Радио 10",
+            "name": "Радио 7",
             "changes": [
-              "homepage",
-              "tags",
+              "favicon",
               "streams"
             ]
           },
@@ -123,12 +78,6 @@
             "name": "Радио АСТВ",
             "changes": [
               "homepage",
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Искатель",
-            "changes": [
               "streams"
             ]
           },
@@ -154,35 +103,6 @@
             ]
           },
           {
-            "name": "Радио Русский Хит",
-            "changes": [
-              "homepage",
-              "favicon",
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Си",
-            "changes": [
-              "homepage",
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Z",
-            "changes": [
-              "homepage",
-              "tags",
-              "streams"
-            ]
-          },
-          {
-            "name": "Ретро FM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
             "name": "Русское радио",
             "changes": [
               "streams"
@@ -190,18 +110,6 @@
           },
           {
             "name": "Серебряный дождь",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "ТКР FM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Хакасия FM",
             "changes": [
               "streams"
             ]
@@ -215,25 +123,15 @@
             ]
           },
           {
-            "name": "Юмор FM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Comedy Radio",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "DFM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
             "name": "Monte Carlo",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams"
+            ]
+          },
+          {
+            "name": "Power Hit Radio",
             "changes": [
               "homepage",
               "streams"
@@ -242,6 +140,8 @@
           {
             "name": "Radio Record",
             "changes": [
+              "homepage",
+              "favicon",
               "streams"
             ]
           },
