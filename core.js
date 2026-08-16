@@ -1,5 +1,5 @@
 // core.js
-const VERSION = '0.6.32';
+const VERSION = '0.6.48';
 const CACHE_VERSION = '4';
 const LS_KEY = 'fm_adapter_calc_v10';
 const LS_THEME_KEY = 'fm_adapter_theme';
@@ -27,11 +27,11 @@ const DEFAULT_STATE = {
   max: RU_MAX,
   shift: 0,
   stations: [],
-  settingsMode: false,
   viewMode: 'setup',
   dialView: 'narrow',
   dialFreqView: 'orig',
   dialCurrentBand: 1,
+  skipMode: 'presets',
   dialControlsVisible: null,
   bands: 1,
   presets: 6,
@@ -230,7 +230,7 @@ function renderStations() {
     };
     item.appendChild(freqDiv);
 
-    if (state.settingsMode || isPlayer) {
+    if (state.viewMode === 'setup' || isPlayer) {
       const data = getStationData(st.name);
       if (data.type === 'trash') item.classList.add('trash');
       let iconClass = 'normal';
@@ -467,17 +467,25 @@ function render() {
     const dCT = document.getElementById('dialControlsToggleBtn');
     if (state.stations.length > 0) {
       document.getElementById('fmDialWrapper').style.display = 'block';
-      dT.style.display = 'flex';
-      const isF = state.dialView === 'full';
-      dT.innerHTML = isF ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
-      dT.title = isF ? 'Эффективная шкала' : 'Полная шкала';
-      const showFT = !(state.min === RU_MIN && state.max === RU_MAX);
+      const showFT = true; // Всегда показываем кнопку частот, чтобы можно было долго нажимать
       dFT.style.display = showFT ? 'flex' : 'none';
       const isSV = state.dialFreqView === 'shifted';
       dFT.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"></path><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"></path><circle cx="12" cy="12" r="2"></circle><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"></path><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19.1"></path></svg>';
       dFT.title = isSV ? 'Показывать оригинальные частоты' : 'Показывать частоты на ГУ';
       dFT.style.color = isSV ? 'var(--accent)' : 'var(--text-dim)';
-      const cV = state.dialControlsVisible !== null ? state.dialControlsVisible : state.settingsMode;
+      
+      // Обновление кнопки режима перемотки
+      const dSMB = document.getElementById('dialSkipModeBtn');
+      if (dSMB) {
+        const isFreq = state.skipMode === 'freq';
+        dSMB.innerHTML = isFreq 
+          ? '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>'
+          : '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>';
+        dSMB.title = isFreq ? 'Режим перемотки: По частотам' : 'Режим перемотки: По кнопкам';
+        dSMB.style.color = isFreq ? 'var(--text-dim)' : 'var(--accent)';
+      }
+      
+      const cV = state.dialControlsVisible !== null ? state.dialControlsVisible : state.viewMode === 'setup';
       document.getElementById('fmDialWrapper').classList.toggle('controls-hidden', !cV);
       dCT.style.display = 'flex';
       dCT.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2" ry="2"></rect><path d="M6 10h0M10 10h0M14 10h0M18 10h0M8 14h8"></path></svg>';
@@ -496,7 +504,7 @@ function render() {
   
   renderAdapters();
   renderStations();
-  if (state.settingsMode) {
+  if (state.viewMode === 'setup') {
     tB.style.display = 'flex';
     tB.classList.remove('blink');
     tB.title = 'Скопировать настройки от другого города';
@@ -638,10 +646,11 @@ function saveState() {
 }
 
 function updateUrl() {
-  const p = new URLSearchParams({ city: state.city, min: state.min, max: state.max, shift: state.shift, mode: state.settingsMode ? 1 : 0, bands: state.bands, presets: state.presets });
+  const p = new URLSearchParams({ city: state.city, min: state.min, max: state.max, shift: state.shift, bands: state.bands, presets: state.presets });
   if (state.viewMode === 'player') p.set('view', 'player');
   if (state.dialView === 'full') p.set('dial', 'full');
   if (state.dialFreqView === 'shifted') p.set('dfreq', 'shifted');
+  if (state.skipMode === 'freq') p.set('skip', 'freq');
   if (state.dialControlsVisible !== null) p.set('dctrl', state.dialControlsVisible ? '1' : '0');
   if (currentPlayingStation) {
     p.set('play', currentPlayingStation);
@@ -661,14 +670,14 @@ function loadFromUrl() {
   if (!isNaN(mx) && mx >= 64 && mx <= 110 && mx > state.min) state.max = mx;
   const sh = parseInt(p.get('shift'));
   if (!isNaN(sh) && sh >= 0 && sh <= 30) state.shift = sh;
-  const m = p.get('mode');
-  if (m === '1') state.settingsMode = true;
   const v = p.get('view');
   state.viewMode = v === 'player' ? 'player' : 'setup';
   const d = p.get('dial');
   state.dialView = d === 'full' ? 'full' : 'narrow';
   const df = p.get('dfreq');
   state.dialFreqView = df === 'shifted' ? 'shifted' : 'orig';
+  const sk = p.get('skip');
+  state.skipMode = sk === 'freq' ? 'freq' : 'presets';
   const dc = p.get('dctrl');
   state.dialControlsVisible = dc === '1' ? true : dc === '0' ? false : null;
   const b = parseInt(p.get('bands'));

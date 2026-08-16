@@ -139,7 +139,7 @@
                 </div>
                 <div class="intro" style="margin-top: 15px;">
                     <b>О приложении:</b> Решает проблему прослушивания местных FM-радиостанций на автомобилях с нестандартным диапазоном магнитолы (например, JDM). Приложение подбирает необходимый FM-адаптер (сдвиг частоты), чтобы все местные станции попадали в диапазон вашего ГУ, и показывает, на какой частоте их искать.<br>
-                    Данные предоставлены сайтами <a href="https://radiopedia.fandom.com/ru/" target="_blank" rel="noopener">radiopedia.fandom.com</a>  <a href="#" id="apiBackupBtn" title="Сформировать бэкап API" style="font-size: 10px; color: var(--text-dim); text-decoration: none;">💾</a> и <a href="https://www.radio-browser.info/" target="_blank" rel="noopener">radio-browser.info</a>.
+                    Данные предоставлены сайтом <a href="https://radiopedia.fandom.com/ru/" target="_blank" rel="noopener">radiopedia.fandom.com</a> и <a href="https://www.radio-browser.info/" target="_blank" rel="noopener">radio-browser.info</a>. <a href="#" id="apiBackupBtn" title="Сформировать бэкап API" style="font-size: 10px; color: var(--text-dim); text-decoration: none;">💾</a>
                 </div>
                 <ol class="manual">
                     <li>Выберите <b>Город</b> и <b>Диапазон ГУ</b> (магнитолы).</li>
@@ -153,15 +153,14 @@
                         </ul>
                     </li>
                     <li>В таблице колонка «На ГУ» подсвечивает доступные частоты <span style="color:var(--green);font-weight:bold;">зеленым</span>, а недоступные — <span style="color:var(--pink);font-weight:bold;">красным</span>. Оригинальные частоты и названия недоступных станций слегка затемнены.</li>
-                    <li>Приложение автоматически сохраняет ваши настройки (город, диапазон, адаптер) в локальном кэше браузера для быстрого восстановления при повторном входе.</li>
-                    <li>Кнопка «Поделиться» копирует в буфер обмена прямую ссылку с текущими параметрами для передачи на другое устройство.</li>
-                    <li>Кнопка автоопределения города (в виде флажка) пытается определить вашу геопозицию по IP и найти ближайший крупный город в радиусе 50 км.</li>
-                    <li>Кнопка скачивания (стрелка вниз) позволяет экспортировать таблицу в форматы PNG, PDF или XLSX.</li>
-                    <li>Кнопка <b>🔧 (Настройки ГУ)</b> в строке ввода частот открывает режим редактирования. Вы можете указать количество бэндов и кнопок магнитолы, а затем кликать по иконкам в таблице (♥/★/⊘), чтобы отмечать любимое, интересное или пропущенное (исключается из экспорта и прокрутки), и назначать номера кнопок. Если название станции обрезано, кликните по нему, чтобы увидеть полное имя.</li>
-                    <li><b>Копирование настроек:</b> В режиме настроек ГУ появляется кнопка копирования. Она позволяет скопировать статусы и номера кнопок из другого города в текущий. Приложение само найдет совпадающие станции по названиям, не удаляя настройки в городе-источнике.</li>
-                    <li><b>Онлайн-плеер:</b> Если для станции найден аудиопоток, рядом с её названием появится кнопка ▶. Воспроизведение отобразится на панели в шапке приложения. Там же находится регулятор громкости и индикатор спектра. Клик по индикатору потока (под названием) сменит аудиопоток, если их несколько.</li>
-                    <li><b>Режимы приложения (Настройка / Плеер):</b> Кнопка переключения режима находится в правом верхнем углу (скрывается в меню ☰ на мобильных). <b>Настройка</b> — основной режим, показывает все частоты, сдвиги и позволяет редактировать кнопки магнитолы. <b>Плеер</b> — упрощенный интерфейс для прослушивания: скрывает поля ввода частот, панель адаптера, колонку "На ГУ" и кнопки экспорта, оставляя только список станций с их статусами и кнопками плэй. Идеально для использования в дороге.</li>
-                    <li><b>Экспорт / Импорт (JSON) и Офлайн-режим:</b> Позволяет сделать резервную копию ваших настроек и списка станций для всех городов в один файл. Это полезно для переноса настроек между браузерами/устройствами или создания бэкапа. Формат файла универсален и хранит коды-названия станций, что позволит приложению работать даже если изменится API или пропадет интернет (Офлайн-режим).</li>
+                    <li>Приложение автоматически сохраняет ваши настройки в локальном кэше браузера для быстрого восстановления.</li>
+                    <li><b>Режимы приложения (Настройка / Плеер):</b> Кнопка переключения в правом верхнем углу. В режиме "Настройка" видны поля ввода и сдвиги. В режиме "Плеер" они скрыты для удобства прослушивания. Статусы станций (♥, ★, ⊘) и номера кнопок доступны в обоих режимах.</li>
+                    <li><b>🎛️ Шкала-тюнер (FM Dial):</b> Интерактивная шкала частот. Зеленым отмечены доступные частоты, красным — недоступные. Наведите курсор на засечку станции, чтобы увидеть её логотип, жанры и частоту. Кнопки под шкалой позволяют сжать её до диапазона станций города или развернуть на весь FM, а также переключать отображение (Оригинал / На ГУ). Долгий клик по кнопке "На ГУ" разворачивает шкалу. Рядом находится переключатель режима перемотки (по частотам или по назначенным кнопкам), который применяется для кнопок в шапке и на гарнитуре.</li>
+                    <li><b>🔄 Смена потоков:</b> Кнопка смены потока рядом с дисплеем шкалы. Одинарный клик меняет поток по кругу. Долгий клик (или правая кнопка мыши) открывает список всех потоков с битрейтом и названием для точного выбора.</li>
+                    <li><b>🔊 Крутилка громкости и Mute:</b> Вращайте колесиком мыши или перетаскивайте. Клик по крутилке включает/выключает звук (Mute).</li>
+                    <li><b>🔢 Кнопки магнитолы и режим перемотки:</b> Цифровые кнопки под шкалой. Долгое удержание назначает текущую станцию на кнопку.</li>
+                    <li><b>Копирование настроек:</b> Позволяет скопировать статусы и номера кнопок из другого города в текущий. Приложение само найдет совпадающие станции по названиям.</li>
+                    <li><b>Экспорт / Импорт (JSON) и Офлайн-режим:</b> Позволяет сделать резервную копию ваших настроек и списка станций для всех городов в один файл. Списки кэшируются, позволяя работать с приложением даже при падении API или отсутствии интернета.</li>
                     <li><b>Подсказка для ввода:</b> Чтобы изменить число в полях ввода, прокручивайте колесо мыши вверх или вниз, а на мобильных — касайтесь поля и ведите палец вверх или вниз.</li>
                     <li style="font-size: 11px; color: var(--text-dim); list-style: none;">Источники данных: <span style="color: var(--accent); font-weight: bold;">■ API</span>, <span style="color: var(--green); font-weight: bold;">■ Бэкап</span>, <span style="color: var(--text-dim); font-weight: bold;">■ Кэш</span>.</li>
                 </ol>
@@ -256,9 +255,6 @@
                         <input type="number" id="maxFreq" step="0.1" min="64" max="110" title="Макс. частота ГУ">
                         <input type="number" id="bands" min="1" max="5" value="1" title="Кол-во бэндов (диапазонов) ГУ" style="display: none;">
                         <input type="number" id="presets" min="1" max="18" value="6" title="Кнопок быстрого доступа в одном бэнде" style="display: none;">
-                        <button id="settingsBtn" class="btn-icon" title="Настройки ГУ" aria-pressed="false">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
-                        </button>
                     </div>
                 </div>
             </section>
@@ -273,15 +269,27 @@
                 </section>
 
                 <div id="fmDialWrapper" class="fm-dial-wrapper" style="display: none;">
-                    <div class="fm-dial-controls">
-                        <button id="dialFreqToggleBtn" class="chip-btn control-chip" title="Оригинальные частоты" style="display: none; margin-right: 4px;"></button>
-                        <button id="dialToggleBtn" class="chip-btn control-chip" title="Эффективная шкала"></button>
-                        <button id="dialControlsToggleBtn" class="chip-btn control-chip" title="Кнопки шкалы"></button>
-                    </div>
                     <canvas id="fmDialCanvas"></canvas>
+                    <div class="dial-display-row">
+                        <div class="dial-display-info">
+                            <div id="dialPlayerLogo" class="dial-player-logo" style="display: none;"></div>
+                            <div id="dialMarqueeContainer" class="dial-marquee-container">
+                                <div id="dialMarquee" class="dial-marquee">ВЫБЕРИТЕ СТАНЦИЮ</div>
+                            </div>
+                        </div>
+                        <div class="fm-dial-controls">
+                            <button id="dialSkipModeBtn" class="chip-btn control-chip" title="Режим перемотки: По кнопкам"></button>
+                            <button id="dialSwitchStreamBtn" class="chip-btn control-chip" title="Сменить поток">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+                            </button>
+                            <button id="dialFreqToggleBtn" class="chip-btn control-chip" title="Оригинальные частоты (удержание для полной шкалы)" style="display: none;"></button>
+                            <button id="dialControlsToggleBtn" class="chip-btn control-chip" title="Кнопки шкалы"></button>
+                        </div>
+                    </div>
                     <div id="dialPresets" class="dial-presets"></div>
                 </div>
                 <div id="dialTooltip" class="dial-tooltip"></div>
+
                 <section class="panel stations-panel">
                     <div class="error-msg" id="errorMsg"></div>
                     <div class="stations-header">
@@ -289,20 +297,6 @@
                         <span class="col-status" id="statusHeader" title="Пометки и номера кнопок. Клик по иконке меняет статус, клик по номеру открывает меню назначения кнопки магнитолы." style="display: none;">Статус</span>
                         <span class="col-name" title="Название радиостанции. Кликните, чтобы увидеть полное имя, если оно обрезано.">Станция</span>
                         <span class="col-shifted" title="Частота на магнитоле после установки адаптера. Зеленый — доступна, красный — вне диапазона.">На ГУ</span>
-                    </div>
-                    <div id="fmDial" class="fm-dial-container" style="display: none;">
-                        <div class="fm-dial-controls">
-                            <button id="dialToggleBtn" class="btn-text" style="height: 24px; font-size: 10px; padding: 0 6px;">Оригинал</button>
-                        </div>
-                        <div class="fm-dial-scale" id="fmDialScale"></div>
-                        <div class="fm-dial-indicator" id="fmDialIndicator"></div>
-                    </div>
-                    <div id="fmDialWrapper" class="fm-dial-wrapper" style="display: none;">
-                        <div class="fm-dial-controls">
-                            <button id="dialToggleBtn" class="btn-icon" title="Эффективная шкала"></button>
-                        </div>
-                        <canvas id="fmDialCanvas"></canvas>
-                        <div id="dialTooltip" class="dial-tooltip"></div>
                     </div>
                     <div class="stations-list" id="stationsList"></div>
                 </section>

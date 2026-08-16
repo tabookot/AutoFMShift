@@ -268,21 +268,97 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .adapter-panel, .stations-panel { position: relative; background: transparent; border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space); }
 
 .fm-dial-wrapper {
-    position: relative; height: 160px; margin: 0 4px 15px 4px;
+    position: relative; height: 195px; margin: 0 4px 15px 4px; /* Увеличена высота */
     background: linear-gradient(180deg, var(--panel) 0%, var(--bg) 100%);
     border: 1px solid var(--border); border-radius: var(--radius-sm);
     overflow: hidden; z-index: 4;
     flex-shrink: 0;
-    /* Используем --border вместо жесткого черного, и усиливаем свечение акцентом */
-    box-shadow: inset 0 0 15px var(--border), inset 0 -8px 20px var(--accent-glow);
+    display: flex; flex-direction: column;
+    box-shadow: inset 0 0 25px rgba(0,0,0,0.9), inset 0 -8px 20px var(--accent-glow);
     animation: tube-flicker 8s infinite steps(60);
 }
 .fm-dial-wrapper.controls-hidden {
-    height: 84px; /* Только канвас */
+    height: 120px; /* Канвас (84px) + строка дисплея (32px) */
 }
+/* Скрываем только панель с цифровыми кнопками, строка с дисплеем остается видимой */
 .fm-dial-wrapper.controls-hidden .dial-presets {
     display: none;
 }
+
+/* Ряд дисплея, встроенный в шкалу */
+.dial-display-row {
+    height: 32px; display: flex; align-items: center; padding: 0 8px; gap: 8px;
+    flex-shrink: 0; background: transparent;
+}
+.dial-display-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.dial-player-logo { 
+    width: 24px; height: 24px; border-radius: 4px; 
+    background: var(--bg); flex-shrink: 0; 
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', monospace; font-size: 9px; font-weight: bold; color: var(--accent);
+}
+.dial-player-logo img { width: 100%; height: 100%; border-radius: 4px; object-fit: contain; }
+.dial-marquee-container {
+    position: relative; flex: 1; overflow: hidden; height: 24px; border: 1px solid var(--accent);
+    border-radius: 4px; background: var(--accent); display: flex; align-items: center;
+    cursor: pointer; flex-shrink: 1; min-width: 50px;
+    box-shadow: 0 0 2px var(--accent), 3px 3px 6px var(--accent-glow), -1px -1px 2px var(--accent-glow);
+    animation: neon-flicker 8s infinite steps(60);
+}
+.dial-marquee {
+    white-space: nowrap; font-family: 'Orbitron', monospace; font-size: 11px; font-weight: bold;
+    color: var(--bg); text-shadow: 0 0 2px rgba(0,0,0,0.5); padding-left: 8px;
+    box-sizing: border-box;
+    display: inline-block; /* Позволяет занимать только ширину контента */
+}
+.dial-marquee.scroll-active {
+    padding-left: 0;
+    animation: scroll-text 20s linear infinite;
+}
+@keyframes scroll-text {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); } /* Сдвиг ровно на половину задвоенного текста */
+}
+
+/* Меню выбора потока (поведение как у тултипа) */
+.stream-menu {
+    position: fixed; 
+    transform: translate(-50%, -100%); /* Центрируем и поднимаем над кнопкой */
+    min-width: 180px; max-height: 200px; overflow-y: auto; 
+    z-index: 2000; background: var(--panel); border: 1px solid var(--border); 
+    border-radius: var(--radius-sm); padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column; gap: 2px;
+    margin-bottom: 8px; /* Отступ от кнопки */
+}
+.stream-item { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; font-size: 13px; border-radius: 4px; cursor: pointer; }
+.stream-item:hover { background: var(--panel-light); }
+.stream-item.current { background: var(--accent); color: var(--bg); }
+.stream-item.disabled { 
+    color: var(--text-dim); 
+    opacity: 0.5; 
+    pointer-events: none; 
+    text-decoration: line-through;
+}
+.stream-item .stream-name { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
+.stream-item .stream-info { font-size: 11px; opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Контролы в строке дисплея (повышенная специфичность для гарантии размера) */
+.dial-display-row .fm-dial-controls { 
+    display: flex; gap: 4px; align-items: center; flex-shrink: 0; position: static !important;
+}
+.dial-display-row .fm-dial-controls .chip-btn.control-chip { 
+    height: 16px !important; min-width: 16px !important; width: 16px !important; padding: 0 !important;
+    border-radius: 4px !important; 
+}
+.dial-display-row .fm-dial-controls .chip-btn.control-chip svg { width: 9px !important; height: 9px !important; }
+
+/* Меню выбора потока */
+.stream-menu { min-width: 200px; max-height: 250px; overflow-y: auto; right: auto; left: 50%; transform: translateX(-50%); top: 100%; }
+.stream-item { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; font-size: 11px; border-radius: 4px; cursor: pointer; }
+.stream-item:hover { background: var(--panel-light); }
+.stream-item.current { background: var(--accent); color: var(--bg); }
+.stream-item .stream-name { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stream-item .stream-info { font-size: 9px; opacity: 0.8; }
 @keyframes tube-flicker {
     0% { opacity: 1; }
     70% { opacity: 1; }

@@ -14,6 +14,7 @@ let spectrumCanvas = null;
 let spectrumCtx = null;
 let isRestoringPlayback = false;
 let playbackToken = 0; // Token to handle rapid skipping and aborts correctly
+let lastVolume = 1;
 
 async function loadStationsData() {
   try {
@@ -122,7 +123,6 @@ function attemptPlay(name, streamIndex) {
       clearTimeout(playTimeout);
       audioPlayer.removeEventListener('playing', onPlaying);
       audioPlayer.removeEventListener('error', onError);
-      audioPlayer.removeEventListener('abort', onAbort);
     };
 
     const onPlaying = () => { 
@@ -150,17 +150,6 @@ function attemptPlay(name, streamIndex) {
       resolve(false); 
     };
     
-    const onAbort = () => {
-      if (myToken !== playbackToken) { // Request was superseded
-        if (!settled) { settled = true; cleanup(); resolve('aborted'); }
-        return;
-      }
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve('aborted');
-    };
-    
     playTimeout = setTimeout(() => { 
       if (myToken !== playbackToken) { // Request was superseded
         if (!settled) { settled = true; cleanup(); resolve('aborted'); }
@@ -171,11 +160,10 @@ function attemptPlay(name, streamIndex) {
       audioPlayer.pause();
       audioPlayer.load(); 
       resolve(false); 
-    }, 10000);
+    }, 5000); // Уменьшен таймаут до 5 секунд для быстрой перемотки
     
     audioPlayer.addEventListener('playing', onPlaying);
     audioPlayer.addEventListener('error', onError);
-    audioPlayer.addEventListener('abort', onAbort);
     
     audioPlayer.src = url;
     const playPromise = audioPlayer.play();
@@ -192,6 +180,8 @@ function attemptPlay(name, streamIndex) {
           audioPlayer.load();
           resolve('blocked'); 
         } else if (e.name === 'AbortError') {
+          // AbortError означает, что воспроизведение было отменено (например, при быстрой смене станции).
+          // Это НЕ ошибка потока, поэтому мы НЕ помечаем его как broken.
           settled = true; cleanup();
           resolve('aborted');
         } else {
@@ -290,6 +280,7 @@ async function togglePlay(name) {
 async function skipStation(dir) {
   cancelRestorePlayback();
   audioPlayer.pause();
+  audioPlayer.load(); // Прерываем текущий сетевой запрос
   playbackToken++; // Invalidate previous pending attempts
   
   if (state.stations.length === 0) {
@@ -313,7 +304,7 @@ async function skipStation(dir) {
     const sd = stationStreamMap[FMUse.generateCodeName(st.name)];
     if (!sd || !sd.streams || sd.broken) continue;
     
-    if (state.settingsMode || state.viewMode === 'player') {
+    if (state.viewMode === 'setup' || state.viewMode === 'player') {
       const sD = getStationData(st.name);
       if (sD.type === 'trash') continue;
     }
@@ -330,7 +321,7 @@ async function skipStation(dir) {
     } else if (r === 'aborted') {
       return; // Exit silently if a new skip started
     } else {
-      // Real stream error
+      // Real stream error - mark as broken and CONTINUE skipping!
       sd.broken = true;
       hideStationButton(st.name);
       if (typeof renderDialControls === 'function') renderDialControls();
@@ -345,6 +336,7 @@ async function skipStation(dir) {
 async function skipPreset(dir) {
   cancelRestorePlayback();
   audioPlayer.pause();
+  audioPlayer.load(); // Прерываем текущий сетевой запрос
   playbackToken++; // Invalidate previous pending attempts
   
   const bS = (state.dialCurrentBand - 1) * state.presets + 1;
@@ -365,10 +357,31 @@ async function skipPreset(dir) {
     return;
   }
   
-  let cI = currentPlayingStation ? pS.findIndex((s) => s.name === currentPlayingStation) : -1;
+  let cI = -1;
+  if (currentPlayingStation) {
+    cI = pS.findIndex((s) => s.name === currentPlayingStation);
+    if (cI === -1) {
+      // Если у текущей станции нет пресета, ищем ближайшую по частоте
+      const currentSt = state.stations.find((st) => st.name === currentPlayingStation);
+      const currentFreq = currentSt ? currentSt.freq : (dir === 1 ? -Infinity : Infinity);
+      let minDiff = Infinity;
+      pS.forEach((s, idx) => {
+        const st = state.stations.find((stn) => stn.name === s.name);
+        if (st) {
+          const diff = Math.abs(st.freq - currentFreq);
+          if (diff < minDiff) {
+            minDiff = diff;
+            cI = idx;
+          }
+        }
+      });
+    }
+  }
+  
   let nI;
-  if (cI === -1) nI = dir === 1 ? 0 : pS.length - 1;
-  else {
+  if (cI === -1) {
+    nI = dir === 1 ? 0 : pS.length - 1;
+  } else {
     nI = cI + dir;
     if (nI < 0) nI = pS.length - 1;
     if (nI >= pS.length) nI = 0;
@@ -393,6 +406,7 @@ async function skipPreset(dir) {
       sd.broken = true;
       hideStationButton(sN);
       if (typeof renderDialControls === 'function') renderDialControls();
+      // Continue loop to next preset
     }
     
     nI += dir;
@@ -582,6 +596,44 @@ function updatePlayerUI() {
       if (mB) mB.innerHTML = audioPlayer.paused ? pI : pA;
       pB.title = audioPlayer.paused ? 'Воспроизвести' : 'Пауза';
       updateMediaSession();
+
+      // --- ОБНОВЛЕНИЕ ДИСПЛЕЯ НА ШКАЛЕ ---
+      const dialLogo = document.getElementById('dialPlayerLogo');
+      const dialMarquee = document.getElementById('dialMarquee');
+      const dialContainer = document.getElementById('dialMarqueeContainer');
+      if (dialLogo && dialMarquee && dialContainer) {
+        const stream = sd.streams[currentStreamIndex];
+        const cF = (stream && stream.favicon && stream.favicon !== 'null') ? stream.favicon : (sd.favicon && sd.favicon !== 'null' ? sd.favicon : null);
+        
+        if (cF) {
+          const img = document.createElement('img');
+          img.src = cF;
+          img.onerror = () => { dialLogo.textContent = FMUse.formatFreq(st ? st.freq : 0); };
+          dialLogo.innerHTML = '';
+          dialLogo.appendChild(img);
+        } else {
+          dialLogo.textContent = FMUse.formatFreq(st ? st.freq : 0);
+        }
+        dialLogo.style.display = 'flex';
+
+        const genres = stream && stream.tags ? stream.tags : (sd.tags || '');
+        const cleanedName = stream && stream.name ? FMUse.cleanStreamName(stream.name, currentPlayingStation, state.city, genres) : '';
+        
+        let text = '';
+        if (st) {
+          text += `${FMUse.formatFreq(st.freq)} • `;
+        }
+        text += currentPlayingStation.toUpperCase();
+        if (stream && stream.bitrate) text += ` • ${stream.bitrate}k`;
+        if (genres) text += ` • ${genres}`;
+        if (cleanedName) text += ` • ${cleanedName}`;
+        
+        // Передаем текст напрямую в функцию проверки
+        dialMarquee.dataset.text = text;
+        dialContainer.title = text;
+        checkMarqueeScroll(text);
+      }
+      // ------------------------------------
     }
   } else {
     pP.style.display = 'none';
@@ -589,6 +641,20 @@ function updatePlayerUI() {
     document.getElementById('logoBtn').style.backgroundImage = `url('img/logo_100.png')`;
     const hF = document.getElementById('headerFreq');
     if (hF) hF.style.display = 'none';
+    
+    // --- ДИСПЛЕЙ НА ШКАЛЕ (когда ничего не играет) ---
+    const dialLogo = document.getElementById('dialPlayerLogo');
+    const dialContainer = document.getElementById('dialMarqueeContainer');
+    if (dialLogo) dialLogo.style.display = 'none';
+    if (dialContainer) {
+      dialContainer.title = 'ВЫБЕРИТЕ СТАНЦИЮ';
+      const dialMarquee = document.getElementById('dialMarquee');
+      if (dialMarquee) {
+        dialMarquee.dataset.text = 'ВЫБЕРИТЕ СТАНЦИЮ';
+        checkMarqueeScroll('ВЫБЕРИТЕ СТАНЦИЮ');
+      }
+    }
+    // -------------------------------------------------
   }
   if (currentPlayingStation && !audioPlayer.paused) {
     if (!titleRotationInterval || titleRotationStation !== currentPlayingStation) {
@@ -621,7 +687,6 @@ function updatePlayerUI() {
   });
   if (typeof renderDialControls === 'function') renderDialControls();
 }
-
 function initMobilePlayerControls() {
   if (document.getElementById('mobilePlayerControls')) return;
   const h = document.querySelector('.app-header');
@@ -694,4 +759,127 @@ function initMobilePlayerControls() {
   c.appendChild(nB);
   c.appendChild(vS);
   h.appendChild(c);
+}
+
+// Проверка необходимости прокрутки бегущей строки (текст передается напрямую)
+function checkMarqueeScroll(text) {
+  const dialMarquee = document.getElementById('dialMarquee');
+  const dialContainer = document.getElementById('dialMarqueeContainer');
+  if (!dialMarquee || !dialContainer || !text) return;
+  
+  // Сбрасываем для точного измерения
+  dialMarquee.classList.remove('scroll-active');
+  dialMarquee.textContent = text;
+  void dialMarquee.offsetWidth; // Форсируем reflow
+  
+  if (dialMarquee.scrollWidth > dialContainer.clientWidth) {
+    // Дублируем текст для бесшовной прокрутки
+    dialMarquee.textContent = text + '   •   ' + text;
+    void dialMarquee.offsetWidth; 
+    dialMarquee.classList.add('scroll-active');
+  } else {
+    dialMarquee.textContent = text;
+  }
+}
+
+// Обновляем параметры при изменении размера окна
+window.addEventListener('resize', () => {
+  const dialMarquee = document.getElementById('dialMarquee');
+  if (dialMarquee) {
+    checkMarqueeScroll(dialMarquee.dataset.text || 'ВЫБЕРИТЕ СТАНЦИЮ');
+  }
+});
+
+// Открытие меню выбора потока по долгому клику
+function openStreamMenu(btn) {
+  closePresetMenu();
+  if (!currentPlayingStation) return;
+  const sd = stationStreamMap[FMUse.generateCodeName(currentPlayingStation)];
+  if (!sd || !sd.streams || sd.streams.length === 0) return;
+
+  const menu = document.createElement('div');
+  menu.className = 'stream-menu';
+  
+  sd.streams.forEach((stream, i) => {
+    const item = document.createElement('div');
+    let classes = 'stream-item';
+    if (i === currentStreamIndex) classes += ' current';
+    if (stream.broken) classes += ' disabled';
+    item.className = classes;
+    
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'stream-name';
+    const rawName = stream.name ? FMUse.cleanStreamName(stream.name, currentPlayingStation, state.city, stream.tags || '') : `Поток ${i+1}`;
+    const safeName = rawName.replace(/[!\n\r]/g, '').trim() || `Поток ${i+1}`;
+    nameDiv.textContent = safeName;
+    
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'stream-info';
+    let infoText = `№${i+1} • ${stream.bitrate || '?'}k • ${(stream.codec || '').replace(/[!\n\r]/g, '').trim()}`;
+    if (safeName && safeName !== `Поток ${i+1}`) infoText += ` • ${safeName}`;
+    infoDiv.textContent = infoText;
+    
+    if (stream.broken) item.classList.add('disabled');
+    
+    item.appendChild(nameDiv);
+    item.appendChild(infoDiv);
+    item.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+    item.onclick = async (e) => {
+      e.stopPropagation();
+      if (stream.broken) return;
+      closePresetMenu();
+      const played = await attemptPlay(currentPlayingStation, i);
+      if (played === true) {
+        localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), i);
+        updatePlayerUI();
+        updateUrl();
+      } else if (!played) {
+        sd.streams[i].broken = true;
+        showToast('Поток недоступен');
+      }
+    };
+    menu.appendChild(item);
+  });
+  
+  document.body.appendChild(menu);
+  const rect = btn.getBoundingClientRect();
+  menu.style.left = `${rect.left + rect.width / 2}px`;
+  menu.style.top = `${rect.top}px`;
+  
+  activePresetMenu = menu;
+  
+  // Устанавливаем флаг, чтобы глобальный обработчик клика не закрыл меню сразу же
+  window.menuJustOpened = true;
+  setTimeout(() => { window.menuJustOpened = false; }, 300);
+}
+
+// Единая функция умной перемотки
+async function smartSkip(dir) {
+  if (state.skipMode === 'presets') {
+    const bS = (state.dialCurrentBand - 1) * state.presets + 1;
+    const bE = bS + state.presets - 1;
+    const cs = state.cityData[state.city]?.stations || {};
+    let count = 0;
+    for (const n in cs) {
+      const i = cs[n].presetIndex;
+      if (i >= bS && i <= bE) {
+        const sd = stationStreamMap[FMUse.generateCodeName(n)];
+        if (sd && sd.streams && sd.streams.length > 0 && !sd.broken) count++;
+      }
+    }
+    if (count >= 2) {
+      await skipPreset(dir);
+      return;
+    }
+  }
+  await skipStation(dir);
+}
+
+function toggleMute() {
+  if (audioPlayer.volume === 0) {
+    window.updateVolume(lastVolume || 1);
+  } else {
+    lastVolume = audioPlayer.volume;
+    window.updateVolume(0);
+  }
 }

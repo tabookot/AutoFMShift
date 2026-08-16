@@ -254,7 +254,7 @@ function renderDialCanvas() {
     ctx.shadowColor = accent;
     ctx.shadowBlur = 4;
     for (let i = 0; i < bL; i++) {
-      const bH = (dA[i] / 255) * 12;
+      const bH = (dA[i] / 255) * 24; // Увеличена высота в 2 раза
       const bw = Math.max(1, bW - 1);
       const g = ctx.createLinearGradient(0, trackY, 0, trackY - bH);
       g.addColorStop(0, getRGBA(accent, 0.8));
@@ -459,10 +459,10 @@ function renderDialControls() {
   const r1 = document.createElement('div');
   r1.className = 'dial-row dial-row-top';
   const ctrls = [
-    { svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>', action: () => skipPreset(-1), title: 'Пред.' },
+    { svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>', action: () => smartSkip(-1), title: 'Пред.' },
     { svg: audioPlayer.paused ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>' : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>', action: () => { if (currentPlayingStation) togglePlay(currentPlayingStation); }, title: 'Play/Pause' },
     { svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>', action: () => stopPlayer(), title: 'Стоп' },
-    { svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>', action: () => skipPreset(1), title: 'След.' }
+    { svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>', action: () => smartSkip(1), title: 'След.' }
   ];
   ctrls.forEach((ctrl) => {
     const b = document.createElement('div');
@@ -578,54 +578,54 @@ function renderDialControls() {
 }
 
 function initDialKnob(canvas) {
-    const ctx = canvas.getContext('2d');
-    const dK = () => {
-      const w = canvas.width;
-      const h = canvas.height;
-      const cx = w / 2;
-      const cy = h / 2;
-      const r = 28;
-      ctx.clearRect(0, 0, w, h);
+  const ctx = canvas.getContext('2d');
+  const dK = () => {
+    const w = canvas.width;
+    const h = canvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    const r = 28;
+    ctx.clearRect(0, 0, w, h);
+    
+    const accent = getCSSVar('--accent');
+    const textDim = getCSSVar('--text-dim');
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    
+    const vol = audioPlayer.volume;
+    const startAngle = 0.75 * Math.PI;
+    
+    // 1. Draw Tick Marks (Scale)
+    const tickCount = 40;
+    for (let i = 0; i < tickCount; i++) {
+      const angle = startAngle + (1.5 * Math.PI) * (i / tickCount);
+      const isLong = i % 5 === 0;
+      const r1 = r;
+      const r2 = r - (isLong ? 6 : 4);
       
-      const accent = getCSSVar('--accent');
-      const textDim = getCSSVar('--text-dim');
-      const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-      
-      const vol = audioPlayer.volume;
-      const startAngle = 0.75 * Math.PI;
-      
-      // 1. Draw Tick Marks (Scale)
-      const tickCount = 40;
-      for (let i = 0; i < tickCount; i++) {
-        const angle = startAngle + (1.5 * Math.PI) * (i / tickCount);
-        const isLong = i % 5 === 0;
-        const r1 = r;
-        const r2 = r - (isLong ? 6 : 4);
-        
-        ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(angle) * r1, cy + Math.sin(angle) * r1);
-        ctx.lineTo(cx + Math.cos(angle) * r2, cy + Math.sin(angle) * r2);
-        ctx.strokeStyle = (i / tickCount) <= vol ? accent : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.15)');
-        ctx.lineWidth = isLong ? 2 : 1;
-        ctx.stroke();
-      }
-  
-      // 2. Draw 3D Body (Retro Knob)
-      // Outer dark ring
       ctx.beginPath();
-      ctx.arc(cx, cy, 24, 0, Math.PI * 2);
-      ctx.fillStyle = isDark ? '#111418' : '#adb5bd';
-      ctx.fill();
-  
-      // Inner gradient circle
-      const grad = ctx.createRadialGradient(cx - 8, cy - 8, 2, cx, cy, 22);
-      grad.addColorStop(0, isDark ? '#3a4049' : '#ffffff');
-      grad.addColorStop(1, isDark ? '#1a1d22' : '#e9ecef');
-      ctx.beginPath();
-      ctx.arc(cx, cy, 22, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-  
+      ctx.moveTo(cx + Math.cos(angle) * r1, cy + Math.sin(angle) * r1);
+      ctx.lineTo(cx + Math.cos(angle) * r2, cy + Math.sin(angle) * r2);
+      ctx.strokeStyle = (i / tickCount) <= vol ? accent : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.15)');
+      ctx.lineWidth = isLong ? 2 : 1;
+      ctx.stroke();
+    }
+
+    // 2. Draw 3D Body (Retro Knob)
+    // Outer dark ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, 24, 0, Math.PI * 2);
+    ctx.fillStyle = isDark ? '#111418' : '#adb5bd';
+    ctx.fill();
+
+    // Inner gradient circle
+    const grad = ctx.createRadialGradient(cx - 8, cy - 8, 2, cx, cy, 22);
+    grad.addColorStop(0, isDark ? '#3a4049' : '#ffffff');
+    grad.addColorStop(1, isDark ? '#1a1d22' : '#e9ecef');
+    ctx.beginPath();
+    ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
     // 3. Draw Glowing Pointer Dot
     const pAngle = startAngle + (1.5 * Math.PI * vol);
     const pX = cx + Math.cos(pAngle) * 17;
@@ -639,8 +639,15 @@ function initDialKnob(canvas) {
     ctx.shadowBlur = 10;
     ctx.fill();
     ctx.restore();
-  
-      // 4. Center Volume Text
+
+    // 4. Center Volume Text or MUTE
+    if (audioPlayer.volume === 0) {
+      ctx.fillStyle = getCSSVar('--text-dim');
+      ctx.font = 'bold 8px Orbitron, monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('MUTE', cx, cy);
+    } else {
       ctx.fillStyle = accent;
       ctx.font = 'bold 10px Orbitron, monospace';
       ctx.textAlign = 'center';
@@ -649,66 +656,92 @@ function initDialKnob(canvas) {
       ctx.shadowBlur = 4;
       ctx.fillText(Math.round(vol * 100), cx, cy);
       ctx.shadowBlur = 0;
-      
-      canvas.title = `Громкость: ${Math.round(vol * 100)}%`;
-    };
+    }
     
-    dK();
-    window.updateDialKnob = dK;
-    
-    // Redraw on theme change
-    const observer = new MutationObserver(() => {
-      if (typeof window.updateDialKnob === 'function') window.updateDialKnob();
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    
-    const uV = (dY) => {
-      let v = audioPlayer.volume;
-      if (dY < 0) v += 0.02;
-      else v -= 0.02;
-      if (window.updateVolume) window.updateVolume(v);
-    };
-    
-    canvas.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      uV(e.deltaY);
-    }, { passive: false });
-    
-    const hM = (cX, cY) => {
-      const r = canvas.getBoundingClientRect();
-      const cx = r.left + r.width / 2;
-      const cy = r.top + r.height / 2;
-      const dx = cX - cx;
-      const dy = cY - cy;
-      let a = Math.atan2(dy, dx);
-      if (a < 0) a += Math.PI * 2;
-      let mA = 0.75 * Math.PI;
-      let maxA = 2.25 * Math.PI;
-      if (a < mA && a > maxA - Math.PI * 2) a = mA;
-      if (a > maxA) a = maxA;
-      let v = (a - mA) / (maxA - mA);
-      v = Math.max(0, Math.min(1, v));
-      if (window.updateVolume) window.updateVolume(v);
-    };
-    
-    let isD = false;
-    canvas.addEventListener('mousedown', (e) => {
-      isD = true;
-      hM(e.clientX, e.clientY);
-    });
-    window.addEventListener('mousemove', (e) => {
-      if (isD) hM(e.clientX, e.clientY);
-    });
-    window.addEventListener('mouseup', () => isD = false);
-    canvas.addEventListener('touchstart', (e) => {
-      isD = true;
-      hM(e.touches[0].clientX, e.touches[0].clientY);
-    }, { passive: true });
-    window.addEventListener('touchmove', (e) => {
-      if (isD && e.touches[0]) {
-        e.preventDefault();
-        hM(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    }, { passive: false });
-    window.addEventListener('touchend', () => isD = false);
-  }
+    canvas.title = `Громкость: ${Math.round(vol * 100)}%`;
+  };
+  
+  dK();
+  window.updateDialKnob = dK;
+  
+  // Redraw on theme change
+  const observer = new MutationObserver(() => {
+    if (typeof window.updateDialKnob === 'function') window.updateDialKnob();
+  });
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  
+  const uV = (dY) => {
+    let v = audioPlayer.volume;
+    if (dY < 0) v += 0.02;
+    else v -= 0.02;
+    if (window.updateVolume) window.updateVolume(v);
+  };
+  
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    uV(e.deltaY);
+  }, { passive: false });
+  
+  const hM = (cX, cY) => {
+    const r = canvas.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const dx = cX - cx;
+    const dy = cY - cy;
+    let a = Math.atan2(dy, dx);
+    if (a < 0) a += Math.PI * 2;
+    let mA = 0.75 * Math.PI;
+    let maxA = 2.25 * Math.PI;
+    if (a < mA && a > maxA - Math.PI * 2) a = mA;
+    if (a > maxA) a = maxA;
+    let v = (a - mA) / (maxA - mA);
+    v = Math.max(0, Math.min(1, v));
+    if (window.updateVolume) window.updateVolume(v);
+  };
+  
+  let downPos = null;
+  let isDragging = false;
+  
+  // Единая функция для старта нажатия (мышь и тач)
+  const handleDown = (clientX, clientY) => {
+    downPos = { x: clientX, y: clientY };
+    isDragging = false;
+  };
+  
+  // Единая функция для перемещения (мышь и тач)
+  const handleMove = (clientX, clientY, e) => {
+    if (!downPos) return;
+    if (Math.abs(clientX - downPos.x) > 5 || Math.abs(clientY - downPos.y) > 5) {
+      isDragging = true;
+    }
+    if (isDragging) {
+      if (e && e.cancelable) e.preventDefault();
+      hM(clientX, clientY);
+    }
+  };
+  
+  // Обработчик клика (срабатывает и для мыши, и для тача)
+  canvas.addEventListener('click', (e) => {
+    e.stopPropagation(); // Предотвращаем всплытие, чтобы не закрыть другие меню
+    if (isDragging) {
+      isDragging = false;
+      return;
+    }
+    if (typeof toggleMute === 'function') toggleMute();
+  });
+
+  // События мыши
+  canvas.addEventListener('mousedown', (e) => handleDown(e.clientX, e.clientY));
+  window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
+  window.addEventListener('mouseup', () => { downPos = null; });
+
+  // События тача
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches[0]) handleDown(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  window.addEventListener('touchmove', (e) => {
+    if (e.touches[0]) handleMove(e.touches[0].clientX, e.touches[0].clientY, e);
+  }, { passive: false });
+  window.addEventListener('touchend', () => { downPos = null; });
+  window.addEventListener('touchcancel', () => { downPos = null; });
+}
