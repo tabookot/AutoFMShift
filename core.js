@@ -1,5 +1,5 @@
 // core.js
-const VERSION = '0.6.31';
+const VERSION = '0.6.32';
 const CACHE_VERSION = '4';
 const LS_KEY = 'fm_adapter_calc_v10';
 const LS_THEME_KEY = 'fm_adapter_theme';

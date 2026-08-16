@@ -363,13 +363,18 @@ async function init() {
             updateUrl();
             f = true;
             break;
+          } else if (p === 'blocked' || p === 'aborted') {
+            // Если воспроизведение заблокировано или отменено, не помечаем поток как сломанный
+            f = true; // Считаем, что попытка завершена, выходим из цикла
+            break;
           } else {
+            // Только при реальной ошибке (false) помечаем поток как нерабочий
             sd.streams[currentStreamIndex].broken = true;
           }
           a++;
         }
         if (!f) {
-          showToast('Другие потоки недоступны');
+          showToast('Другие потоки недоступны. Возврат к текущему...');
           currentStreamIndex = oI;
           await attemptPlay(currentPlayingStation, oI);
           updatePlayerUI();
