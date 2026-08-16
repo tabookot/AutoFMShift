@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "0.5.1-github-action",
-  "exportDate": 1786767389044,
+  "exportDate": 1786856011447,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -27,7 +27,7 @@
           "deletedAt": null
         },
         {
-          "name": "Новое радио",
+          "name": "Новое Радио",
           "freq": 106.2,
           "isDeleted": false,
           "deletedAt": null
@@ -57,7 +57,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Комсомольская правда",
+          "name": "Радио Комсомольская правда / РТС-Радио",
           "freq": 105.3,
           "isDeleted": false,
           "deletedAt": null

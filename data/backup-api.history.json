@@ -1,7 +1,7 @@
 {
   "sessions": [
     {
-      "timestamp": "2026-08-15T04:18:38.464Z",
+      "timestamp": "2026-08-16T04:55:42.906Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -20,7 +20,7 @@
       },
       "radioBrowser": {
         "new": 0,
-        "changed": 16,
+        "changed": 19,
         "deleted": 0,
         "changedStations": [
           {
@@ -42,17 +42,17 @@
             ]
           },
           {
-            "name": "Милицейская волна",
+            "name": "Культура",
             "changes": [
+              "homepage",
+              "tags",
               "streams"
             ]
           },
           {
-            "name": "Первое радио",
+            "name": "Милицейская волна",
             "changes": [
-              "homepage",
-              "favicon",
-              "tags"
+              "streams"
             ]
           },
           {
@@ -75,9 +75,8 @@
             ]
           },
           {
-            "name": "Радио АСТВ",
+            "name": "Радио Искатель",
             "changes": [
-              "homepage",
               "streams"
             ]
           },
@@ -90,14 +89,20 @@
             ]
           },
           {
-            "name": "Радио Прибой",
+            "name": "Радио России",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио Си",
             "changes": [
               "homepage",
               "streams"
             ]
           },
           {
-            "name": "Радио России",
+            "name": "Радио JAZZ",
             "changes": [
               "streams"
             ]
@@ -119,14 +124,25 @@
             "changes": [
               "homepage",
               "favicon",
+              "tags",
+              "streams"
+            ]
+          },
+          {
+            "name": "Comedy Radio",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "DFM",
+            "changes": [
               "streams"
             ]
           },
           {
             "name": "Monte Carlo",
             "changes": [
-              "homepage",
-              "tags",
               "streams"
             ]
           },
@@ -142,6 +158,7 @@
             "changes": [
               "homepage",
               "favicon",
+              "tags",
               "streams"
             ]
           },
@@ -153,12 +170,6 @@
           },
           {
             "name": "Rock FM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Studio 21",
             "changes": [
               "streams"
             ]
