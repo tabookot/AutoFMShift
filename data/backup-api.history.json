@@ -1,7 +1,7 @@
 {
   "sessions": [
     {
-      "timestamp": "2026-08-17T05:22:09.750Z",
+      "timestamp": "2026-08-18T04:58:59.871Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -20,7 +20,7 @@
       },
       "radioBrowser": {
         "new": 0,
-        "changed": 16,
+        "changed": 19,
         "deleted": 0,
         "changedStations": [
           {
@@ -36,11 +36,9 @@
             ]
           },
           {
-            "name": "Культура",
+            "name": "Красноярск FM",
             "changes": [
-              "homepage",
-              "tags",
-              "streams"
+              "homepage"
             ]
           },
           {
@@ -50,16 +48,22 @@
             ]
           },
           {
-            "name": "Первое радио",
+            "name": "Первое сетевое",
             "changes": [
-              "homepage",
-              "favicon",
-              "tags"
+              "streams"
             ]
           },
           {
-            "name": "Первое сетевое",
+            "name": "Радио 7",
             "changes": [
+              "favicon",
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио Дача",
+            "changes": [
+              "tags",
               "streams"
             ]
           },
@@ -70,7 +74,7 @@
             ]
           },
           {
-            "name": "Радио Монте-Карло",
+            "name": "Радио Рекорд",
             "changes": [
               "streams"
             ]
@@ -84,16 +88,6 @@
           {
             "name": "Радио Русский Хит",
             "changes": [
-              "homepage",
-              "favicon",
-              "tags",
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Си",
-            "changes": [
-              "homepage",
               "streams"
             ]
           },
@@ -104,21 +98,22 @@
             ]
           },
           {
-            "name": "Русское радио",
+            "name": "Радио Maximum",
             "changes": [
+              "favicon",
               "streams"
             ]
           },
           {
-            "name": "Серебряный дождь",
+            "name": "Радио Z",
             "changes": [
-              "streams"
+              "favicon",
+              "tags"
             ]
           },
           {
-            "name": "Хит FM",
+            "name": "Comedy Radio",
             "changes": [
-              "homepage",
               "streams"
             ]
           },
@@ -126,6 +121,12 @@
             "name": "DFM",
             "changes": [
               "streams"
+            ]
+          },
+          {
+            "name": "Like FM",
+            "changes": [
+              "favicon"
             ]
           },
           {
@@ -152,6 +153,13 @@
           {
             "name": "Rock FM",
             "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Studio 21",
+            "changes": [
+              "tags",
               "streams"
             ]
           }

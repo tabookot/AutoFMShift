@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "0.5.1-github-action",
-  "exportDate": 1786944004019,
+  "exportDate": 1787029017990,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -1694,7 +1694,7 @@
           "deletedAt": null
         },
         {
-          "name": "Вести FM / ГТРК Волгоград-ТРВ",
+          "name": "Вести FM",
           "freq": 106.8,
           "isDeleted": false,
           "deletedAt": null
@@ -1742,7 +1742,7 @@
           "deletedAt": null
         },
         {
-          "name": "Новая волна",
+          "name": "Новая волна (Волгоград)",
           "freq": 102,
           "isDeleted": false,
           "deletedAt": null
@@ -1754,7 +1754,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио 7 На Семи Холмах",
+          "name": "Радио 7 на семи холмах",
           "freq": 94.9,
           "isDeleted": false,
           "deletedAt": null
@@ -1784,7 +1784,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Маяк / ГТРК Волгоград-ТРВ",
+          "name": "Радио Маяк",
           "freq": 95.3,
           "isDeleted": false,
           "deletedAt": null
@@ -1826,7 +1826,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Monte-Carlo",
+          "name": "Радио Monte Carlo",
           "freq": 87.9,
           "isDeleted": false,
           "deletedAt": null
@@ -1838,7 +1838,7 @@
           "deletedAt": null
         },
         {
-          "name": "Ретро FM",
+          "name": "Ретро FM (Россия)",
           "freq": 102.6,
           "isDeleted": false,
           "deletedAt": null
