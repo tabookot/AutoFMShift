@@ -1,7 +1,7 @@
 {
   "sessions": [
     {
-      "timestamp": "2026-08-18T04:58:59.871Z",
+      "timestamp": "2026-08-19T04:59:19.423Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -20,9 +20,15 @@
       },
       "radioBrowser": {
         "new": 0,
-        "changed": 19,
+        "changed": 21,
         "deleted": 0,
         "changedStations": [
+          {
+            "name": "Вести FM",
+            "changes": [
+              "streams"
+            ]
+          },
           {
             "name": "Говорит Москва",
             "changes": [
@@ -74,8 +80,10 @@
             ]
           },
           {
-            "name": "Радио Рекорд",
+            "name": "Радио Монте-Карло",
             "changes": [
+              "homepage",
+              "tags",
               "streams"
             ]
           },
@@ -87,6 +95,20 @@
           },
           {
             "name": "Радио Русский Хит",
+            "changes": [
+              "tags",
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио Си",
+            "changes": [
+              "homepage",
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио Сибирь",
             "changes": [
               "streams"
             ]
@@ -100,7 +122,6 @@
           {
             "name": "Радио Maximum",
             "changes": [
-              "favicon",
               "streams"
             ]
           },
@@ -112,7 +133,7 @@
             ]
           },
           {
-            "name": "Comedy Radio",
+            "name": "Серебряный дождь",
             "changes": [
               "streams"
             ]
@@ -132,15 +153,14 @@
           {
             "name": "Monte Carlo",
             "changes": [
+              "homepage",
+              "tags",
               "streams"
             ]
           },
           {
             "name": "Radio Record",
             "changes": [
-              "homepage",
-              "favicon",
-              "tags",
               "streams"
             ]
           },
@@ -159,7 +179,6 @@
           {
             "name": "Studio 21",
             "changes": [
-              "tags",
               "streams"
             ]
           }
