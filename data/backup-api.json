@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "0.5.1-github-action",
-  "exportDate": 1787202133361,
+  "exportDate": 1787288630822,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -7061,12 +7061,6 @@
       "name": "Оренбург",
       "stations": [
         {
-          "name": "(ПЛАН) Радио 7 на семи холмах",
-          "freq": 99.7,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
           "name": "Вести FM",
           "freq": 90.5,
           "isDeleted": false,
@@ -7099,6 +7093,12 @@
         {
           "name": "Планета FM",
           "freq": 87.9,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Радио 7 на семи холмах",
+          "freq": 99.7,
           "isDeleted": false,
           "deletedAt": null
         },

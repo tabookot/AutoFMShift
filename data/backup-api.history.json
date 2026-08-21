@@ -1,7 +1,7 @@
 {
   "sessions": [
     {
-      "timestamp": "2026-08-20T05:04:41.250Z",
+      "timestamp": "2026-08-21T05:05:52.110Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -20,9 +20,15 @@
       },
       "radioBrowser": {
         "new": 0,
-        "changed": 18,
+        "changed": 20,
         "deleted": 0,
         "changedStations": [
+          {
+            "name": "Вести FM",
+            "changes": [
+              "streams"
+            ]
+          },
           {
             "name": "Говорит Москва",
             "changes": [
@@ -45,6 +51,8 @@
           {
             "name": "Культура",
             "changes": [
+              "homepage",
+              "tags",
               "streams"
             ]
           },
@@ -52,6 +60,14 @@
             "name": "Милицейская волна",
             "changes": [
               "streams"
+            ]
+          },
+          {
+            "name": "Первое радио",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags"
             ]
           },
           {
@@ -68,22 +84,28 @@
             ]
           },
           {
-            "name": "Радио Монте-Карло",
+            "name": "Радио Искатель",
             "changes": [
               "streams"
             ]
           },
           {
-            "name": "Радио России",
+            "name": "Радио Монте-Карло",
             "changes": [
+              "homepage",
+              "tags",
               "streams"
             ]
           },
           {
             "name": "Радио Русский Хит",
             "changes": [
-              "homepage",
-              "favicon",
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио Сибирь",
+            "changes": [
               "streams"
             ]
           },
@@ -112,20 +134,7 @@
           {
             "name": "Русское радио",
             "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Хит FM",
-            "changes": [
-              "favicon",
-              "tags",
-              "streams"
-            ]
-          },
-          {
-            "name": "DFM",
-            "changes": [
+              "homepage",
               "streams"
             ]
           },
@@ -139,7 +148,6 @@
           {
             "name": "Monte Carlo",
             "changes": [
-              "homepage",
               "tags",
               "streams"
             ]
@@ -160,8 +168,15 @@
             ]
           },
           {
+            "name": "Rock FM",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
             "name": "Studio 21",
             "changes": [
+              "tags",
               "streams"
             ]
           }
