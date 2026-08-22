@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "0.5.1-github-action",
-  "exportDate": 1787288630822,
+  "exportDate": 1787372377092,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -11022,7 +11022,7 @@
           "deletedAt": null
         },
         {
-          "name": "Новое радио",
+          "name": "Новое Радио",
           "freq": 101.2,
           "isDeleted": false,
           "deletedAt": null
@@ -11054,6 +11054,12 @@
         {
           "name": "Радио Искатель",
           "freq": 89,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Радио Комсомольская правда",
+          "freq": 98.3,
           "isDeleted": false,
           "deletedAt": null
         },
@@ -11114,6 +11120,12 @@
         {
           "name": "Радио Юлдаш",
           "freq": 105.5,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Радио № 1",
+          "freq": 101.6,
           "isDeleted": false,
           "deletedAt": null
         },
@@ -12466,5 +12478,18 @@
       ]
     }
   },
-  "restoredLog": []
+  "restoredLog": [
+    {
+      "type": "station",
+      "city": "Уфа",
+      "name": "Радио 1-й Канал",
+      "reason": "glitch_protect"
+    },
+    {
+      "type": "station",
+      "city": "Уфа",
+      "name": "Радио КП",
+      "reason": "glitch_protect"
+    }
+  ]
 }

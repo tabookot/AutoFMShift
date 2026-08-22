@@ -1,7 +1,7 @@
 {
   "sessions": [
     {
-      "timestamp": "2026-08-21T05:05:52.110Z",
+      "timestamp": "2026-08-22T04:22:01.391Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -12,15 +12,24 @@
           "renamed": []
         },
         "stations": {
-          "new": [],
+          "new": [
+            {
+              "city": "Уфа",
+              "name": "Радио Комсомольская правда"
+            },
+            {
+              "city": "Уфа",
+              "name": "Радио № 1"
+            }
+          ],
           "deleted": [],
           "renamed": [],
           "frequency_migrated": []
         }
       },
       "radioBrowser": {
-        "new": 0,
-        "changed": 20,
+        "new": 1,
+        "changed": 35,
         "deleted": 0,
         "changedStations": [
           {
@@ -36,16 +45,45 @@
             ]
           },
           {
+            "name": "Детское радио",
+            "changes": [
+              "favicon",
+              "tags",
+              "streams"
+            ]
+          },
+          {
+            "name": "Джем FM",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams"
+            ]
+          },
+          {
+            "name": "Дорожное радио",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
             "name": "Европа Плюс",
             "changes": [
               "streams"
             ]
           },
           {
-            "name": "Красноярск FM",
+            "name": "Интерволна",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Кавказ радио",
             "changes": [
               "homepage",
-              "favicon"
+              "tags"
             ]
           },
           {
@@ -57,22 +95,63 @@
             ]
           },
           {
+            "name": "Мария FM",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Мега FM",
+            "changes": [
+              "favicon",
+              "streams"
+            ]
+          },
+          {
             "name": "Милицейская волна",
             "changes": [
               "streams"
             ]
           },
           {
-            "name": "Первое радио",
+            "name": "Первое сетевое",
             "changes": [
-              "homepage",
-              "favicon",
-              "tags"
+              "streams"
             ]
           },
           {
-            "name": "Первое сетевое",
+            "name": "Пульс Радио",
             "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио 7",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио 7 на семи холмах",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио Альфа",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио Весна",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
               "streams"
             ]
           },
@@ -84,7 +163,7 @@
             ]
           },
           {
-            "name": "Радио Искатель",
+            "name": "Радио Мир",
             "changes": [
               "streams"
             ]
@@ -98,13 +177,29 @@
             ]
           },
           {
-            "name": "Радио Русский Хит",
+            "name": "Радио Прибой",
+            "changes": [
+              "homepage",
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио Родных Дорог",
             "changes": [
               "streams"
             ]
           },
           {
-            "name": "Радио Сибирь",
+            "name": "Радио Романтика",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио Спутник",
             "changes": [
               "streams"
             ]
@@ -112,7 +207,8 @@
           {
             "name": "Радио Трансмит",
             "changes": [
-              "homepage",
+              "favicon",
+              "tags",
               "streams"
             ]
           },
@@ -132,10 +228,38 @@
             ]
           },
           {
+            "name": "Ретро FM",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
             "name": "Русское радио",
             "changes": [
               "homepage",
               "streams"
+            ]
+          },
+          {
+            "name": "Серебряный дождь",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Хит FM",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams"
+            ]
+          },
+          {
+            "name": "Like FM",
+            "changes": [
+              "homepage",
+              "favicon"
             ]
           },
           {
@@ -148,6 +272,8 @@
           {
             "name": "Monte Carlo",
             "changes": [
+              "homepage",
+              "favicon",
               "tags",
               "streams"
             ]
@@ -182,7 +308,20 @@
           }
         ]
       },
-      "restored": []
+      "restored": [
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио 1-й Канал",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио КП",
+          "reason": "glitch_protect"
+        }
+      ]
     }
   ]
 }
