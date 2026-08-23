@@ -1,7 +1,7 @@
 {
   "sessions": [
     {
-      "timestamp": "2026-08-22T04:22:01.391Z",
+      "timestamp": "2026-08-23T04:59:37.497Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -12,24 +12,15 @@
           "renamed": []
         },
         "stations": {
-          "new": [
-            {
-              "city": "Уфа",
-              "name": "Радио Комсомольская правда"
-            },
-            {
-              "city": "Уфа",
-              "name": "Радио № 1"
-            }
-          ],
+          "new": [],
           "deleted": [],
           "renamed": [],
           "frequency_migrated": []
         }
       },
       "radioBrowser": {
-        "new": 1,
-        "changed": 35,
+        "new": 0,
+        "changed": 27,
         "deleted": 0,
         "changedStations": [
           {
@@ -45,45 +36,16 @@
             ]
           },
           {
-            "name": "Детское радио",
-            "changes": [
-              "favicon",
-              "tags",
-              "streams"
-            ]
-          },
-          {
-            "name": "Джем FM",
-            "changes": [
-              "homepage",
-              "favicon",
-              "tags",
-              "streams"
-            ]
-          },
-          {
-            "name": "Дорожное радио",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
             "name": "Европа Плюс",
             "changes": [
               "streams"
             ]
           },
           {
-            "name": "Интерволна",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Кавказ радио",
+            "name": "Красноярск FM",
             "changes": [
               "homepage",
-              "tags"
+              "favicon"
             ]
           },
           {
@@ -95,32 +57,13 @@
             ]
           },
           {
-            "name": "Мария FM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Мега FM",
-            "changes": [
-              "favicon",
-              "streams"
-            ]
-          },
-          {
             "name": "Милицейская волна",
             "changes": [
               "streams"
             ]
           },
           {
-            "name": "Первое сетевое",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Пульс Радио",
+            "name": "Новая Жизнь",
             "changes": [
               "homepage",
               "favicon",
@@ -129,42 +72,25 @@
             ]
           },
           {
-            "name": "Радио 7",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио 7 на семи холмах",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Альфа",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Весна",
+            "name": "Первое радио",
             "changes": [
               "homepage",
               "favicon",
+              "tags"
+            ]
+          },
+          {
+            "name": "Радио Грозный",
+            "changes": [
+              "homepage",
               "tags",
               "streams"
             ]
           },
           {
-            "name": "Радио Дача",
+            "name": "Радио для двоих",
             "changes": [
               "tags",
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Мир",
-            "changes": [
               "streams"
             ]
           },
@@ -179,36 +105,30 @@
           {
             "name": "Радио Прибой",
             "changes": [
-              "homepage",
               "streams"
             ]
           },
           {
-            "name": "Радио Родных Дорог",
+            "name": "Радио Рекорд",
             "changes": [
               "streams"
             ]
           },
           {
-            "name": "Радио Романтика",
+            "name": "Радио России",
             "changes": [
-              "homepage",
-              "favicon",
-              "tags",
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио Русский Хит",
+            "changes": [
               "streams"
             ]
           },
           {
             "name": "Радио Спутник",
             "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Трансмит",
-            "changes": [
-              "favicon",
-              "tags",
               "streams"
             ]
           },
@@ -221,22 +141,8 @@
             ]
           },
           {
-            "name": "Радио Maximum",
-            "changes": [
-              "favicon",
-              "streams"
-            ]
-          },
-          {
-            "name": "Ретро FM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
             "name": "Русское радио",
             "changes": [
-              "homepage",
               "streams"
             ]
           },
@@ -247,25 +153,28 @@
             ]
           },
           {
+            "name": "Хакасия FM",
+            "changes": [
+              "homepage"
+            ]
+          },
+          {
             "name": "Хит FM",
             "changes": [
               "homepage",
-              "favicon",
-              "tags",
               "streams"
             ]
           },
           {
-            "name": "Like FM",
+            "name": "Comedy Radio",
             "changes": [
               "homepage",
-              "favicon"
+              "streams"
             ]
           },
           {
-            "name": "Love Radio",
+            "name": "DFM",
             "changes": [
-              "homepage",
               "streams"
             ]
           },
@@ -283,6 +192,13 @@
             "changes": [
               "homepage",
               "favicon",
+              "streams"
+            ]
+          },
+          {
+            "name": "Relax FM",
+            "changes": [
+              "favicon",
               "tags",
               "streams"
             ]
@@ -296,6 +212,13 @@
           {
             "name": "Rock FM",
             "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Royal Radio",
+            "changes": [
+              "tags",
               "streams"
             ]
           },
