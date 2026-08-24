@@ -115,20 +115,20 @@
         "tags": "news, talk"
       },
       {
+        "name": "Вести FM",
+        "url": "https://icecast-vgtrk.cdnvideo.ru/vestifm",
+        "bitrate": 320,
+        "codec": "MP3",
+        "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
+        "tags": ""
+      },
+      {
         "name": "Вести FM (AAC)",
         "url": "https://icecast-vgtrk.cdnvideo.ru/vestifm_aac_64kbps",
         "bitrate": 64,
         "codec": "AAC+",
         "favicon": "",
         "tags": "news, talk"
-      },
-      {
-        "name": "Вести FM",
-        "url": "https://icecast-vgtrk.cdnvideo.ru/vestifm",
-        "bitrate": 320,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": ""
       },
       {
         "name": "Вести FM",
@@ -223,19 +223,19 @@
       },
       {
         "name": "Говорит Москва",
-        "url": "http://media.govoritmoskva.ru:8880/rufm_m.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": "информационный"
-      },
-      {
-        "name": "Говорит Москва",
         "url": "https://media.govoritmoskva.ru/radio/ru64.mp3",
         "bitrate": 0,
         "codec": "MP3",
         "favicon": "",
         "tags": "news, talk & speech, вести"
+      },
+      {
+        "name": "Говорит Москва",
+        "url": "http://media.govoritmoskva.ru:8880/rufm_m.mp3",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "информационный"
       },
       {
         "name": "Говорит Москва",
@@ -387,20 +387,20 @@
         "tags": ""
       },
       {
-        "name": "Европа Плюс",
-        "url": "http://hls-02-europaplus.emgsound.ru/11/playlist.m3u8",
-        "bitrate": 116,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": "pop"
-      },
-      {
         "name": "Европа Плюс Москва 106.2 FM",
         "url": "http://emgregion.hostingradio.ru:8064/moscow.europaplus.mp3",
         "bitrate": 320,
         "codec": "MP3",
         "favicon": "null",
         "tags": "106_2 fm, evropa plus, moskva, music, pop"
+      },
+      {
+        "name": "Европа Плюс Вологда 100.2 FM",
+        "url": "http://emgregion.hostingradio.ru:8064/vologda.europaplus.mp3",
+        "bitrate": 256,
+        "codec": "MP3",
+        "favicon": "null",
+        "tags": "music"
       }
     ],
     "homepage": "http://www.europaplus.ru/",
@@ -506,8 +506,8 @@
   {
     "name": "Красноярск FM",
     "streams": [],
-    "homepage": "https://www.radiorecord.ru/",
-    "favicon": "https://www.radiorecord.ru/icons/apple-touch-icon.png",
+    "homepage": "http://novoeradio.ru/",
+    "favicon": "",
     "tags": ""
   },
   {
@@ -517,14 +517,6 @@
   {
     "name": "Культура",
     "streams": [
-      {
-        "name": "Радио Культура",
-        "url": "http://icecast.vgtrk.cdnvideo.ru/kulturafm",
-        "bitrate": 320,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": "classical, culture, experimental, folk, jazz"
-      },
       {
         "name": "Радио Культура / Radio Kultura",
         "url": "http://icecast.vgtrk.cdnvideo.ru/kulturafm_mp3_192kbps",
@@ -540,11 +532,19 @@
         "codec": "AAC+",
         "favicon": "",
         "tags": "64 kbps aac+, classical, cultural news, folk, jazz"
+      },
+      {
+        "name": "Радио Культура",
+        "url": "http://icecast.vgtrk.cdnvideo.ru/kulturafm",
+        "bitrate": 320,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "classical, culture, experimental, folk, jazz"
       }
     ],
-    "homepage": "https://cultradio.ru/",
+    "homepage": "http://www.cultradio.ru/",
     "favicon": "",
-    "tags": "classical, culture, experimental, folk, jazz"
+    "tags": "folk, jazz, moscow, music"
   },
   {
     "name": "Лайт FM",
@@ -762,9 +762,9 @@
   {
     "name": "Первое радио",
     "streams": [],
-    "homepage": "https://pervoesetevoe.ru/",
-    "favicon": "https://pervoesetevoe.ru/wp-content/uploads/2022/08/02-lipeczk.png",
-    "tags": ""
+    "homepage": "http://pervoe.fm/",
+    "favicon": "",
+    "tags": "pop"
   },
   {
     "name": "Первое сетевое",
@@ -887,7 +887,19 @@
   },
   {
     "name": "Радио 10",
-    "streams": []
+    "streams": [
+      {
+        "name": "Радио 10",
+        "url": "https://ic.radio10.live/stream.mp3",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "pop music"
+      }
+    ],
+    "homepage": "https://radio10.live/",
+    "favicon": "",
+    "tags": "pop music"
   },
   {
     "name": "Радио 100",
@@ -921,19 +933,19 @@
         "tags": ""
       },
       {
-        "name": "Радио 107",
-        "url": "http://62.183.34.109:8000/radio107.mp3?1708780492299",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "http://www.radio107.ru/images/logo.png",
-        "tags": ""
-      },
-      {
         "name": "Radio 107",
         "url": "http://62.183.34.109:8000/radio107.mp3?1702219488275",
         "bitrate": 128,
         "codec": "MP3",
         "favicon": "http://www.radio107.ru/images/apple-touch-icon.png",
+        "tags": ""
+      },
+      {
+        "name": "Радио 107",
+        "url": "http://62.183.34.109:8000/radio107.mp3?1708780492299",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "http://www.radio107.ru/images/logo.png",
         "tags": ""
       }
     ],
@@ -1571,20 +1583,20 @@
         "tags": "covers"
       },
       {
-        "name": "Радио Монте Карло - Nights",
-        "url": "https://mc-mcnight.hostingradio.ru/mcnight96.aacp",
-        "bitrate": 96,
-        "codec": "AAC+",
-        "favicon": "",
-        "tags": "electronic"
-      },
-      {
         "name": "Радио Монте Карло - Meditation",
         "url": "https://mc-meditation.hostingradio.ru/meditation96.aacp",
         "bitrate": 96,
         "codec": "AAC+",
         "favicon": "",
         "tags": "meditation"
+      },
+      {
+        "name": "Радио Монте Карло - Nights",
+        "url": "https://mc-mcnight.hostingradio.ru/mcnight96.aacp",
+        "bitrate": 96,
+        "codec": "AAC+",
+        "favicon": "",
+        "tags": "electronic"
       },
       {
         "name": "Радио Монте Карло - Summertime",
@@ -1691,22 +1703,22 @@
     "streams": [
       {
         "name": "Прибой",
+        "url": "http://77.232.167.247:1007/admin",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "http://priboy.news/static/favicon_150x150.png",
+        "tags": ""
+      },
+      {
+        "name": "Прибой",
         "url": "https://online.priboyfm.ru/",
         "bitrate": 128,
         "codec": "MP3",
         "favicon": "",
         "tags": "folk"
-      },
-      {
-        "name": "Прибой",
-        "url": "http://77.232.167.247:1007/admin",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": ""
       }
     ],
-    "homepage": "https://www.radiopriboy.ru/",
+    "homepage": "http://priboy.news/",
     "favicon": "http://priboy.news/static/favicon_150x150.png",
     "tags": "folk"
   },
@@ -1837,20 +1849,20 @@
         "tags": "music, news, talk"
       },
       {
-        "name": "Радио России / ГТРК \"Орел\"",
-        "url": "https://vestiorel.ru/radio-rossii",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://vestiorel.ru/favicon.png",
-        "tags": ""
-      },
-      {
         "name": "Радио России (AAC)",
         "url": "http://icecast.vgtrk.cdnvideo.ru/rrzonam_aac_32kbps",
         "bitrate": 32,
         "codec": "AAC+",
         "favicon": "",
         "tags": "news, talk"
+      },
+      {
+        "name": "Радио России / ГТРК \"Орел\"",
+        "url": "http://vgtrkregion-reg.cdnvideo.ru/vgtrk/orel/radio_russia/index.m3u8",
+        "bitrate": 392,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
       }
     ],
     "homepage": "http://www.radiorus.ru/",
@@ -1890,14 +1902,6 @@
     "streams": [
       {
         "name": "Русский Хит",
-        "url": "https://microit.n340.ru:8443/VgMv0WV17ZVx1uuo_19_ruhit_64_reg_1",
-        "bitrate": 64,
-        "codec": "AAC",
-        "favicon": "https://top-volna.ru/cover/station/eonVAM3VokgvgZP9EvR7K26DOgB52ZL9OrFEgxeD.jpg",
-        "tags": "поп-музыка"
-      },
-      {
-        "name": "Русский Хит",
         "url": "https://stream2.n340.com/19_ruhit_24_reg_1?type=.aac&UID=CF32CF867382134A8C278C56C3CC282E",
         "bitrate": 28,
         "codec": "MP3",
@@ -1919,10 +1923,18 @@
         "codec": "MP3",
         "favicon": "https://fm-24.ru/assets/image/radio/180/ruhitnew.jpg",
         "tags": "поп"
+      },
+      {
+        "name": "Русский Хит",
+        "url": "https://microit.n340.ru:8443/VgMv0WV17ZVx1uuo_19_ruhit_64_reg_1",
+        "bitrate": 64,
+        "codec": "AAC",
+        "favicon": "https://top-volna.ru/cover/station/eonVAM3VokgvgZP9EvR7K26DOgB52ZL9OrFEgxeD.jpg",
+        "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://top-volna.ru/channel/russkij-xit",
-    "favicon": "https://top-volna.ru/cover/station/eonVAM3VokgvgZP9EvR7K26DOgB52ZL9OrFEgxeD.jpg",
+    "homepage": "https://www.ruhit.fm/player.htm?region=1",
+    "favicon": "https://top-radio.ru/assets/image/radio/180/ruhitnew.png",
     "tags": "поп-музыка"
   },
   {
@@ -2216,7 +2228,7 @@
         "url": "http://79.120.77.11:8000/jazz",
         "bitrate": 320,
         "codec": "AAC+",
-        "favicon": "",
+        "favicon": "r",
         "tags": ""
       },
       {
@@ -2236,20 +2248,20 @@
     "name": "Радио Maximum",
     "streams": [
       {
-        "name": "Радио Maximum",
-        "url": "https://maximum.hostingradio.ru/maximum128.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "http://maximum.ru/favicon.ico",
-        "tags": "rock"
-      },
-      {
         "name": "MAXIMUM",
         "url": "https://maximum.hostingradio.ru/maximum96.aacp",
         "bitrate": 0,
         "codec": "AAC",
         "favicon": "https://yt3.ggpht.com/a-/AAuE7mA0wNG5B5G3eou2NCb0rRIOebNk9HNbJRuArw=s900-mo-c-c0xffffffff-rj-k-no",
         "tags": ""
+      },
+      {
+        "name": "Радио Maximum",
+        "url": "https://maximum.hostingradio.ru/maximum128.mp3",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "http://maximum.ru/favicon.ico",
+        "tags": "rock"
       },
       {
         "name": "MAXIMUM!",
@@ -2269,7 +2281,7 @@
       }
     ],
     "homepage": "http://maximum.ru/",
-    "favicon": "http://maximum.ru/favicon.ico",
+    "favicon": "https://yt3.ggpht.com/a-/AAuE7mA0wNG5B5G3eou2NCb0rRIOebNk9HNbJRuArw=s900-mo-c-c0xffffffff-rj-k-no",
     "tags": "rock"
   },
   {
@@ -2670,6 +2682,14 @@
         "tags": "dfm"
       },
       {
+        "name": "Dfm",
+        "url": "http://dfm-basshouse.hostingradio.ru/basshouse96.aacp",
+        "bitrate": 96,
+        "codec": "AAC+",
+        "favicon": "https://www.dfm.ru/uploads/favicon.ico",
+        "tags": "bass house"
+      },
+      {
         "name": "DFM",
         "url": "https://hls-01-dfm.hostingradio.ru/dfm/playlist.m3u8",
         "bitrate": 100,
@@ -2678,12 +2698,12 @@
         "tags": "club, dance, edm, electronic, pop dance"
       },
       {
-        "name": "Dfm",
-        "url": "http://dfm-basshouse.hostingradio.ru/basshouse96.aacp",
-        "bitrate": 96,
-        "codec": "AAC+",
-        "favicon": "https://www.dfm.ru/uploads/favicon.ico",
-        "tags": "bass house"
+        "name": "DFM",
+        "url": "https://dfm.hostingradio.ru/dfm96.aacp?5c80d70c",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
       }
     ],
     "homepage": "https://dfm.ru/",
@@ -2765,12 +2785,12 @@
         "tags": "classical, hits, instrumental, jazz, pop"
       },
       {
-        "name": "Monte Carlo",
-        "url": "https://hls-01-montecarlo.hostingradio.ru/montecarlo/playlist.m3u8",
-        "bitrate": 100,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": "easy-listening, lounge, pop"
+        "name": "Monte Carlo: Sweet",
+        "url": "http://montecarlo.hostingradio.ru/mcsweet96.aacp",
+        "bitrate": 96,
+        "codec": "AAC+",
+        "favicon": "https://montecarlo.ru/uploads/c3/bf/7f1e845364f1656b13c402e6e8ee.png",
+        "tags": ""
       },
       {
         "name": "Monte Carlo Gold Collection",
@@ -2845,20 +2865,28 @@
     "name": "Radio Record",
     "streams": [
       {
+        "name": "Radio Record Ambient",
+        "url": "http://radiorecord.hostingradio.ru/ambient96.aacp",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "https://cdn-profiles.tunein.com/s309967/images/logod.jpg?t=1",
+        "tags": "ambient"
+      },
+      {
+        "name": "Radio Record Trancehouse",
+        "url": "https://radiorecord.hostingradio.ru/trancehouse96.aacp",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "https://radiorecord.ru/icons/apple-touch-icon.png",
+        "tags": "electronic"
+      },
+      {
         "name": "Radio Record Deep",
         "url": "http://radiorecord.hostingradio.ru/deep96.aacp",
         "bitrate": 0,
         "codec": "AAC",
         "favicon": "https://www.radiorecord.ru/icons/apple-touch-icon.png",
         "tags": "deep house, house"
-      },
-      {
-        "name": "Radio Record Megamix",
-        "url": "https://radiorecord.hostingradio.ru/mix96.aacp",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": "electronic"
       },
       {
         "name": "Radio Record Synthwave",
@@ -2869,25 +2897,17 @@
         "tags": ""
       },
       {
-        "name": "Record Minimal",
-        "url": "https://radiorecord.hostingradio.ru/mini96.aacp",
+        "name": "Radio Record Megamix",
+        "url": "https://radiorecord.hostingradio.ru/mix96.aacp",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "https://radiorecord.ru/icons/apple-touch-icon.png",
-        "tags": "minimal, minimal tech house, minimal techno, tech house"
-      },
-      {
-        "name": "Radio Record Trancehouse",
-        "url": "https://radiorecord.hostingradio.ru/trancehouse96.aacp",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "https://radiorecord.ru/icons/apple-touch-icon.png",
+        "favicon": "",
         "tags": "electronic"
       }
     ],
     "homepage": "https://www.radiorecord.fm/m3u/rr320-28kbps.m3u",
     "favicon": "https://www.radiorecord.fm/favicon.ico",
-    "tags": "deep house, house"
+    "tags": "ambient"
   },
   {
     "name": "Relax FM",
@@ -2936,20 +2956,12 @@
         "tags": "classic rock, pop rock, rock"
       },
       {
-        "name": "Rock FM",
-        "url": "http://nashe2.hostingradio.ru/rock-128.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
+        "name": "Rock",
+        "url": "http://79.120.77.11:8000/rock",
+        "bitrate": 320,
+        "codec": "AAC+",
         "favicon": "",
         "tags": ""
-      },
-      {
-        "name": "Rock FM",
-        "url": "http://nashe.streamr.ru/rock-128.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "https://cdn.onlineradiobox.com/img/apple-touch-icon-120x120.png",
-        "tags": "russian rock"
       }
     ],
     "homepage": "http://www.rockfm.ru/",
@@ -2985,19 +2997,19 @@
     "streams": [
       {
         "name": "STUDIO 21",
-        "url": "http://icecast-studio21.cdnvideo.ru/S21cl_1r",
-        "bitrate": 256,
-        "codec": "MP3",
-        "favicon": "https://studio21.ru/favicon.png",
-        "tags": "hip-hop, rap, trap"
-      },
-      {
-        "name": "STUDIO 21",
         "url": "https://stream.studio21.ru/studio2196.aacp",
         "bitrate": 96,
         "codec": "AAC+",
         "favicon": "https://studio21.ru/favicon.png",
         "tags": ""
+      },
+      {
+        "name": "STUDIO 21",
+        "url": "http://icecast-studio21.cdnvideo.ru/S21cl_1r",
+        "bitrate": 256,
+        "codec": "MP3",
+        "favicon": "https://studio21.ru/favicon.png",
+        "tags": "hip-hop, rap, trap"
       },
       {
         "name": "Studio 21 Киров 101.8 FM",

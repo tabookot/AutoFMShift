@@ -1,7 +1,7 @@
 {
   "sessions": [
     {
-      "timestamp": "2026-08-23T04:59:37.497Z",
+      "timestamp": "2026-08-24T05:27:37.701Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -20,7 +20,7 @@
       },
       "radioBrowser": {
         "new": 0,
-        "changed": 27,
+        "changed": 19,
         "deleted": 0,
         "changedStations": [
           {
@@ -63,15 +63,6 @@
             ]
           },
           {
-            "name": "Новая Жизнь",
-            "changes": [
-              "homepage",
-              "favicon",
-              "tags",
-              "streams"
-            ]
-          },
-          {
             "name": "Первое радио",
             "changes": [
               "homepage",
@@ -80,7 +71,13 @@
             ]
           },
           {
-            "name": "Радио Грозный",
+            "name": "Первое сетевое",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио 10",
             "changes": [
               "homepage",
               "tags",
@@ -88,29 +85,21 @@
             ]
           },
           {
-            "name": "Радио для двоих",
+            "name": "Радио 107",
             "changes": [
-              "tags",
               "streams"
             ]
           },
           {
             "name": "Радио Монте-Карло",
             "changes": [
-              "homepage",
-              "tags",
               "streams"
             ]
           },
           {
             "name": "Радио Прибой",
             "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Рекорд",
-            "changes": [
+              "homepage",
               "streams"
             ]
           },
@@ -123,52 +112,27 @@
           {
             "name": "Радио Русский Хит",
             "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Спутник",
-            "changes": [
+              "homepage",
+              "favicon",
               "streams"
             ]
           },
           {
             "name": "Радио JAZZ",
             "changes": [
-              "homepage",
-              "tags",
               "streams"
             ]
           },
           {
-            "name": "Русское радио",
+            "name": "Радио Maximum",
             "changes": [
+              "favicon",
               "streams"
             ]
           },
           {
             "name": "Серебряный дождь",
             "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Хакасия FM",
-            "changes": [
-              "homepage"
-            ]
-          },
-          {
-            "name": "Хит FM",
-            "changes": [
-              "homepage",
-              "streams"
-            ]
-          },
-          {
-            "name": "Comedy Radio",
-            "changes": [
-              "homepage",
               "streams"
             ]
           },
@@ -181,24 +145,12 @@
           {
             "name": "Monte Carlo",
             "changes": [
-              "homepage",
-              "favicon",
-              "tags",
               "streams"
             ]
           },
           {
             "name": "Radio Record",
             "changes": [
-              "homepage",
-              "favicon",
-              "streams"
-            ]
-          },
-          {
-            "name": "Relax FM",
-            "changes": [
-              "favicon",
               "tags",
               "streams"
             ]
@@ -216,16 +168,8 @@
             ]
           },
           {
-            "name": "Royal Radio",
-            "changes": [
-              "tags",
-              "streams"
-            ]
-          },
-          {
             "name": "Studio 21",
             "changes": [
-              "tags",
               "streams"
             ]
           }
