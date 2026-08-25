@@ -1,7 +1,7 @@
 {
   "sessions": [
     {
-      "timestamp": "2026-08-24T05:27:37.701Z",
+      "timestamp": "2026-08-25T05:07:01.409Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -24,12 +24,6 @@
         "deleted": 0,
         "changedStations": [
           {
-            "name": "Вести FM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
             "name": "Говорит Москва",
             "changes": [
               "streams"
@@ -38,21 +32,6 @@
           {
             "name": "Европа Плюс",
             "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Красноярск FM",
-            "changes": [
-              "homepage",
-              "favicon"
-            ]
-          },
-          {
-            "name": "Культура",
-            "changes": [
-              "homepage",
-              "tags",
               "streams"
             ]
           },
@@ -85,12 +64,6 @@
             ]
           },
           {
-            "name": "Радио 107",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
             "name": "Радио Монте-Карло",
             "changes": [
               "streams"
@@ -118,6 +91,13 @@
             ]
           },
           {
+            "name": "Радио Си",
+            "changes": [
+              "homepage",
+              "streams"
+            ]
+          },
+          {
             "name": "Радио JAZZ",
             "changes": [
               "streams"
@@ -131,7 +111,13 @@
             ]
           },
           {
-            "name": "Серебряный дождь",
+            "name": "Русское радио",
+            "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Хит FM",
             "changes": [
               "streams"
             ]
@@ -145,6 +131,15 @@
           {
             "name": "Monte Carlo",
             "changes": [
+              "homepage",
+              "tags",
+              "streams"
+            ]
+          },
+          {
+            "name": "Power Hit Radio",
+            "changes": [
+              "homepage",
               "streams"
             ]
           },
@@ -164,6 +159,13 @@
           {
             "name": "Rock FM",
             "changes": [
+              "streams"
+            ]
+          },
+          {
+            "name": "Royal Radio",
+            "changes": [
+              "tags",
               "streams"
             ]
           },
