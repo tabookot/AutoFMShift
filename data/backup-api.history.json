@@ -1,7 +1,7 @@
 {
   "sessions": [
     {
-      "timestamp": "2026-08-25T05:07:01.409Z",
+      "timestamp": "2026-08-26T05:07:44.450Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -20,7 +20,7 @@
       },
       "radioBrowser": {
         "new": 0,
-        "changed": 19,
+        "changed": 16,
         "deleted": 0,
         "changedStations": [
           {
@@ -36,30 +36,21 @@
             ]
           },
           {
+            "name": "Красноярск FM",
+            "changes": [
+              "homepage",
+              "favicon"
+            ]
+          },
+          {
             "name": "Милицейская волна",
             "changes": [
               "streams"
             ]
           },
           {
-            "name": "Первое радио",
-            "changes": [
-              "homepage",
-              "favicon",
-              "tags"
-            ]
-          },
-          {
             "name": "Первое сетевое",
             "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио 10",
-            "changes": [
-              "homepage",
-              "tags",
               "streams"
             ]
           },
@@ -73,6 +64,12 @@
             "name": "Радио Прибой",
             "changes": [
               "homepage",
+              "streams"
+            ]
+          },
+          {
+            "name": "Радио Рекорд",
+            "changes": [
               "streams"
             ]
           },
@@ -98,15 +95,15 @@
             ]
           },
           {
-            "name": "Радио JAZZ",
+            "name": "Радио Югра",
             "changes": [
+              "homepage",
               "streams"
             ]
           },
           {
-            "name": "Радио Maximum",
+            "name": "Радио JAZZ",
             "changes": [
-              "favicon",
               "streams"
             ]
           },
@@ -137,15 +134,10 @@
             ]
           },
           {
-            "name": "Power Hit Radio",
-            "changes": [
-              "homepage",
-              "streams"
-            ]
-          },
-          {
             "name": "Radio Record",
             "changes": [
+              "homepage",
+              "favicon",
               "tags",
               "streams"
             ]
@@ -158,19 +150,6 @@
           },
           {
             "name": "Rock FM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Royal Radio",
-            "changes": [
-              "tags",
-              "streams"
-            ]
-          },
-          {
-            "name": "Studio 21",
             "changes": [
               "streams"
             ]
