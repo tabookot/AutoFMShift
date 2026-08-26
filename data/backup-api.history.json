@@ -25,6 +25,95 @@
         "note": "Загружено из файла без сравнения со старым",
         "changedStations": []
       }
+    },
+    {
+      "timestamp": "2026-08-26T22:52:52.321Z",
+      "status": "success",
+      "requiresAttention": false,
+      "attentionReasons": [],
+      "changes": {
+        "cities": {
+          "new": [],
+          "deleted": [],
+          "renamed": []
+        },
+        "stations": {
+          "new": [],
+          "deleted": [],
+          "renamed": [],
+          "frequency_migrated": []
+        }
+      },
+      "radioBrowser": {
+        "new": 0,
+        "changed": 5,
+        "deleted": 0,
+        "streamsAdded": 3,
+        "streamsRemoved": 1,
+        "changedStations": [
+          {
+            "name": "Кавказ радио",
+            "changes": [
+              "homepage",
+              "tags"
+            ]
+          },
+          {
+            "name": "Мега FM",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио JAZZ",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "DFM",
+            "changes": [
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Rock FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          }
+        ]
+      },
+      "restored": [
+        {
+          "type": "station",
+          "city": "Владимир",
+          "name": "план Регион-Медиа",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Мурманск",
+          "name": "&#160;",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио 1-й Канал",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио КП",
+          "reason": "glitch_protect"
+        }
+      ]
     }
   ]
 }

@@ -437,7 +437,10 @@
   },
   {
     "name": "Кавказ радио",
-    "streams": []
+    "streams": [],
+    "homepage": "https://rosradio-online.ru/detail_01437.htm",
+    "favicon": "",
+    "tags": "15, music, region 15, vladikavkaz"
   },
   {
     "name": "Казак FM",
@@ -623,11 +626,19 @@
         "codec": "MP3",
         "favicon": "null",
         "tags": "denc"
+      },
+      {
+        "name": "Мега FM",
+        "url": "https://s0.radioheart.ru:8000/RH23554",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "https://radio-24.ru/img/logo/logo-889.jpg",
+        "tags": "поп-музыка, танцевальная"
       }
     ],
-    "homepage": "https://tvrts.ru/",
-    "favicon": "",
-    "tags": "denc"
+    "homepage": "https://radio-24.ru/radio/mega-fm",
+    "favicon": "https://radio-24.ru/img/logo/logo-889.jpg",
+    "tags": "поп-музыка, танцевальная"
   },
   {
     "name": "Милицейская волна",
@@ -2258,6 +2269,14 @@
         "codec": "MP3",
         "favicon": "",
         "tags": "jazz, smooth jazz"
+      },
+      {
+        "name": "Радио Jazz",
+        "url": "http://nashe1.hostingradio.ru/jazz-256",
+        "bitrate": 256,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": ""
       }
     ],
     "homepage": "https://www.radiojazzfm.ru/",
@@ -2711,14 +2730,6 @@
       },
       {
         "name": "DFM",
-        "url": "https://dfm.hostingradio.ru/dfm96.aacp?5c80d70c",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "DFM",
         "url": "https://hls-01-dfm.hostingradio.ru/dfm/playlist.m3u8",
         "bitrate": 100,
         "codec": "AAC",
@@ -2728,7 +2739,7 @@
     ],
     "homepage": "https://dfm.ru/",
     "favicon": "https://www.dfm.ru/uploads/favicon.ico",
-    "tags": "dfm"
+    "tags": "club, dance, edm, electronic, pop dance"
   },
   {
     "name": "Extreme Radio Мурманск",
@@ -2974,6 +2985,14 @@
         "codec": "MP3",
         "favicon": "https://lh3.googleusercontent.com/D3taObR7tfyhwDFY40VS8DIVri7iif5RuzI9C-mXxRwF41vGZ_dO_n6MWM57P-mZczFC=w300",
         "tags": "classic rock, pop rock, rock"
+      },
+      {
+        "name": "Rock FM",
+        "url": "http://nashe2.hostingradio.ru/rock-128.mp3",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": ""
       }
     ],
     "homepage": "http://www.rockfm.ru/",
