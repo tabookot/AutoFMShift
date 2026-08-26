@@ -544,6 +544,109 @@ function updateMediaSession() {
   navigator.mediaSession.playbackState = audioPlayer.paused ? 'paused' : 'playing';
 }
 
+// --- ICY "now playing": opt-in parallel metadata connection ---
+let nowPlayingTrack = '';
+let metaAbort = null;
+const metaStats = { status: 'off', detail: '', updates: 0 };
+
+function metaTitleText() {
+  if (!state.trackMeta) return 'Инфо о треке: выкл';
+  const s = metaStats.status;
+  if (s === 'connecting') return 'Инфо о треке: вкл. Подключаюсь к потоку...';
+  if (s === 'receiving') return `Инфо о треке: вкл. Читаю поток, обновлений: ${metaStats.updates}${metaStats.detail ? `. Сейчас: ${metaStats.detail}` : ''}`;
+  if (s === 'no-meta') return 'Инфо о треке: вкл. Сервер не отдал icy-metaint: метаданных нет или заголовок скрыт CORS';
+  if (s === 'paused') return 'Инфо о треке: вкл. Пауза, чтение остановлено';
+  if (s === 'error') return `Инфо о треке: вкл. Ошибка: ${metaStats.detail}`;
+  return 'Инфо о треке: вкл. Ожидаю запуск воспроизведения';
+}
+
+function setMeta(status, detail) {
+  metaStats.status = status;
+  if (detail !== undefined) metaStats.detail = detail;
+  updateMetaBtn();
+  if (typeof showToast === 'function' && status === 'receiving' && detail && metaStats.lastToast !== detail) {
+    metaStats.lastToast = detail;
+    showToast(detail);
+  }
+}
+
+function updateMetaBtn() {
+  const b = document.getElementById('dialMetaBtn');
+  if (!b) return;
+  b.title = metaTitleText();
+  b.classList.remove('meta-connecting', 'meta-live', 'meta-warn', 'meta-err');
+  if (!state.trackMeta) { b.style.color = ''; return; }
+  const s = metaStats.status;
+  if (s === 'connecting') b.classList.add('meta-connecting');
+  else if (s === 'receiving') b.classList.add(metaStats.updates > 0 ? 'meta-live' : 'meta-warn');
+  else if (s === 'no-meta' || s === 'error') b.classList.add('meta-err');
+  else b.classList.add(metaStats.updates > 0 ? 'meta-live' : 'meta-warn'); // paused/idle while enabled
+}
+
+function stopTrackMeta() {
+  if (metaAbort) { metaAbort.abort(); metaAbort = null; }
+  setMeta(state.trackMeta ? 'paused' : 'off');
+  if (nowPlayingTrack) { nowPlayingTrack = ''; updatePlayerUI(); }
+}
+
+function setTrack(title) {
+  const t = String(title).replace(/\s+/g, ' ').trim().slice(0, 100);
+  if (t === nowPlayingTrack) return;
+  nowPlayingTrack = t;
+  metaStats.updates++;
+  setMeta('receiving', t);
+  updatePlayerUI();
+  updateUrl();
+}
+
+async function startTrackMeta(url) {
+  stopTrackMeta();
+  metaStats.updates = 0;
+  const ctl = new AbortController();
+  metaAbort = ctl;
+  setMeta('connecting', '');
+  try {
+    const res = await fetch(url, { headers: { 'Icy-MetaData': '1' }, signal: ctl.signal });
+    if (!res.ok) { setMeta('error', `HTTP ${res.status}`); return; }
+    const metaint = parseInt(res.headers.get('icy-metaint'), 10);
+    if (!metaint || !res.body) { if (res.body) res.body.cancel(); setMeta('no-meta'); return; }
+    setMeta('receiving', '');
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let audioRemain = metaint, metaRemain = 0, metaParts = [];
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done || ctl.signal.aborted) break;
+      let i = 0;
+      while (i < value.length) {
+        if (audioRemain > 0) {
+          const take = Math.min(audioRemain, value.length - i);
+          i += take;
+          audioRemain -= take;
+        } else if (metaRemain > 0) {
+          const take = Math.min(metaRemain, value.length - i);
+          metaParts.push(dec.decode(value.subarray(i, i + take)));
+          i += take;
+          metaRemain -= take;
+          if (metaRemain === 0) {
+            const m = metaParts.join('').match(/StreamTitle='((?:\\.|[^'])*)'/);
+            if (m) setTrack(m[1].replace(/\\'/g, "'"));
+            metaParts = [];
+            audioRemain = metaint;
+          }
+        } else {
+          const len = value[i++] * 16;
+          if (len > 0) metaRemain = len;
+          else audioRemain = metaint;
+        }
+      }
+    }
+    if (!ctl.signal.aborted) setMeta('error', 'сервер закрыл соединение');
+  } catch (e) {
+    if (e.name !== 'AbortError') setMeta('error', e.name === 'TypeError' ? 'запрос заблокирован (CORS или сеть)' : e.message);
+  } finally { if (metaAbort === ctl) metaAbort = null; }
+}
+
 function updatePlayerUI() {
   localStorage.setItem('fm_player_playing', (!audioPlayer.paused && currentPlayingStation) ? currentPlayingStation : '');
   const pP = document.getElementById('playerPanel');
@@ -617,7 +720,7 @@ function updatePlayerUI() {
             pS.appendChild(document.createTextNode(' • '));
         }
         pS.appendChild(document.createTextNode(p.join(' • ')));
-        pS.title = tP.join(' • ');
+        pS.title = nowPlayingTrack ? `${tP.join(' • ')}\n♪ ${nowPlayingTrack}` : tP.join(' • ');
         if (sd.streams.length > 1) {
           pS.classList.add('active-link');
           pS.setAttribute('href', '#');
@@ -660,6 +763,7 @@ function updatePlayerUI() {
           text += `${FMUse.formatFreq(st.freq)} • `;
         }
         text += currentPlayingStation.toUpperCase();
+        if (nowPlayingTrack) text += ` • ♪ ${nowPlayingTrack}`;
         if (stream && stream.bitrate) text += ` • ${stream.bitrate}k`;
         if (genres) text += ` • ${genres}`;
         if (cleanedName) text += ` • ${cleanedName}`;
@@ -694,10 +798,11 @@ function updatePlayerUI() {
     // -------------------------------------------------
   }
   if (currentPlayingStation && !audioPlayer.paused) {
-    if (!titleRotationInterval || titleRotationStation !== currentPlayingStation) {
+    const trackLine = nowPlayingTrack ? `♪ ${nowPlayingTrack} • ` : '';
+    if (titleRotationStation !== `${currentPlayingStation}|${nowPlayingTrack}`) {
+      titleRotationStation = `${currentPlayingStation}|${nowPlayingTrack}`;
       if (titleRotationInterval) clearInterval(titleRotationInterval);
-      titleRotationStation = currentPlayingStation;
-      let tS = `AutoFMShift ▶ ${currentPlayingStation} • • • `;
+      let tS = `AutoFMShift ▶ ${trackLine}${currentPlayingStation} • • • `;
       titleRotationInterval = setInterval(() => {
         tS = tS.substring(1) + tS.charAt(0);
         document.title = tS;

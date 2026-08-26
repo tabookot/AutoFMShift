@@ -455,6 +455,14 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     padding: 0;
     width: 16px; height: 16px;
 }
+#dialMetaBtn.meta-connecting { color: var(--yellow); animation: meta-pulse 1s ease-in-out infinite; }
+#dialMetaBtn.meta-live { color: var(--green); }
+#dialMetaBtn.meta-warn { color: var(--accent); }
+#dialMetaBtn.meta-err { color: var(--pink); opacity: 0.85; }
+@keyframes meta-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
 .chip-btn.control-chip svg { width: 9px; height: 9px; }
 
 .chip-btn.occupied {

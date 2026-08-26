@@ -36,6 +36,7 @@ const DEFAULT_STATE = {
   bands: 1,
   presets: 6,
   cityData: {},
+  trackMeta: false,
   lastModified: 0
 };
 
@@ -652,6 +653,7 @@ function updateUrl() {
   if (state.dialFreqView === 'shifted') p.set('dfreq', 'shifted');
   if (state.skipMode === 'freq') p.set('skip', 'freq');
   if (state.dialControlsVisible !== null) p.set('dctrl', state.dialControlsVisible ? '1' : '0');
+  if (state.trackMeta) p.set('meta', '1');
   if (currentPlayingStation) {
     p.set('play', currentPlayingStation);
     p.set('stream', currentStreamIndex);
@@ -680,6 +682,7 @@ function loadFromUrl() {
   state.skipMode = sk === 'freq' ? 'freq' : 'presets';
   const dc = p.get('dctrl');
   state.dialControlsVisible = dc === '1' ? true : dc === '0' ? false : null;
+  state.trackMeta = p.get('meta') === '1';
   const b = parseInt(p.get('bands'));
   if (!isNaN(b) && b >= 1 && b <= 5) state.bands = b;
   const ps = parseInt(p.get('presets'));
