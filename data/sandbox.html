@@ -170,7 +170,7 @@
             </div>
 
             <button class="btn" onclick="document.getElementById('helpModal').classList.add('show')">❓ Справка</button>
-            <button class="btn btn-danger" onclick="clearContext()">Очистить лог</button>
+            <button class="btn btn-danger" onclick="clearContext()" title="Сбрасывает лог и историю сравнений (localStorage: sandboxContext + sandboxHistory). Файлы в data/ не трогает — их пишет только GitHub Action.">Очистить лог</button>
         </div>
     </div>
 
@@ -199,7 +199,7 @@
                     <li><code>stations_groups.json</code> — сгруппированные уникальные названия станций. Нужен для Шага 4. Формируется на Шаге 3.</li>
                     <li><code>stations_list.md</code> — человекочитаемый список групп станций. Формируется на Шаге 3.</li>
                     <li><code>stations_data.json</code> — данные о потоках, логотипах и жанрах. Формируется на Шаге 4.</li>
-                    <li><code>backup-api.history.json</code> — история изменений API. Формируется на Шаге 5.</li>
+                    <li><code>backup-api.history.json</code> — история изменений API. Формируется на Шаге 5. В песочнице копится в localStorage и сбрасывается кнопкой «Очистить лог»; на диск пишется только GitHub Action.</li>
                 </ul>
 
                 <h3>Протаскивание данных через файлы</h3>
@@ -698,6 +698,8 @@
                         new: enrichResult.new,
                         changed: enrichResult.changed,
                         deleted: enrichResult.deleted,
+                        streamsAdded: enrichResult.streamsAdded,
+                        streamsRemoved: enrichResult.streamsRemoved,
                         changedStations: enrichResult.changedStations
                     };
                     updateProgress(0);

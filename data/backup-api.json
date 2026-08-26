@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
-  "appVersion": "0.5.1-github-action",
-  "exportDate": 1787720728546,
+  "appVersion": "sandbox-test",
+  "exportDate": 1787770252291,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -493,13 +493,13 @@
         },
         {
           "name": "Love Radio",
-          "freq": 101.2,
+          "freq": 102.2,
           "isDeleted": false,
           "deletedAt": null
         },
         {
-          "name": "Love Radio",
-          "freq": 102.2,
+          "name": "Love Radio\nРадио Маяк",
+          "freq": 101.2,
           "isDeleted": false,
           "deletedAt": null
         }
@@ -855,7 +855,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Маяк&#160;",
+          "name": "Радио Маяк",
           "freq": 103.4,
           "isDeleted": false,
           "deletedAt": null
@@ -885,7 +885,7 @@
           "deletedAt": null
         },
         {
-          "name": "Русское радио&#160;",
+          "name": "Русское радио",
           "freq": 101.7,
           "isDeleted": false,
           "deletedAt": null
@@ -1575,6 +1575,12 @@
           "deletedAt": null
         },
         {
+          "name": "Маруся ФМ",
+          "freq": 88.8,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
           "name": "Наше радио\nРадио Рост\nНостальжи",
           "freq": 104.8,
           "isDeleted": false,
@@ -2124,7 +2130,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Маяк&#160;/ Воронежский Маячок",
+          "name": "Радио Маяк / Воронежский Маячок",
           "freq": 105.7,
           "isDeleted": false,
           "deletedAt": null
@@ -2160,7 +2166,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Русские песни&#160;\nРадио 101-Воронеж",
+          "name": "Радио Русские песни \nРадио 101-Воронеж",
           "freq": 103.4,
           "isDeleted": false,
           "deletedAt": null
@@ -2982,7 +2988,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Вера&#160;",
+          "name": "Радио Вера",
           "freq": 88.5,
           "isDeleted": false,
           "deletedAt": null
@@ -3018,7 +3024,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Мир&#160;",
+          "name": "Радио Мир",
           "freq": 89.3,
           "isDeleted": false,
           "deletedAt": null
@@ -4181,7 +4187,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Маяк&#160;/ Маяк-Кострома",
+          "name": "Радио Маяк / Маяк-Кострома",
           "freq": 100.9,
           "isDeleted": false,
           "deletedAt": null
@@ -4402,7 +4408,7 @@
           "deletedAt": null
         },
         {
-          "name": "Хит FM (Россия) (страница не существует)",
+          "name": "Хит FM",
           "freq": 104.2,
           "isDeleted": false,
           "deletedAt": null
@@ -4873,7 +4879,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Шансон&#160;",
+          "name": "Радио Шансон",
           "freq": 98,
           "isDeleted": false,
           "deletedAt": null
@@ -5164,7 +5170,7 @@
           "deletedAt": null
         },
         {
-          "name": "Маяк&#160;/ ГТРК Магадан (6-1)",
+          "name": "Маяк / ГТРК Магадан (6-1)",
           "freq": 105,
           "isDeleted": false,
           "deletedAt": null
@@ -5432,7 +5438,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Сафинат\nРадио Маяк\nРадио Караван&#160;",
+          "name": "Радио Сафинат\nРадио Маяк\nРадио Караван",
           "freq": 102.9,
           "isDeleted": false,
           "deletedAt": null
@@ -5832,8 +5838,14 @@
           "deletedAt": null
         },
         {
-          "name": "Вести FM&#160;",
+          "name": "Вести FM",
           "freq": 97.2,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Вести FM\nБольшое радио",
+          "freq": 107.8,
           "isDeleted": false,
           "deletedAt": null
         },
@@ -5923,13 +5935,13 @@
         },
         {
           "name": "Радио Шансон",
-          "freq": 102.7,
+          "freq": 91.6,
           "isDeleted": false,
           "deletedAt": null
         },
         {
-          "name": "Радио Шансон&#160;",
-          "freq": 91.6,
+          "name": "Радио Шансон",
+          "freq": 102.7,
           "isDeleted": false,
           "deletedAt": null
         },
@@ -6142,7 +6154,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Маяк&#160;",
+          "name": "Радио Маяк",
           "freq": 101.1,
           "isDeleted": false,
           "deletedAt": null
@@ -6178,7 +6190,7 @@
           "deletedAt": null
         },
         {
-          "name": "Русское радио&#160;",
+          "name": "Русское радио",
           "freq": 105.5,
           "isDeleted": false,
           "deletedAt": null
@@ -6930,7 +6942,7 @@
           "deletedAt": null
         },
         {
-          "name": "Наше радио&#160;",
+          "name": "Наше радио",
           "freq": 91.5,
           "isDeleted": false,
           "deletedAt": null
@@ -7145,7 +7157,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Шансон&#160;\nРусское радио Оренбург",
+          "name": "Радио Шансон \nРусское радио Оренбург",
           "freq": 102.3,
           "isDeleted": false,
           "deletedAt": null
@@ -7389,19 +7401,19 @@
       "name": "Пермь",
       "stations": [
         {
-          "name": "(ТЕСТ) Радио России&#160;\nРадио Маяк",
+          "name": "(ТЕСТ) Радио России \nРадио Маяк",
           "freq": 92.2,
           "isDeleted": false,
           "deletedAt": null
         },
         {
-          "name": "Вести FM&#160;",
+          "name": "Вести FM",
           "freq": 88.5,
           "isDeleted": false,
           "deletedAt": null
         },
         {
-          "name": "Главное радио\nМега FM&#160;\nМега FM — Радио Спорт\nОРР — Радио Спорт / Свобода (временами)\nРадио Свобода — Радио Свободная Волна\nОбщественное Российское Радио\nЮность\nРадио Пермь-Городское Радио",
+          "name": "Главное радио\nМега FM \nМега FM — Радио Спорт\nОРР — Радио Спорт / Свобода (временами)\nРадио Свобода — Радио Свободная Волна\nОбщественное Российское Радио\nЮность\nРадио Пермь-Городское Радио",
           "freq": 107.2,
           "isDeleted": false,
           "deletedAt": null
@@ -7467,7 +7479,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Вера&#160;",
+          "name": "Радио Вера",
           "freq": 95,
           "isDeleted": false,
           "deletedAt": null
@@ -8033,7 +8045,7 @@
           "deletedAt": null
         },
         {
-          "name": "199? —&#160;?",
+          "name": "199? — ?",
           "freq": 105.7,
           "isDeleted": false,
           "deletedAt": null
@@ -8093,7 +8105,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Диско&#160;(тест)\nДонская волна\nДонская волна / канал ДвиDJение (18-6)\nДонская волна\nОткрытое Радио \nРомантика\nДонская волна",
+          "name": "Радио Диско (тест)\nДонская волна\nДонская волна / канал ДвиDJение (18-6)\nДонская волна\nОткрытое Радио \nРомантика\nДонская волна",
           "freq": 104.1,
           "isDeleted": false,
           "deletedAt": null
@@ -8630,7 +8642,7 @@
           "deletedAt": null
         },
         {
-          "name": "Хит FM (Россия) (страница не существует)",
+          "name": "Хит FM",
           "freq": 106.6,
           "isDeleted": false,
           "deletedAt": null
@@ -8958,7 +8970,7 @@
           "deletedAt": null
         },
         {
-          "name": "Вести FM&#160;",
+          "name": "Вести FM",
           "freq": 90.6,
           "isDeleted": false,
           "deletedAt": null
@@ -9334,7 +9346,7 @@
           "deletedAt": null
         },
         {
-          "name": "Вести FM&#160;",
+          "name": "Вести FM",
           "freq": 101.5,
           "isDeleted": false,
           "deletedAt": null
@@ -9425,13 +9437,13 @@
         },
         {
           "name": "Радио России / ГТРК Смоленск",
-          "freq": 105.2,
+          "freq": 95.2,
           "isDeleted": false,
           "deletedAt": null
         },
         {
-          "name": "Радио России / ГТРК Смоленск&#160;",
-          "freq": 95.2,
+          "name": "Радио России / ГТРК Смоленск",
+          "freq": 105.2,
           "isDeleted": false,
           "deletedAt": null
         },
@@ -9561,7 +9573,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Маяк&#160;/ Радио Русь",
+          "name": "Радио Маяк / Радио Русь",
           "freq": 104.3,
           "isDeleted": false,
           "deletedAt": null
@@ -9668,7 +9680,7 @@
           "deletedAt": null
         },
         {
-          "name": "Вести FM&#160;",
+          "name": "Вести FM",
           "freq": 88.3,
           "isDeleted": false,
           "deletedAt": null
@@ -9740,7 +9752,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Шансон&#160;",
+          "name": "Радио Шансон",
           "freq": 90.4,
           "isDeleted": false,
           "deletedAt": null
@@ -9895,7 +9907,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио России / ГТРК Тамбов&#160;",
+          "name": "Радио России / ГТРК Тамбов",
           "freq": 100.9,
           "isDeleted": false,
           "deletedAt": null
@@ -10963,7 +10975,7 @@
           "deletedAt": null
         },
         {
-          "name": "Хит FM (Россия) (страница не существует)",
+          "name": "Хит FM",
           "freq": 87.6,
           "isDeleted": false,
           "deletedAt": null
@@ -11392,7 +11404,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио России /&#160;ГТРК Югория / ГТРК Регион-Тюмень",
+          "name": "Радио России / ГТРК Югория / ГТРК Регион-Тюмень",
           "freq": 88.3,
           "isDeleted": false,
           "deletedAt": null
@@ -11404,7 +11416,7 @@
           "deletedAt": null
         },
         {
-          "name": "Русское радио&#160;",
+          "name": "Русское радио",
           "freq": 102.9,
           "isDeleted": false,
           "deletedAt": null
@@ -11451,7 +11463,7 @@
           "deletedAt": null
         },
         {
-          "name": "Национальное радио Чувашии -&#160;Чăваш Ен",
+          "name": "Национальное радио Чувашии - Чăваш Ен",
           "freq": 95.9,
           "isDeleted": false,
           "deletedAt": null
@@ -11535,7 +11547,7 @@
           "deletedAt": null
         },
         {
-          "name": "Тăван радио&#160;(Родное радио)&#160;",
+          "name": "Тăван радио (Родное радио)",
           "freq": 100.3,
           "isDeleted": false,
           "deletedAt": null
@@ -11809,7 +11821,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Маяк&#160;",
+          "name": "Радио Маяк",
           "freq": 99.6,
           "isDeleted": false,
           "deletedAt": null
@@ -11910,7 +11922,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Маяк&#160;/ ГТРК Чита",
+          "name": "Радио Маяк / ГТРК Чита",
           "freq": 104.5,
           "isDeleted": false,
           "deletedAt": null
@@ -12479,6 +12491,18 @@
     }
   },
   "restoredLog": [
+    {
+      "type": "station",
+      "city": "Владимир",
+      "name": "план Регион-Медиа",
+      "reason": "glitch_protect"
+    },
+    {
+      "type": "station",
+      "city": "Мурманск",
+      "name": "&#160;",
+      "reason": "glitch_protect"
+    },
     {
       "type": "station",
       "city": "Уфа",

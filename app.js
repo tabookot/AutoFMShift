@@ -10,6 +10,7 @@ async function init() {
   initTheme();
   await loadCyrillicFont();
   document.getElementById('appVersion').textContent = 'v' + VERSION;
+  document.getElementById('headerVersion').textContent = 'v' + VERSION;
   document.getElementById('logoBtn').title = `AutoFMShift v${VERSION}`;
 
   TEMPLATES.forEach((t) => {
@@ -293,6 +294,21 @@ async function init() {
         showToast(state.skipMode === 'presets' ? 'Перемотка: по кнопкам' : 'Перемотка: по частотам');
       });
     }
+
+    // Кнопка чтения инфо о треке из потока
+    const dMB = document.getElementById('dialMetaBtn');
+    if (dMB) {
+      dMB.addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.trackMeta = !state.trackMeta;
+        commitState();
+        updateMetaBtn();
+        showToast(state.trackMeta ? 'Инфо о треке: вкл' : 'Инфо о треке: выкл');
+        if (!state.trackMeta) stopTrackMeta();
+        else if (currentPlayingStation && !audioPlayer.paused) startTrackMeta(audioPlayer.src);
+      });
+      updateMetaBtn();
+    }
   
     // Клик по бегущей строке
     const dMC = document.getElementById('dialMarqueeContainer');
@@ -302,8 +318,9 @@ async function init() {
       });
     }
 
-  audioPlayer = document.getElementById('audioPlayer');
-  const savedVol = localStorage.getItem('fm_player_volume');
+    audioPlayer = document.getElementById('audioPlayer');
+    initHeaderPlayerSync();
+    const savedVol = localStorage.getItem('fm_player_volume');
   audioPlayer.volume = savedVol !== null ? parseFloat(savedVol) : 1;
   initMobilePlayerControls();
   const mVS = document.getElementById('mobileVolumeSlider');
@@ -386,6 +403,7 @@ async function init() {
   audioPlayer.addEventListener('playing', () => {
     setPlayerLoading(false);
     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+    if (state.trackMeta) startTrackMeta(audioPlayer.src);
     updatePlayerUI();
   });
   audioPlayer.addEventListener('waiting', () => {
@@ -394,6 +412,7 @@ async function init() {
   });
   audioPlayer.addEventListener('pause', () => {
     setPlayerLoading(false);
+    stopTrackMeta();
     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
     updatePlayerUI();
   });
