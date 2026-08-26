@@ -1,7 +1,7 @@
 {
   "sessions": [
     {
-      "timestamp": "2026-08-26T05:07:44.450Z",
+      "timestamp": "2026-08-26T19:13:10.558Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -20,156 +20,11 @@
       },
       "radioBrowser": {
         "new": 0,
-        "changed": 16,
+        "changed": 0,
         "deleted": 0,
-        "changedStations": [
-          {
-            "name": "Говорит Москва",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Европа Плюс",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Красноярск FM",
-            "changes": [
-              "homepage",
-              "favicon"
-            ]
-          },
-          {
-            "name": "Милицейская волна",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Первое сетевое",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Монте-Карло",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Прибой",
-            "changes": [
-              "homepage",
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Рекорд",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио России",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Русский Хит",
-            "changes": [
-              "homepage",
-              "favicon",
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Си",
-            "changes": [
-              "homepage",
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио Югра",
-            "changes": [
-              "homepage",
-              "streams"
-            ]
-          },
-          {
-            "name": "Радио JAZZ",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Русское радио",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Хит FM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "DFM",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Monte Carlo",
-            "changes": [
-              "homepage",
-              "tags",
-              "streams"
-            ]
-          },
-          {
-            "name": "Radio Record",
-            "changes": [
-              "homepage",
-              "favicon",
-              "tags",
-              "streams"
-            ]
-          },
-          {
-            "name": "Rock Arsenal",
-            "changes": [
-              "streams"
-            ]
-          },
-          {
-            "name": "Rock FM",
-            "changes": [
-              "streams"
-            ]
-          }
-        ]
-      },
-      "restored": [
-        {
-          "type": "station",
-          "city": "Уфа",
-          "name": "Радио 1-й Канал",
-          "reason": "glitch_protect"
-        },
-        {
-          "type": "station",
-          "city": "Уфа",
-          "name": "Радио КП",
-          "reason": "glitch_protect"
-        }
-      ]
+        "note": "Загружено из файла без сравнения со старым",
+        "changedStations": []
+      }
     }
   ]
 }

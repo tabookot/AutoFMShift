@@ -37,54 +37,45 @@ const Api = {
 
     parseStations(html) {
         const stations = [];
-        if (typeof DOMParser !== 'undefined') {
-            const doc = new DOMParser().parseFromString(html, "text/html");
-            doc.querySelectorAll("table").forEach(table => {
-                table.querySelectorAll("tr").forEach(row => {
-                    const cols = row.querySelectorAll("td, th");
-                    if (cols.length < 2) return;
-                    let freq = null, name = "";
-                    cols.forEach(col => {
-                        const a = col.querySelector("a");
-                        if (a && a.getAttribute('title') && !name) name = a.getAttribute('title').replace(/_/g, " ").trim();
-                        const text = col.textContent.trim();
-                        if (!text) return;
-                        const match = text.match(/(\d{2,3}[.,]\d{1,3})/);
-                        if (match && !freq) {
-                            const f = parseFloat(match[1].replace(",", "."));
-                            if (!isNaN(f) && f >= 76.0 && f <= 108.0) freq = f;
-                        } else if (!name && text.length > 2) {
-                            const lower = text.toLowerCase();
-                            if (!["частота", "радиостанция", "мгц", "квт", "мощность", "передатчик", "вт"].some(x => lower.includes(x))) name = text.replace(/\[\d+\]/g, "").trim();
-                        }
-                    });
-                    if (freq && name) stations.push({ freq, name });
-                });
+        if (!html) return stations;
+        const decode = (s) => String(s)
+            .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+            .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(parseInt(d, 10)))
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/&amp;/gi, '&')
+            .replace(/&quot;/gi, '"')
+            .replace(/&#39;|&apos;/gi, "'")
+            .replace(/&lt;/gi, '<')
+            .replace(/&gt;/gi, '>');
+        // Flatten nested tables into parent cells (depth-tracked single pass)
+        let depth = 0;
+        const flat = html.replace(/<\/?(?:table|tbody|thead|tfoot|tr|td|th)(?:\s[^>]*)?>/gi, (tag) => {
+            const t = tag.toLowerCase();
+            if (t.startsWith('<table')) { depth++; return depth > 1 ? '' : tag; }
+            if (t.startsWith('</table')) { const nested = depth > 1; depth--; return nested ? '' : tag; }
+            return depth > 1 ? '' : tag;
+        });
+        const rowRegex = /<tr(?:\s[^>]*)?>([\s\S]*?)<\/tr>/g;
+        let rowMatch;
+        while ((rowMatch = rowRegex.exec(flat)) !== null) {
+            const cols = rowMatch[1].split(/<(?:td|th)(?:\s[^>]*)?>/).slice(1);
+            if (cols.length < 2) continue;
+            let freq = null, name = "";
+            cols.forEach(colHtml => {
+                const text = decode(colHtml.replace(/<[^>]+>/g, '')).trim();
+                if (!text) return;
+                const aMatch = colHtml.match(/<a[^>]*\stitle="([^"]+)"/);
+                if (aMatch && !name) name = decode(aMatch[1]).replace(/_/g, " ").trim();
+                const match = text.match(/(\d{2,3}[.,]\d{1,3})/);
+                if (match && !freq) {
+                    const f = parseFloat(match[1].replace(",", "."));
+                    if (!isNaN(f) && f >= 76.0 && f <= 108.0) freq = f;
+                } else if (!name && text.length > 2) {
+                    const lower = text.toLowerCase();
+                    if (!["частота", "радиостанция", "мгц", "квт", "мощность", "передатчик", "вт"].some(x => lower.includes(x))) name = text.replace(/\[\d+\]/g, "").trim();
+                }
             });
-        } else {
-             const rowRegex = /<tr>([\s\S]*?)<\/tr>/g;
-             let rowMatch;
-             while ((rowMatch = rowRegex.exec(html)) !== null) {
-                 const rowHtml = rowMatch[1];
-                 const cols = rowHtml.split(/<t[d][^>]*>/).slice(1);
-                 if (cols.length < 2) continue;
-                 let freq = null, name = "";
-                 cols.forEach(colHtml => {
-                     const text = colHtml.replace(/<[^>]+>/g, '').trim();
-                     if (!text) return;
-                     const aMatch = colHtml.match(/title="([^"]+)"/);
-                     if (aMatch && !name) name = aMatch[1].replace(/_/g, " ").trim();
-                     const match = text.match(/(\d{2,3}[.,]\d{1,3})/);
-                     if (match && !freq) {
-                         const f = parseFloat(match[1].replace(",", "."));
-                         if (!isNaN(f) && f >= 76.0 && f <= 108.0) freq = f;
-                     } else if (!name && text.length > 2) {
-                         const lower = text.toLowerCase();
-                         if (!["частота", "радиостанция", "мгц", "квт", "мощность", "передатчик", "вт"].some(x => lower.includes(x))) name = text.replace(/\[\d+\]/g, "").trim();
-                     }
-                 });
-                 if (freq && name) stations.push({ freq, name });
-             }
+            if (freq && name) stations.push({ freq, name });
         }
         return stations;
     },

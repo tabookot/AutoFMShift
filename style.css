@@ -75,6 +75,10 @@ body {
 }
 
 .brand { display: flex; align-items: center; gap: 8px; min-width: 0; flex-shrink: 0; }
+.header-brand { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; user-select: none; }
+.header-brand .hb-name { font-weight: 700; font-size: 15px; white-space: nowrap; }
+.header-brand .hb-accent { color: var(--accent); }
+.header-brand .hb-ver { font-size: 10px; color: var(--text-dim); font-weight: 400;}
 .logo-img {
     width: 32px; height: 32px; flex-shrink: 0;
     background-image: url('img/logo_100.png');
@@ -92,13 +96,19 @@ body {
     min-width: 0;
     margin-left: 20px;
     margin-right: 10px;
+    /* Lift into header padding zones so the logo (32px) stays the tallest item */
+    margin-top: calc(var(--space) * -1);
+    margin-bottom: calc(var(--space) * -1);
     position: relative;
     overflow: hidden;
-    padding: 4px 0;
+    padding: 0;
 }
 .player-info { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; overflow: hidden; z-index: 3; }
 .player-logo { width: 28px; height: 28px; border-radius: 4px; object-fit: contain; background: var(--panel-light); flex-shrink: 0; }
 .player-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; overflow: hidden; width: 100%; }
+.player-name-row { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+.player-name-row .player-name { width: auto; flex: 1 1 auto; }
+.player-freq { font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
 .player-name { font-size: 12px; color: var(--text); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
 
 .player-name:hover { color: var(--accent); }
@@ -274,7 +284,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     overflow: hidden; z-index: 4;
     flex-shrink: 0;
     display: flex; flex-direction: column;
-    box-shadow: inset 0 0 25px rgba(0,0,0,0.9), inset 0 -8px 20px var(--accent-glow);
+    box-shadow: inset 0 0 15px var(--accent-glow), inset 0 -8px 14px var(--accent-glow);
     animation: tube-flicker 8s infinite steps(60);
 }
 .fm-dial-wrapper.controls-hidden {

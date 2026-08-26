@@ -15,6 +15,34 @@ let spectrumCtx = null;
 let isRestoringPlayback = false;
 let playbackToken = 0; // Token to handle rapid skipping and aborts correctly
 let lastVolume = 1;
+let dialPlayerInView = false;
+
+// Hides header player while dial player display is on screen
+function initHeaderPlayerSync() {
+  const target = document.getElementById('dialMarqueeContainer');
+  if (!target) return;
+  const measure = () => {
+    const r = target.getBoundingClientRect();
+    return r.height > 0 && r.bottom > 0 && r.top < window.innerHeight;
+  };
+  const apply = (v) => {
+    if (dialPlayerInView === v) return;
+    dialPlayerInView = v;
+    if (audioPlayer) updatePlayerUI();
+  };
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((e) => apply(e[0].isIntersecting), { threshold: 0 }).observe(target);
+  } else {
+    window.addEventListener('scroll', () => apply(measure()), { passive: true });
+    window.addEventListener('resize', () => apply(measure()), { passive: true });
+  }
+  apply(measure());
+}
+
+function setHeaderBrand(show) {
+  const b = document.getElementById('headerBrand');
+  if (b) b.style.display = show ? 'flex' : 'none';
+}
 
 async function loadStationsData() {
   try {
@@ -280,7 +308,6 @@ async function togglePlay(name) {
 async function skipStation(dir) {
   cancelRestorePlayback();
   audioPlayer.pause();
-  audioPlayer.load(); // Прерываем текущий сетевой запрос
   playbackToken++; // Invalidate previous pending attempts
   
   if (state.stations.length === 0) {
@@ -336,7 +363,6 @@ async function skipStation(dir) {
 async function skipPreset(dir) {
   cancelRestorePlayback();
   audioPlayer.pause();
-  audioPlayer.load(); // Прерываем текущий сетевой запрос
   playbackToken++; // Invalidate previous pending attempts
   
   const bS = (state.dialCurrentBand - 1) * state.presets + 1;
@@ -531,16 +557,17 @@ function updatePlayerUI() {
     const sd = stationStreamMap[FMUse.generateCodeName(currentPlayingStation)];
     if (sd) {
       pP.style.display = 'flex';
-      if (mC) mC.classList.add('show');
+      pP.style.visibility = dialPlayerInView ? 'hidden' : 'visible';
+      setHeaderBrand(dialPlayerInView);
+      if (mC) mC.classList.toggle('show', !dialPlayerInView);
       const lB = document.getElementById('logoBtn');
       const oL = 'img/logo_100.png';
-      const hF = document.getElementById('headerFreq');
+      const pF = document.getElementById('playerStreamInfo');
       const st = state.stations.find((s) => s.name === currentPlayingStation);
-      if (st) {
+      if (st && !dialPlayerInView) {
         const isSV = state.dialFreqView === 'shifted';
         const dF = isSV ? FMUse.calcShiftedFreq(st.freq, state, RU_MIN, RU_MAX) : st.freq;
-        hF.textContent = FMUse.formatFreq(dF);
-        hF.style.display = 'flex';
+        if (pF) pF.setAttribute('data-freq', FMUse.formatFreq(dF));
         const cF = (sd.streams[currentStreamIndex] && sd.streams[currentStreamIndex].favicon && sd.streams[currentStreamIndex].favicon !== 'null') ? sd.streams[currentStreamIndex].favicon : (sd.favicon && sd.favicon !== 'null' ? sd.favicon : null);
         if (cF) {
           const img = new Image();
@@ -558,6 +585,7 @@ function updatePlayerUI() {
           pL.style.display = 'none';
         }
       }
+      if (dialPlayerInView) document.getElementById('logoBtn').style.backgroundImage = "url('img/logo_100.png')";
       pN.textContent = currentPlayingStation;
       pN.href = sd.homepage || '#';
       if (pN.offsetWidth < pN.scrollWidth) pN.title = currentPlayingStation;
@@ -580,7 +608,15 @@ function updatePlayerUI() {
           p.push(g);
           tP.push(g);
         }
-        pS.textContent = p.join(' • ');
+        const fQ = pF.getAttribute('data-freq');
+        pS.textContent = '';
+        if (fQ) {
+            const fEl = document.createElement('strong');
+            fEl.textContent = fQ;
+            pS.appendChild(fEl);
+            pS.appendChild(document.createTextNode(' • '));
+        }
+        pS.appendChild(document.createTextNode(p.join(' • ')));
         pS.title = tP.join(' • ');
         if (sd.streams.length > 1) {
           pS.classList.add('active-link');
@@ -638,9 +674,10 @@ function updatePlayerUI() {
   } else {
     pP.style.display = 'none';
     if (mC) mC.classList.remove('show');
+    setHeaderBrand(true);
     document.getElementById('logoBtn').style.backgroundImage = `url('img/logo_100.png')`;
-    const hF = document.getElementById('headerFreq');
-    if (hF) hF.style.display = 'none';
+    const pF = document.getElementById('playerFreq');
+    if (pF) pF.textContent = '';
     
     // --- ДИСПЛЕЙ НА ШКАЛЕ (когда ничего не играет) ---
     const dialLogo = document.getElementById('dialPlayerLogo');

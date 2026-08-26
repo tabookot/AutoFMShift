@@ -85,7 +85,7 @@
   },
   {
     "mainName": "Вести FM",
-    "count": 79,
+    "count": 80,
     "variants": [
       "Вести FM"
     ]
@@ -393,6 +393,13 @@
     "count": 1,
     "variants": [
       "Мария FM"
+    ]
+  },
+  {
+    "mainName": "Маруся ФМ",
+    "count": 1,
+    "variants": [
+      "Маруся ФМ"
     ]
   },
   {

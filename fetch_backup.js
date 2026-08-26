@@ -116,6 +116,8 @@ async function run() {
         new: enrichResult.new,
         changed: enrichResult.changed,
         deleted: enrichResult.deleted,
+        streamsAdded: enrichResult.streamsAdded,
+        streamsRemoved: enrichResult.streamsRemoved,
         changedStations: enrichResult.changedStations
     };
     report.restored = mergedData.restoredLog || [];
@@ -395,6 +397,11 @@ async function enrichStationsData(groups, oldEnrichedList = [], onProgress = nul
     const baseUrl = "https://de1.api.radio-browser.info/json/stations/search";
     const changedStations = [];
     const norm = (val) => JSON.stringify(val || "");
+    // Canonical diff forms: streams as sorted url+codec set, tags order-insensitive
+    const canonStreams = (streams) => (streams || []).filter(s => s && s.url)
+        .map(s => ({ url: s.url, codec: s.codec || '' }))
+        .sort((a, b) => (a.url < b.url ? -1 : a.url > b.url ? 1 : 0));
+    const normTags = (t) => String(t || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean).sort().join(',');
 
     for (let i = 0; i < groups.length; i++) {
         const group = groups[i];
@@ -416,22 +423,25 @@ async function enrichStationsData(groups, oldEnrichedList = [], onProgress = nul
 
         let stationInfo = { name: group.mainName, streams: [] };
         if (apiData && apiData.length > 0) {
+            // Tie-break by name: API order (clickcount) shuffles daily and must not affect the pick
             let bestMatch = null;
             let bestScore = 0;
             for (const st of apiData) {
                 const score = FMUse.compareSets(group.mainName, st.name);
-                if (score > bestScore) { bestScore = score; bestMatch = st; }
+                if (score > bestScore || (score === bestScore && bestMatch && st.name < bestMatch.name)) { bestScore = score; bestMatch = st; }
             }
             
             if (bestMatch && bestScore >= SCORE_THRESHOLD_MAIN_MATCH) {
                 const findFirst = (field, isTags = false) => {
+                    let pick = null, pickScore = -1;
                     for (const st of apiData) {
-                        if (FMUse.compareSets(cleanSearchName, st.name) >= currentStreamThreshold && st[field] && st[field] !== 'null' && st[field] !== 'undefined') {
-                            if (isTags) return st[field].split(',').slice(0, 5).join(', ');
-                            return st[field];
-                        }
+                        if (!st[field] || st[field] === 'null' || st[field] === 'undefined') continue;
+                        const score = FMUse.compareSets(cleanSearchName, st.name);
+                        if (score < currentStreamThreshold) continue;
+                        if (score > pickScore || (score === pickScore && pick && st.name < pick.name)) { pickScore = score; pick = st; }
                     }
-                    return "";
+                    if (!pick) return "";
+                    return isTags ? pick[field].split(',').slice(0, 5).join(', ') : pick[field];
                 };
 
                 stationInfo.homepage = bestMatch.homepage || findFirst('homepage');
@@ -447,7 +457,6 @@ async function enrichStationsData(groups, oldEnrichedList = [], onProgress = nul
 
                 const seenUrls = new Set();
                 for (const st of apiData) {
-                    if (stationInfo.streams.length >= 5) break;
                     const streamUrl = st.url_resolved || st.url;
                     if (!streamUrl || streamUrl === 'null' || streamUrl === 'undefined') continue;
                     
@@ -467,21 +476,6 @@ async function enrichStationsData(groups, oldEnrichedList = [], onProgress = nul
             }
         }
         enrichedList.push(stationInfo);
-
-        const oldSt = oldStreamsMap.get(stationInfo.name);
-        if (!oldSt) {
-            // newCount tracked outside
-        } else {
-            let changes = [];
-            if (norm(oldSt.homepage) !== norm(stationInfo.homepage)) changes.push('homepage');
-            if (norm(oldSt.favicon) !== norm(stationInfo.favicon)) changes.push('favicon');
-            if (norm(oldSt.tags) !== norm(stationInfo.tags)) changes.push('tags');
-            if (norm(oldSt.streams) !== norm(stationInfo.streams)) changes.push('streams');
-            
-            if (changes.length > 0) {
-                changedStations.push({ name: stationInfo.name, changes });
-            }
-        }
 
         if (onProgress) {
             const percent = Math.round(((i + 1) / groups.length) * 100);
@@ -529,34 +523,58 @@ async function enrichStationsData(groups, oldEnrichedList = [], onProgress = nul
         }
     }
 
+    // Canonical storage: url order, cap 5, keep last known bitrate (API zeroes it on check failure)
+    const oldBitrateMap = new Map(oldList.map(s => [s.name, new Map((s.streams || []).filter(x => x && x.url && x.bitrate).map(x => [x.url, x.bitrate]))]));
     for (const stationInfo of enrichedList) {
-        stationInfo.streams.sort((a, b) => {
-            const scoreA = a.name ? FMUse.compareSets(stationInfo.name, a.name) : 0;
-            const scoreB = b.name ? FMUse.compareSets(stationInfo.name, b.name) : 0;
-            return scoreB - scoreA;
-        });
+        stationInfo.streams.sort((a, b) => (a.url < b.url ? -1 : a.url > b.url ? 1 : 0));
+        const obm = oldBitrateMap.get(stationInfo.name);
+        if (obm) stationInfo.streams.forEach(s => { if (!s.bitrate && obm.has(s.url)) s.bitrate = obm.get(s.url); });
+        if (stationInfo.streams.length > 5) stationInfo.streams.length = 5;
     }
 
-    let newCount = 0, changedCount = 0, deletedCount = 0;
+    // Unified diff vs old data (after moves, so changedStations match the counts)
+    let newCount = 0, changedCount = 0, deletedCount = 0, streamsAdded = 0, streamsRemoved = 0;
     for (const newSt of enrichedList) {
         const oldSt = oldStreamsMap.get(newSt.name);
-        if (!oldSt) newCount++;
-        else if (norm(oldSt.homepage) !== norm(newSt.homepage) || norm(oldSt.favicon) !== norm(newSt.favicon) || norm(oldSt.tags) !== norm(newSt.tags) || norm(oldSt.streams) !== norm(newSt.streams)) {
-            changedCount++;
+        if (!oldSt) { newCount++; continue; }
+        const changes = [];
+        if (norm(oldSt.homepage) !== norm(newSt.homepage)) changes.push('homepage');
+        if (norm(oldSt.favicon) !== norm(newSt.favicon)) changes.push('favicon');
+        if (normTags(oldSt.tags) !== normTags(newSt.tags)) changes.push('tags');
+        const oS = canonStreams(oldSt.streams), nS = canonStreams(newSt.streams);
+        const oUrls = new Set(oS.map(s => s.url)), nUrls = new Set(nS.map(s => s.url));
+        const added = [...nUrls].filter(u => !oUrls.has(u)).length;
+        const removed = [...oUrls].filter(u => !nUrls.has(u)).length;
+        if (added || removed || JSON.stringify(oS) !== JSON.stringify(nS)) {
+            const parts = [];
+            if (added) parts.push(`+${added}`);
+            if (removed) parts.push(`-${removed}`);
+            changes.push(parts.length ? `streams (${parts.join('/')})` : 'streams (~)');
+            streamsAdded += added;
+            streamsRemoved += removed;
         }
+        if (changes.length > 0) { changedCount++; changedStations.push({ name: newSt.name, changes }); }
     }
     const newStreamsSet = new Set(enrichedList.map(s => s.name));
     for (const oldSt of oldList) {
         if (!newStreamsSet.has(oldSt.name)) deletedCount++;
     }
 
-    return { new: newCount, changed: changedCount, deleted: deletedCount, list: enrichedList, changedStations };
+    return { new: newCount, changed: changedCount, deleted: deletedCount, streamsAdded, streamsRemoved, list: enrichedList, changedStations };
+}
+
+function readHistory() {
+    if (!fs || !fs.existsSync('data/backup-api.history.json')) return null;
+    try {
+        const h = JSON.parse(fs.readFileSync('data/backup-api.history.json', 'utf8'));
+        return h && Array.isArray(h.sessions) ? h : null;
+    } catch (e) { return null; }
 }
 
 function saveHistory(oldHistory, report) {
-    let history = oldHistory || { sessions: [] };
+    // Append-only, unlimited: falls back to file on disk when oldHistory is not passed
+    let history = oldHistory && Array.isArray(oldHistory.sessions) ? oldHistory : readHistory() || { sessions: [] };
     history.sessions.push(report);
-    if (history.sessions.length > 100) history.sessions.shift();
     
     if (fs) {
         fs.writeFileSync('data/backup-api.history.json', JSON.stringify(history, null, 2));

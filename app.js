@@ -10,6 +10,7 @@ async function init() {
   initTheme();
   await loadCyrillicFont();
   document.getElementById('appVersion').textContent = 'v' + VERSION;
+  document.getElementById('headerVersion').textContent = 'v' + VERSION;
   document.getElementById('logoBtn').title = `AutoFMShift v${VERSION}`;
 
   TEMPLATES.forEach((t) => {
@@ -302,8 +303,9 @@ async function init() {
       });
     }
 
-  audioPlayer = document.getElementById('audioPlayer');
-  const savedVol = localStorage.getItem('fm_player_volume');
+    audioPlayer = document.getElementById('audioPlayer');
+    initHeaderPlayerSync();
+    const savedVol = localStorage.getItem('fm_player_volume');
   audioPlayer.volume = savedVol !== null ? parseFloat(savedVol) : 1;
   initMobilePlayerControls();
   const mVS = document.getElementById('mobileVolumeSlider');
