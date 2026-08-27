@@ -1,5 +1,5 @@
 // core.js
-const VERSION = '0.6.48';
+const VERSION = '0.6.63';
 const CACHE_VERSION = '4';
 const LS_KEY = 'fm_adapter_calc_v10';
 const LS_THEME_KEY = 'fm_adapter_theme';
@@ -19,6 +19,7 @@ const TEMPLATES = [
   { name: 'OIRT / СССР', short: 'oirt', range: [65.9, 74.0] },
   { name: 'Свой диапазон', short: 'custom', range: [76.0, 108.0] }
 ];
+const ALL_CITIES = 'Избранное';
 const DEFAULT_STATE = {
   city: 'Москва',
   template: 'Россия / Европа',
@@ -402,7 +403,8 @@ function renderCitySelectMenu() {
   if (!m || !t) return;
   m.innerHTML = '';
   const all = new Set([...Object.keys(citiesMap), ...Object.keys(state.cityData)]);
-  Array.from(all).sort().forEach((c) => {
+  all.delete(ALL_CITIES);
+  const addOption = (c) => {
     const i = document.createElement('div');
     i.className = 'custom-select-option';
     i.dataset.value = c;
@@ -426,7 +428,9 @@ function renderCitySelectMenu() {
       m.classList.remove('show');
     };
     m.appendChild(i);
-  });
+  };
+  addOption(ALL_CITIES);
+  Array.from(all).sort().forEach(addOption);
   t.onclick = (e) => {
     e.stopPropagation();
     m.classList.toggle('show');
@@ -698,6 +702,18 @@ function loadFromLS() {
   if (!ls) return false;
   try {
     state = { ...state, ...JSON.parse(ls) };
+    // Migrate pre-rename pseudo-city, keeping custom statuses/presets
+    const oldFav = state.cityData['Все города'];
+    if (oldFav) {
+      const cur = state.cityData[ALL_CITIES];
+      if (cur) {
+        oldFav.stations = { ...(oldFav.stations || {}), ...(cur.stations || {}) };
+        if (cur.allStations && cur.allStations.length) oldFav.allStations = cur.allStations;
+      }
+      state.cityData[ALL_CITIES] = oldFav;
+      delete state.cityData['Все города'];
+    }
+    if (state.city === 'Все города') state.city = ALL_CITIES;
     return true;
   } catch {
     return false;
@@ -817,23 +833,23 @@ function openExportModal() {
   Object.keys(state.cityData).forEach((c) => {
     const s = state.cityData[c]?.stats;
     const hd = s && (s.statused > 0 || s.presets > 0);
-    if (hd) cws.push({ name: c, time: state.cityData[c]?.lastModified || 0 });
+    if (hd || c === ALL_CITIES) cws.push({ name: c, time: state.cityData[c]?.lastModified || 0 });
   });
   cws.sort((a, b) => b.time - a.time);
+  cws.sort((a, b) => (a.name === ALL_CITIES ? -1 : b.name === ALL_CITIES ? 1 : 0) || a.name.localeCompare(b.name, 'ru'));
   if (cws.length === 0) {
     l.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-dim);">Нет городов</div>';
   } else {
     cws.forEach((co) => {
       const c = co.name;
       const i = document.createElement('div');
-      i.className = 'export-city-item';
       const lb = document.createElement('label');
       lb.className = 'checkbox-wrap';
       const ip = document.createElement('input');
       ip.type = 'checkbox';
       ip.value = c;
       if (c === state.city) ip.checked = true;
-      else if (cws.length > 0 && c === cws[0].name) ip.checked = true;
+      else if (c === cws.length > 0 && c === cws[0].name) ip.checked = true;
       const cs = document.createElement('span');
       cs.className = 'checkbox-custom';
       const ns = document.createElement('span');
@@ -847,6 +863,8 @@ function openExportModal() {
   }
   document.getElementById('toggleAllExportBtn').textContent = 'Выделить все';
   document.getElementById('exportModal').classList.add('show');
+  const firstCb = l.querySelector('input[type="checkbox"]');
+  if (firstCb && !l.querySelector('input:checked')) firstCb.checked = true;
 }
 
 function doExport() {

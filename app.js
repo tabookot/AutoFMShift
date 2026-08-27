@@ -559,7 +559,7 @@ async function init() {
     const a = document.getElementById('citySelectMenu').querySelector('.active');
     if (a) a.scrollIntoView({ block: 'center' });
   };
-  if (!citiesMap[state.city]) state.city = DEFAULT_STATE.city;
+  if (!citiesMap[state.city] && state.city !== ALL_CITIES) state.city = DEFAULT_STATE.city;
   await loadCity(state.city);
   render();
   updateUrl();
@@ -593,7 +593,52 @@ function applyViewMode() {
   document.getElementById('statusHeader').style.display = showStatus ? 'block' : 'none';
 }
 
+// Pseudo-city: fav/cand stations from all cities, no name dupes, freq from first city seen
+function buildAllCities() {
+  const cd = state.cityData[ALL_CITIES] || { stations: {}, allStations: [] };
+  const seen = new Set(cd.allStations.map((s) => FMUse.normalizeName(s.name)));
+  const statuses = { ...cd.stations };
+  const stations = [...cd.allStations];
+  Object.keys(state.cityData)
+    .filter((c) => c !== ALL_CITIES)
+    .sort((a, b) => a.localeCompare(b, 'ru'))
+    .forEach((c) => {
+      const city = state.cityData[c];
+      Object.keys(city.stations || {}).forEach((n) => {
+        const type = city.stations[n].type;
+        if (type !== 'fav' && type !== 'cand') return;
+        const key = FMUse.normalizeName(n);
+        if (seen.has(key)) return;
+        const src = (city.allStations || []).find((s) => s.name === n);
+        if (!src) return;
+        seen.add(key);
+        stations.push({ name: n, freq: src.freq });
+        if (!statuses[n]) statuses[n] = { type, presetIndex: null };
+      });
+    });
+    stations.sort((a, b) => a.freq - b.freq);
+    state.cityData[ALL_CITIES] = cd;
+    cd.allStations = stations;
+    cd.stations = statuses;
+    cd.totalStations = stations.length;
+    cd.lastModified = Date.now();
+    state.stations = stations;
+    state.stationsSource = 'cache';
+    updateCityStats(ALL_CITIES);
+  }
+
 async function loadCity(city) {
+  if (city === ALL_CITIES) {
+    state.city = ALL_CITIES;
+    Object.values(stationStreamMap).forEach((d) => {
+      d.broken = false;
+      if (d.streams) d.streams.forEach((s) => (s.broken = false));
+    });
+    buildAllCities();
+    commitState();
+    render();
+    return;
+  }
   if (!citiesMap[city] && !state.cityData[city]?.allStations) return;
   state.city = city;
   Object.values(stationStreamMap).forEach((d) => {
