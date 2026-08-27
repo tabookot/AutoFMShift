@@ -111,7 +111,7 @@
         "url": "https://icecast-vgtrk.cdnvideo.ru/vestifm",
         "bitrate": 320,
         "codec": "MP3",
-        "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
+        "favicon": "",
         "tags": ""
       },
       {
@@ -1041,18 +1041,10 @@
         "codec": "MP3",
         "favicon": "",
         "tags": ""
-      },
-      {
-        "name": "Radio 7",
-        "url": "https://radio7server.streamr.ru:8040/radio7256.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "https://radio7.ru/favicon.png",
-        "tags": ""
       }
     ],
     "homepage": "https://radio7.ru/",
-    "favicon": "https://radio7.ru/favicon.png",
+    "favicon": "",
     "tags": ""
   },
   {
@@ -1327,11 +1319,11 @@
         "tags": ""
       },
       {
-        "name": "Радио Искатель",
+        "name": "Радио \"Искатель\"",
         "url": "https://iskatel.hostingradio.ru:8015/iskatel-128.mp3",
         "bitrate": 128,
         "codec": "MP3",
-        "favicon": "",
+        "favicon": "https://radioiskatel.ru/wp-content/uploads/2020/06/Logo-HD-white.png",
         "tags": ""
       }
     ],
@@ -1797,14 +1789,6 @@
     "name": "Радио Рекорд",
     "streams": [
       {
-        "name": "рекорд ",
-        "url": "http://online-2.gkvr.ru:8000/record_kra_128.aac",
-        "bitrate": 128,
-        "codec": "AAC+",
-        "favicon": "null",
-        "tags": ""
-      },
-      {
         "name": "Радио Рекорд (основной канал)",
         "url": "http://radiorecord.hostingradio.ru/rr_main96.aacp",
         "bitrate": 0,
@@ -1972,9 +1956,9 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://ruhit.fm/",
-    "favicon": "https://fm-24.ru/assets/image/radio/180/ruhitnew.jpg",
-    "tags": "music, pop, russian"
+    "homepage": "https://www.ruhit.fm/player.htm?region=1",
+    "favicon": "https://top-radio.ru/assets/image/radio/180/ruhitnew.png",
+    "tags": "поп-музыка"
   },
   {
     "name": "Радио Русь",
@@ -2179,12 +2163,12 @@
     "name": "Радио Югра",
     "streams": [
       {
-        "name": "Радио Югра (Ханты-Мансийск)",
+        "name": "Радио Югра",
         "url": "http://ugra.cdnradio.ru/radiougra",
         "bitrate": 320,
         "codec": "AAC",
-        "favicon": "https://nic.ru/favicon_150x150.png",
-        "tags": ""
+        "favicon": "",
+        "tags": "music, variety"
       }
     ],
     "homepage": "https://ugra-tv.ru/radio/",
@@ -2673,9 +2657,9 @@
         "tags": "ретро"
       }
     ],
-    "homepage": "http://radiounost.ru/",
+    "homepage": "https://top-radio.ru/web/yunost",
     "favicon": "https://top-radio.ru/assets/image/radio/180/radiounost.png",
-    "tags": "70s, 80s, retro"
+    "tags": "ретро"
   },
   {
     "name": "Business FM",
@@ -2730,6 +2714,14 @@
       },
       {
         "name": "DFM",
+        "url": "https://dfm.hostingradio.ru/dfm96.aacp?5c80d70c",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "DFM",
         "url": "https://hls-01-dfm.hostingradio.ru/dfm/playlist.m3u8",
         "bitrate": 100,
         "codec": "AAC",
@@ -2739,7 +2731,7 @@
     ],
     "homepage": "https://dfm.ru/",
     "favicon": "https://www.dfm.ru/uploads/favicon.ico",
-    "tags": "club, dance, edm, electronic, pop dance"
+    "tags": "dfm"
   },
   {
     "name": "Extreme Radio Мурманск",
@@ -2850,7 +2842,7 @@
     ],
     "homepage": "https://montecarlo.ru/",
     "favicon": "https://montecarlo.ru/_nuxt/img/26f497b.svg",
-    "tags": "classical, hits, instrumental, jazz, pop"
+    "tags": "pop"
   },
   {
     "name": "Power Hit Radio",
@@ -2938,7 +2930,7 @@
     ],
     "homepage": "https://www.radiorecord.ru/",
     "favicon": "https://www.radiorecord.ru/icons/apple-touch-icon.png",
-    "tags": "classical"
+    "tags": "chill, reggae"
   },
   {
     "name": "Relax FM",
@@ -2978,6 +2970,14 @@
   {
     "name": "Rock FM",
     "streams": [
+      {
+        "name": "Rock",
+        "url": "http://79.120.77.11:8000/rock",
+        "bitrate": 320,
+        "codec": "AAC+",
+        "favicon": "",
+        "tags": ""
+      },
       {
         "name": "ROCK FM",
         "url": "http://nashe1.hostingradio.ru/rock-128.mp3",
