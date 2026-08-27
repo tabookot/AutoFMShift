@@ -1,5 +1,5 @@
 // core.js
-const VERSION = '0.6.63';
+const VERSION = '0.6.67';
 const CACHE_VERSION = '4';
 const LS_KEY = 'fm_adapter_calc_v10';
 const LS_THEME_KEY = 'fm_adapter_theme';
@@ -730,6 +730,14 @@ function resetAll() {
 
 function resetCurrentCity() {
   const c = state.city;
+  if (c === ALL_CITIES) {
+    // Wipe custom statuses/presets, then rebuild fav/cand from all cities
+    state.cityData[ALL_CITIES] = { stations: {}, allStations: [] };
+    showToast('Избранное пересобрано');
+    loadCity(ALL_CITIES);
+    document.getElementById('helpModal').classList.remove('show');
+    return;
+  }
   if (!citiesMap[c]) return;
   if (state.cityData[c]) state.cityData[c].stations = {};
   commitState();
@@ -789,41 +797,76 @@ function doTransfer() {
     showToast('В городе-источнике нет настроек');
     return;
   }
-  const ts = state.cityData[tc]?.stats;
-  if (ts && (ts.statused > 0 || ts.presets > 0)) {
-    if (!confirm('У текущего города уже есть настройки. Перезаписать?')) return;
-  }
   const tSt = document.getElementById('transferStatuses').checked;
   const tPr = document.getElementById('transferPresets').checked;
   const ss = sc.stations;
   const sn = Object.keys(ss);
-  const tn = state.stations.map((s) => s.name);
-  if (sn.length === 0 || tn.length === 0) {
+  if (sn.length === 0) {
     showToast('Нет данных');
     return;
   }
-  const m = FMUse.matchArrays(sn, tn, 0.65);
-  let ntd = {};
-  let cnt = 0;
-  m.forEach((mt) => {
-    const sd = JSON.parse(JSON.stringify(ss[mt.source]));
-    let nd = { type: 'normal', presetIndex: null };
-    if (sd.type !== 'normal' && tSt) nd.type = sd.type;
-    if (sd.presetIndex && tPr) nd.presetIndex = sd.presetIndex;
-    if (nd.type !== 'normal' || nd.presetIndex) {
-      ntd[mt.target] = nd;
-      cnt++;
+  if (!state.cityData[tc]) state.cityData[tc] = { stations: {}, allStations: [] };
+  const cd = state.cityData[tc];
+  cd.stations = cd.stations || {};
+  // Preset guard: never touch buttons if target already has any assigned
+  const hasPresets = Object.values(cd.stations).some((s) => s.presetIndex);
+  let added = 0;
+
+  if (tc === ALL_CITIES) {
+    // Additive merge: append source's fav/cand missing here, keep everything else
+    cd.allStations = cd.allStations || [];
+    const seen = new Map(cd.allStations.map((s) => [FMUse.normalizeName(s.name), s.name]));
+    const srcList = sc.allStations || [];
+    if (tSt) sn.forEach((n) => {
+      const sd = ss[n];
+      if (sd.type !== 'fav' && sd.type !== 'cand') return;
+      const key = FMUse.normalizeName(n);
+      if (seen.has(key)) return;
+      const src = srcList.find((s) => s.name === n);
+      if (!src) return;
+      seen.set(key, n);
+      cd.allStations.push({ name: n, freq: src.freq });
+      cd.stations[n] = { type: sd.type, presetIndex: null };
+      added++;
+    });
+    if (tPr && !hasPresets) sn.forEach((n) => {
+      if (!ss[n].presetIndex) return;
+      const local = seen.get(FMUse.normalizeName(n));
+      if (!local) return;
+      cd.stations[local] = cd.stations[local] || { type: 'normal', presetIndex: null };
+      cd.stations[local].presetIndex = ss[n].presetIndex;
+    });
+    cd.allStations.sort((a, b) => a.freq - b.freq);
+    state.stations = cd.allStations.map((s) => ({ ...s }));
+  } else {
+    const tn = state.stations.map((s) => s.name);
+    if (tn.length === 0) {
+      showToast('Нет данных');
+      return;
     }
-  });
-  if (!state.cityData[tc]) state.cityData[tc] = { stations: {} };
-  state.cityData[tc].stations = ntd;
+    const m = FMUse.matchArrays(sn, tn, 0.65);
+    if (tSt) m.forEach((mt) => {
+      const sd = ss[mt.source];
+      if (sd.type !== 'normal' && !cd.stations[mt.target]) {
+        cd.stations[mt.target] = { type: sd.type, presetIndex: null };
+        added++;
+      }
+    });
+    if (tPr && !hasPresets) m.forEach((mt) => {
+      const sd = ss[mt.source];
+      if (!sd.presetIndex) return;
+      cd.stations[mt.target] = cd.stations[mt.target] || { type: 'normal', presetIndex: null };
+      cd.stations[mt.target].presetIndex = sd.presetIndex;
+      added++;
+    });
+  }
   updateCityStats(tc);
   commitState();
   render();
   document.getElementById('transferModal').classList.remove('show');
-  if (cnt > 0) showToast(`Скопировано: ${cnt} из ${m.length}`);
-  else if (m.length > 0) showToast(`Совпадений: ${m.length}`);
-  else showToast('Совпадений нет');
+  if (added > 0) showToast(`Добавлено: ${added}`);
+  else if (tPr && hasPresets) showToast('Кнопки не перенесены: уже есть назначения');
+  else showToast('Нечего добавлять');
 }
 
 function openExportModal() {

@@ -22,6 +22,12 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--panel-light); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+        * { scrollbar-width: thin; scrollbar-color: var(--border) var(--panel-light); }
+
         /* Top Bar */
         .top-bar { flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; }
         .progress-container { height: 4px; background: var(--panel-light); }
@@ -215,6 +221,334 @@
     </div>
 
     <audio id="audio"></audio>
+
+    <script>
+    // --- Stream tuning panel: sliders over SCORE_OVERRIDES, instant re-runs via RB_CACHE ---
+    window.addEventListener('DOMContentLoaded', function () {
+        if (!window.FetchBackup || typeof FetchBackup.getScoreParams !== 'function') return;
+        const SPEC = [
+            { key: 'mainMatch', label: 'Главное совпад.', min: 0, max: 1, step: 0.01 },
+            { key: 'streams', label: 'Потоки: обычные', min: 0, max: 1, step: 0.01 },
+            { key: 'streamsStrict', label: 'Потоки: риск', min: 0, max: 1, step: 0.01 },
+            { key: 'shortHard', label: 'Жёсткость коротких', min: 0.4, max: 1, step: 0.01 },
+            { key: 'lowScoreCap', label: 'Доп. низкобалльн.', min: 0, max: 5, step: 1 },
+            { key: 'streamMove', label: 'Буфер переноса', min: 0, max: 0.5, step: 0.01 }
+        ];
+        const DEFAULTS = FetchBackup.getScoreParams();
+        const TOOLTIPS = {
+            mainMatch: `SCORE_THRESHOLD_MAIN_MATCH — минимальный балл compareSets(имя группы, имя из radio-browser), чтобы считать станцию найденной. Если лучший кандидат ниже — у станции не будет ни логотипа, ни жанров, ни потоков.\\n\\nТипичные значения: 0.3–0.5. Выше 0.6 — многие станции остаются пустыми; ниже 0.3 — прилипают чужие станции-тёзки.`,
+            streams: `SCORE_THRESHOLD_STREAMS — минимальный балл для обычных станций, чтобы запись из radio-browser попала в потоки.\\n\\nТипично: 0.3–0.5. Ниже 0.3 — потоки чужих станций с похожими словами.`,
+            streamsStrict: `SCORE_THRESHOLD_STREAMS_STRICT — то же для станций группы риска (в названии есть город, «радио» или «fm» — это ~90% сетей).\\n\\nТипично: 0.5–0.7. Важно: баллы compareSets дискретные (1.0, 0.5, 0.33, 0.25), поэтому порог работает почти как переключатель: 0.34–0.49 отсекает все потоки с баллом 0.33, 0.5 и ниже — резко пускает их все. Плавно регулировать — «Доп. низкобалльн.».`,
+            lowScoreCap: `lowScoreCap (новый, дефолт 2) — сколько «пограничных» потоков (балл ниже строгого порога, но выше обычного) разрешено добавить станции. Смягчает рубильник streamsStrict: вместо «все или ничего» — брать лучшие N из низкобалльных.\\n\\n0 — как раньше (чистый порог); 2–3 — обычно лучший баланс; 5+ — заметно больше мусора у сетевых станций.`,
+            shortHard: `shortHard (новый, дефолт 0.75) — порог для станций с «коротким» именем: после очистки мусорных частей (normalizeName) осталось ≤2 слов, при этом исходное имя — группы риска (содержит город/«радио»/«fm»). У таких compareSets даёт щедрые 0.5 почти любому кандидату с тем же словом («москва» vs «новое радио москва»), поэтому порог выше строгого.\\n\\nТипично: 0.7–0.9. 1.0 — только точные совпадения слов; ниже 0.6 — вырождается в обычный строгий.\\n\\nВажно: кандидаты теперь сортируются по баллу матча (а не по clickcount), поэтому правильный поток встаёт первым и его берут cap'ы.`,
+            streamMove: `SCORE_BUFFER_STREAM_MOVE — второй проход: если имя потока совпадает с другой станцией лучше, чем с текущей, на этот буфер — поток переезжает к ней.\\n\\nТипично: 0.05–0.15. Больше — потоки мигрируют между станциями-тёзками.`
+        };
+        let currentList = null, selected = null;
+        const $ = (s) => overlay.querySelector(s);
+        const status = (t) => $('.tp-status').textContent = t;
+
+        // Same risk formula as enrichStationsData (incl. full-title citiesMap quirk)
+        const isStrict = (name) => {
+            const lowerName = name.toLowerCase();
+            const cityNames = Object.values(state.citiesMap || {}).map(c => c.toLowerCase());
+            return cityNames.some(c => lowerName.includes(c.toLowerCase())) || lowerName.includes('радио') || lowerName.includes('fm');
+        };
+
+        const css = document.createElement('style');
+        css.textContent = `
+            .tp-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; }
+            .tp-overlay.show { display: flex; }
+            .tp-panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); width: 100vw; height: 100vh; border-radius: 0; display: flex; flex-direction: column; overflow: hidden; }
+            .tp-head { display: flex; align-items: center; gap: 10px; padding: 10px 15px; border-bottom: 1px solid var(--border); background: var(--panel-light); }
+            .tp-title { font-weight: bold; flex: 1; }
+            .tp-body { flex: 1; display: flex; min-height: 0; }
+            .tp-left { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+            .tp-sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 15px; padding: 10px 15px; border-bottom: 1px solid var(--border); }
+            .tp-slider { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+            .tp-slider label { width: 115px; color: var(--text-dim); flex-shrink: 0; }
+            .tp-slider input[type=range] { flex: 1; }
+            .tp-slider .tp-val { width: 34px; text-align: right; color: var(--accent); font-family: monospace; }
+            .tp-actions { display: flex; gap: 8px; align-items: center; padding: 8px 15px; border-bottom: 1px solid var(--border); }
+            .tp-actions .btn { width: auto; }
+            .tp-status { font-size: 11px; color: var(--text-dim); flex: 1; }
+            .tp-legend { display: flex; gap: 12px; padding: 6px 15px; font-size: 10px; color: var(--text-dim); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+            .tp-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+            .tp-matrix { flex: 1; overflow-y: auto; padding: 12px 15px; display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+            .tp-dot { position: relative; width: 30px; height: 30px; border-radius: 6px; border: 2px solid var(--border); background: var(--panel-light) center/cover no-repeat; cursor: pointer; padding: 0; overflow: hidden; flex-shrink: 0; }
+            .tp-dot span.letters { font-size: 9px; color: var(--text-dim); line-height: 26px; }
+            .tp-dot.up { border-color: var(--green); }
+            .tp-dot.down { border-color: var(--pink); }
+            .tp-dot.new { border-color: var(--yellow); }
+            .tp-dot.gone { border-color: var(--border); opacity: 0.3; }
+            .tp-dot.empty { border-style: dashed; }
+            .tp-dot.strict { outline: 1px dashed var(--accent); outline-offset: -4px; }
+            .tp-dot.sel { box-shadow: 0 0 0 2px var(--accent); }
+            .tp-badge { position: absolute; right: -1px; bottom: -1px; font-size: 8px; padding: 0 2px; border-radius: 3px 0 6px 0; color: var(--bg); font-weight: bold; }
+            .tp-badge.up { background: var(--green); } .tp-badge.down { background: var(--pink); } .tp-badge.new { background: var(--yellow); }
+            .tp-badge.cnt { background: var(--accent); }
+            .tp-badge.total { background: var(--bg); color: var(--text); border: 1px solid var(--border); left: -1px; right: auto; top: -1px; bottom: auto; border-radius: 3px 0 0 6px; }
+            .tp-info { display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border: 1px solid var(--text-dim); border-radius: 50%; font-size: 9px; color: var(--text-dim); cursor: help; margin-left: 5px; font-style: italic; position: relative; flex-shrink: 0; }
+            .tp-info:hover { border-color: var(--accent); color: var(--accent); }
+            .tp-tip { display: none; position: absolute; left: 0; top: 18px; z-index: 50; background: var(--panel); border: 1px solid var(--accent); border-radius: 6px; padding: 8px 10px; font-size: 10px; line-height: 1.45; color: var(--text); white-space: pre-line; width: 340px; max-width: 60vw; box-shadow: 0 4px 15px rgba(0,0,0,0.5); font-style: normal; text-align: left; }
+            .tp-info:hover .tp-tip, .tp-info:focus .tp-tip { display: block; }
+            .tp-details { width: 320px; flex-shrink: 0; border-left: 1px solid var(--border); overflow-y: auto; padding: 15px; }
+            .tp-st-head { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+            .tp-st-head img { width: 36px; height: 36px; border-radius: 6px; object-fit: contain; background: var(--panel-light); }
+            .tp-st-name { font-weight: bold; font-size: 13px; }
+            .tp-st-sub { font-size: 10px; color: var(--text-dim); }
+            .tp-stream { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 5px; font-size: 11px; }
+            .tp-stream.added { border-color: var(--green); }
+            .tp-stream.removed { border-color: var(--pink); opacity: 0.6; }
+            .tp-stream .meta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .tp-mark { font-size: 9px; font-weight: bold; width: 12px; text-align: center; flex-shrink: 0; }
+            .tp-mark.added { color: var(--green); } .tp-mark.removed { color: var(--pink); }
+        `;
+        document.head.appendChild(css);
+
+        const overlay = document.createElement('div');
+        overlay.className = 'tp-overlay';
+        overlay.innerHTML = `
+            <div class="tp-panel">
+                <div class="tp-head">
+                    <div class="tp-title">Настройка потоков</div>
+                    <input type="range" class="vol-slider" min="0" max="1" step="0.01" value="${audio.volume}" title="Громкость" style="width: 120px;">
+                    <button class="btn tp-close">✕ Закрыть</button>
+                </div>
+                <div class="tp-body">
+                    <div class="tp-left">
+                        <div class="tp-sliders"></div>
+                        <div class="tp-actions">
+                            <button class="btn tp-run">⟳ Перегенерировать</button>
+                            <div class="tp-status"></div>
+                        </div>
+                        <div class="tp-legend">
+                            <span><i style="background:var(--green)"></i>выросло</span>
+                            <span><i style="background:var(--pink)"></i>убыло</span>
+                            <span><i style="background:var(--yellow)"></i>новая</span>
+                            <span><i style="background:var(--border);opacity:.35"></i>исчезла</span>
+                            <span><i style="border:1px dashed var(--accent);background:transparent"></i>строгий порог</span>
+                        </div>
+                        <div class="tp-matrix"></div>
+                    </div>
+                    <div class="tp-details"></div>
+                </div>
+            </div>`;
+            document.body.appendChild(overlay);
+        const tpVol = $('.tp-head .vol-slider');
+        tpVol.oninput = (e) => { audio.volume = parseFloat(e.target.value); localStorage.setItem('sandboxVol', e.target.value); };
+        tpVol.onwheel = (e) => {
+            if (e.defaultPrevented) return;
+            e.preventDefault();
+            let v = parseFloat(tpVol.value) + (e.deltaY < 0 ? 0.05 : -0.05);
+            v = Math.max(0, Math.min(1, v));
+            tpVol.value = v;
+            audio.volume = v;
+            localStorage.setItem('sandboxVol', v);
+        };
+        tpVol.addEventListener('wheel', tpVol.onwheel, { passive: false });
+
+        const inputs = {};
+        SPEC.forEach(sp => {
+            const row = document.createElement('div');
+            row.className = 'tp-slider';
+            const lbl = document.createElement('label');
+            lbl.textContent = sp.label;
+            const info = document.createElement('span');
+            info.className = 'tp-info';
+            info.textContent = 'i';
+            const tip = document.createElement('div');
+            tip.className = 'tp-tip';
+            tip.textContent = TOOLTIPS[sp.key];
+            info.appendChild(tip);
+            lbl.appendChild(info);
+            row.appendChild(lbl);
+            const inp = document.createElement('input');
+            inp.type = 'range';
+            inp.min = sp.min; inp.max = sp.max; inp.step = sp.step; inp.value = DEFAULTS[sp.key];
+            row.appendChild(inp);
+            const val = document.createElement('span');
+            val.className = 'tp-val';
+            val.textContent = DEFAULTS[sp.key];
+            row.appendChild(val);
+            inputs[sp.key] = inp;
+            inp.oninput = () => val.textContent = inp.value;
+            inp.onwheel = (e) => {
+                if (e.defaultPrevented) return;
+                e.preventDefault();
+                const v = Math.min(sp.max, Math.max(sp.min, parseFloat(inp.value) + (e.deltaY < 0 ? sp.step : -sp.step)));
+                inp.value = sp.step >= 1 ? String(v) : v.toFixed(2);
+                val.textContent = inp.value;
+            };
+            inp.addEventListener('wheel', inp.onwheel, { passive: false });
+            $('.tp-sliders').appendChild(row);
+        });
+        const resetBtn = document.createElement('button');
+        resetBtn.className = 'btn';
+        resetBtn.textContent = '↺ Сброс';
+        resetBtn.title = 'Вернуть значения из кода fetch_backup.js';
+        resetBtn.onclick = () => {
+            SPEC.forEach(sp => { inputs[sp.key].value = DEFAULTS[sp.key]; });
+            document.querySelectorAll('.tp-val').forEach((el, i) => el.textContent = DEFAULTS[SPEC[i].key]);
+        };
+        $('.tp-actions').insertBefore(resetBtn, $('.tp-run'));
+
+        function renderMatrix() {
+            const box = $('.tp-matrix');
+            box.innerHTML = '';
+            const base = new Map((state.oldEnrichedList || []).map(s => [s.name, s]));
+            const cur = new Map((currentList || []).map(s => [s.name, s]));
+            [...new Set([...cur.keys(), ...base.keys()])].sort((a, b) => a.localeCompare(b, 'ru')).forEach(name => {
+                const c = cur.get(name), b = base.get(name);
+                const cc = c ? (c.streams || []).length : null;
+                const bc = b ? (b.streams || []).length : null;
+                const st = !c ? 'gone' : !b ? 'new' : cc > bc ? 'up' : cc < bc ? 'down' : 'same';
+                const addedN = c && b ? [...new Set((c.streams||[]).map(s=>s.url))].filter(u => !new Set((b.streams||[]).map(s=>s.url)).has(u)).length : 0;
+                const removedN = c && b ? [...new Set((b.streams||[]).map(s=>s.url))].filter(u => !new Set((c.streams||[]).map(s=>s.url)).has(u)).length : 0;
+                const strict = isStrict(name);
+                const d = document.createElement('button');
+                d.className = 'tp-dot' + (st !== 'same' ? ' ' + st : '') + (c && cc === 0 ? ' empty' : '') + (strict ? ' strict' : '') + (selected === name ? ' sel' : '');
+                const letters = document.createElement('span');
+                letters.className = 'letters';
+                letters.textContent = name.slice(0, 2);
+                d.appendChild(letters);
+                if (c && cc > 0) {
+                    const total = document.createElement('span');
+                    total.className = 'tp-badge total';
+                    total.textContent = cc;
+                    d.appendChild(total);
+                }
+                if (st === 'up' || st === 'down' || addedN + removedN > 0) {
+                    const bd = document.createElement('span');
+                    bd.className = 'tp-badge ' + st;
+                    bd.textContent = st === 'new' ? '+' : (addedN ? `+${addedN}` : '') + (removedN ? `−${removedN}` : '');
+                    d.appendChild(bd);
+                }
+                if (st === 'same' && addedN + removedN > 0) {
+                    const bd = document.createElement('span');
+                    bd.className = 'tp-badge new';
+                    bd.textContent = '±';
+                    d.appendChild(bd);
+                }
+                const fav = (c && c.favicon) || (b && b.favicon) || '';
+                if (fav && fav !== 'null' && fav !== 'undefined') {
+                    const img = new Image();
+                    img.onload = () => { d.style.backgroundImage = `url('${fav}')`; letters.remove(); };
+                    img.src = fav;
+                }
+                const delta = (cc !== null && bc !== null) ? `${bc}→${cc}` : (st === 'new' ? `новая, ${cc}` : `исчезла (было ${bc})`);
+                d.title = `${name} • ${delta} • ${strict ? 'строгий' : 'обычный'} порог`;
+                d.onclick = () => { selected = name; renderMatrix(); renderDetails(); };
+                box.appendChild(d);
+            });
+            status(`Станций: ${cur.size} • базовая data/stations_data.json: ${base.size}`);
+        }
+
+        function renderDetails() {
+            const box = $('.tp-details');
+            box.innerHTML = '';
+            if (!selected) { box.innerHTML = '<div class="tp-st-sub">Кликните станцию для деталей</div>'; return; }
+            const c = (currentList || []).find(s => s.name === selected);
+            const b = (state.oldEnrichedList || []).find(s => s.name === selected);
+            const el = c || b;
+            if (!el) { box.innerHTML = '<div class="tp-st-sub">Станция не найдена</div>'; return; }
+            const strict = isStrict(selected);
+            const fav = el.favicon && el.favicon !== 'null' ? el.favicon : '';
+            const head = document.createElement('div');
+            head.className = 'tp-st-head';
+            head.innerHTML = `${fav ? `<img src="${fav}" onerror="this.style.display='none'">` : ''}
+                <div><div class="tp-st-name">${el.name}</div><div class="tp-st-sub">${el.tags || ''}</div></div>`;
+            head.title = el.homepage || el.name;
+            box.appendChild(head);
+            const curUrls = new Set((c ? c.streams : []).map(s => s.url));
+            const baseUrls = new Set((b ? b.streams : []).map(s => s.url));
+            const sub = document.createElement('div');
+            sub.className = 'tp-st-sub';
+            sub.style.marginBottom = '10px';
+            sub.textContent = `Потоки: база ${baseUrls.size} → сейчас ${curUrls.size} • ${strict ? 'строгий' : 'обычный'} порог (${strict ? parseFloat(inputs.streamsStrict.value) : parseFloat(inputs.streams.value)}) • доп. низкобалльных: ${parseInt(inputs.lowScoreCap.value, 10)}`;
+            box.appendChild(sub);
+            const rows = [];
+            (c ? c.streams : []).forEach(s => rows.push({ s, mark: baseUrls.has(s.url) ? '' : 'added' }));
+            (b ? b.streams : []).forEach(s => { if (!curUrls.has(s.url)) rows.push({ s, mark: 'removed' }); });
+            if (!rows.length) box.insertAdjacentHTML('beforeend', '<div class="tp-st-sub">Нет потоков</div>');
+            rows.forEach(({ s, mark }) => {
+                const row = document.createElement('div');
+                row.className = 'tp-stream' + (mark ? ' ' + mark : '');
+                const btn = document.createElement('button');
+                btn.className = 'play-stream-btn';
+                btn.textContent = '▶';
+                btn.onclick = (e) => { e.stopPropagation(); playStream(s.url, s.bitrate || ''); };
+                row.appendChild(btn);
+                const mk = document.createElement('span');
+                mk.className = 'tp-mark' + (mark ? ' ' + mark : '');
+                mk.textContent = mark === 'added' ? '+' : mark === 'removed' ? '−' : '';
+                row.appendChild(mk);
+                const fav = (s.favicon && s.favicon !== 'null' && s.favicon !== 'undefined') ? s.favicon : '';
+                if (fav) {
+                    const img = document.createElement('img');
+                    img.src = fav;
+                    img.style.cssText = 'width:18px;height:18px;border-radius:3px;object-fit:contain;background:var(--panel-light);flex-shrink:0;';
+                    img.onerror = () => img.remove();
+                    row.appendChild(img);
+                }
+                const meta = document.createElement('div');
+                meta.className = 'meta';
+                meta.textContent = `${s.name || ''} • ${s.bitrate || '?'}k • ${s.codec || ''}${s.tags ? ' • ' + s.tags : ''}`;
+                meta.title = s.url;
+                row.appendChild(meta);
+                box.appendChild(row);
+            });
+        }
+
+        async function regenerate() {
+            if (!state.groups || !state.groups.length) { status('Нет групп: выполните шаг 3'); return; }
+            const runBtn = $('.tp-run');
+            runBtn.disabled = true;
+            const o = {};
+            SPEC.forEach(sp => o[sp.key] = parseFloat(inputs[sp.key].value));
+            FetchBackup.setScoreOverrides(o);
+            const wrap = overlay.querySelector('.tp-matrix');
+            wrap.innerHTML = '<div style="padding:30px;color:var(--text-dim);width:100%;text-align:center;">⏳ Перегенерация...</div>';
+            try {
+                const res = await FetchBackup.enrichStationsData(state.groups, state.oldEnrichedList || [], (p) => {
+                    wrap.innerHTML = `<div style="padding:30px;color:var(--text-dim);width:100%;text-align:center;">⏳ Перегенерация: ${p}%<div style="height:6px;background:var(--panel-light);border-radius:3px;margin-top:10px;overflow:hidden;"><div style="height:100%;width:${p}%;background:var(--accent);transition:width .2s;"></div></div></div>`;
+                }, state.citiesMap || {});
+                currentList = res.list;
+                status(`Готово: станций ${res.list.length}, потоков +${res.streamsAdded || 0} / −${res.streamsRemoved || 0}`);
+                renderMatrix();
+                renderDetails();
+            } catch (e) { status('Ошибка: ' + e.message); renderMatrix(); }
+            runBtn.disabled = false;
+        }
+
+        function openPanel() {
+            overlay.classList.add('show');
+            if (!currentList) {
+                if (state.enrichedList && state.enrichedList.length) {
+                    currentList = state.enrichedList;
+                    status('Диаграмма из результата шага 4');
+                } else status('Нет данных: выполните шаги 3–4 или загрузите файлы');
+            }
+            renderMatrix();
+            renderDetails();
+        }
+
+        $('.tp-run').onclick = regenerate;
+        $('.tp-close').onclick = () => overlay.classList.remove('show');
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.remove('show'); };
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') overlay.classList.remove('show'); });
+
+        const bp = document.querySelector('.button-panel');
+        if (bp) {
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+            btn.textContent = '🎚 Потоки';
+            btn.title = 'Тестовая панель подбора коэффициентов потоков';
+            btn.onclick = openPanel;
+            const helpBtn = [...bp.querySelectorAll('button')].find(b => b.textContent.includes('Справка'));
+            bp.insertBefore(btn, helpBtn || null);
+        }
+    });
+    </script>
 
     <script src="../api.js"></script>
     <script src="../fmuse.js"></script>
@@ -556,6 +890,7 @@
             audio.volume = val;
             localStorage.setItem('sandboxVol', val);
         };
+        volSlider.addEventListener('wheel', volSlider.onwheel, { passive: false });
 
         // --- File Upload Handler ---
         function handleFileUpload(step, input) {

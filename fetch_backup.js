@@ -34,12 +34,12 @@ const SCORE_BUFFER_STREAM_MOVE = 0.1; // 0.1 рекомендуется
 const SCORE_THRESHOLD_MAIN_MATCH = 0.40; // 0.40 рекомендуется
 
 // Отвечает за сбор потоков для ОБЫЧНЫХ станций (например "Вера", "Дорожное Радио").
-const SCORE_THRESHOLD_STREAMS = 0.35; // 0.40 рекомендуется
+const SCORE_THRESHOLD_STREAMS = 0.1; // 0.40 рекомендуется
 
 // Отвечает за сбор потоков для СТАНЦИЙ ГРУППЫ РИСКА (содержат название города или слова Радио/FM).
 // Алгоритм compareSets("красноярск", "новое радио красноярск") = 1/3 = 0.33.
 // Строгий порог 0.60 надежно отсекает такие прилипания, оставляя только прямые совпадения.
-const SCORE_THRESHOLD_STREAMS_STRICT = 0.60; // 0.60 рекомендуется
+const SCORE_THRESHOLD_STREAMS_STRICT = 0.51; // 0.60 рекомендуется
 
 // --- МАГИЧЕСКИЕ ПАРАМЕТРЫ АЛГОРИТМА ЗАЩИТЫ ОТ СБОЕВ API ---
 // Рассчитывают, было ли удаление штатным или это сбой парсера/API.
@@ -390,6 +390,14 @@ async function enrichStationsData(groups, oldEnrichedList = [], onProgress = nul
             try { oldList = JSON.parse(fs.readFileSync('data/stations_data.json', 'utf8')); } catch (e) {}
         }
     }
+    const SP = {
+        mainMatch: SCORE_OVERRIDES.mainMatch ?? SCORE_THRESHOLD_MAIN_MATCH,
+        streams: SCORE_OVERRIDES.streams ?? SCORE_THRESHOLD_STREAMS,
+        streamsStrict: SCORE_OVERRIDES.streamsStrict ?? SCORE_THRESHOLD_STREAMS_STRICT,
+        streamMove: SCORE_OVERRIDES.streamMove ?? SCORE_BUFFER_STREAM_MOVE,
+        lowScoreCap: SCORE_OVERRIDES.lowScoreCap ?? 2,
+        shortHard: SCORE_OVERRIDES.shortHard ?? 0.75
+    };
     const oldStreamsMap = new Map(oldList.map(s => [s.name, s]));
     const cityNames = Object.values(citiesMap).map(c => c.toLowerCase());
 
@@ -411,19 +419,30 @@ async function enrichStationsData(groups, oldEnrichedList = [], onProgress = nul
         // Определяем станцию группы риска (содержит название города, "радио" или "fm")
         const lowerName = group.mainName.toLowerCase();
         const isHighRisk = cityNames.some(c => lowerName.includes(c.toLowerCase())) || lowerName.includes('радио') || lowerName.includes('fm');
-        const currentStreamThreshold = isHighRisk ? SCORE_THRESHOLD_STREAMS_STRICT : SCORE_THRESHOLD_STREAMS;
+        // Short generic name: after junk removal <=2 words left -> greedy compareSets matches strangers
+        const words = cleanSearchName.split(' ').filter(Boolean);
+        const isShort = words.length > 0 && words.length <= 2 && isHighRisk;
+        const currentStreamThreshold = isShort ? Math.max(SP.streamsStrict, SP.shortHard) : (isHighRisk ? SP.streamsStrict : SP.streams);
         
         const url = `${baseUrl}?name=${searchName}&countrycode=RU&hidebroken=true&limit=50&order=clickcount&reverse=true`;
         
-        let apiData = null;
-        try {
-            const res = await fetch(url, { headers: { 'User-Agent': 'AutoFMShift-GitHubAction/1.0' } });
-            if (res.ok) apiData = await res.json();
-        } catch (e) {}
+        let apiData = RB_CACHE[url] !== undefined ? RB_CACHE[url] : null;
+        if (RB_CACHE[url] === undefined) {
+            RB_CACHE[url] = null;
+            try {
+                const res = await fetch(url, { headers: { 'User-Agent': 'AutoFMShift-GitHubAction/1.0' } });
+                if (res.ok) { apiData = await res.json(); RB_CACHE[url] = apiData; }
+            } catch (e) {}
+        }
 
         let stationInfo = { name: group.mainName, streams: [] };
         if (apiData && apiData.length > 0) {
-            // Tie-break by name: API order (clickcount) shuffles daily and must not affect the pick
+            // Stable: match score first (desc), then name asc — clickcount order must not drive selection
+            apiData = [...apiData].sort((a, b) => {
+                const sa = FMUse.compareSets(cleanSearchName, a.name);
+                const sb = FMUse.compareSets(cleanSearchName, b.name);
+                return (sb - sa) || (a.name || '').localeCompare(b.name || '');
+            });
             let bestMatch = null;
             let bestScore = 0;
             for (const st of apiData) {
@@ -431,7 +450,7 @@ async function enrichStationsData(groups, oldEnrichedList = [], onProgress = nul
                 if (score > bestScore || (score === bestScore && bestMatch && st.name < bestMatch.name)) { bestScore = score; bestMatch = st; }
             }
             
-            if (bestMatch && bestScore >= SCORE_THRESHOLD_MAIN_MATCH) {
+            if (bestMatch && bestScore >= SP.mainMatch) {
                 const findFirst = (field, isTags = false) => {
                     let pick = null, pickScore = -1;
                     for (const st of apiData) {
@@ -455,21 +474,27 @@ async function enrichStationsData(groups, oldEnrichedList = [], onProgress = nul
                     ? bestMatch.tags.split(',').slice(0, 5).join(', ') 
                     : findFirst('tags', true);
 
-                const seenUrls = new Set();
-                for (const st of apiData) {
-                    const streamUrl = st.url_resolved || st.url;
-                    if (!streamUrl || streamUrl === 'null' || streamUrl === 'undefined') continue;
-                    
-                    if (FMUse.compareSets(cleanSearchName, st.name) >= currentStreamThreshold && !seenUrls.has(streamUrl)) {
-                        stationInfo.streams.push({ 
-                            name: st.name || "", 
-                            url: streamUrl, 
-                            bitrate: st.bitrate, 
-                            codec: st.codec,
-                            // Сохраняем логотип и теги на уровне потока тоже
-                            favicon: st.favicon || "",
-                            tags: st.tags ? st.tags.split(',').slice(0, 5).join(', ') : ""
-                        });
+                    const seenUrls = new Set();
+                    let lowScoreUsed = 0;
+                    for (const st of apiData) {
+                        const streamUrl = st.url_resolved || st.url;
+                        if (!streamUrl || streamUrl === 'null' || streamUrl === 'undefined') continue;
+                        
+                        const score = FMUse.compareSets(cleanSearchName, st.name);
+                        const isLow = score < currentStreamThreshold;
+                        if (score < SP.streams) continue; // below base threshold: never
+                        if (isLow && lowScoreUsed >= SP.lowScoreCap) continue;
+                        if (!seenUrls.has(streamUrl)) {
+                            if (isLow) lowScoreUsed++;
+                                stationInfo.streams.push({ 
+                                name: st.name || "", 
+                                url: streamUrl, 
+                                bitrate: st.bitrate, 
+                                codec: st.codec,
+                                // Сохраняем логотип и теги на уровне потока тоже
+                                favicon: st.favicon || "",
+                                tags: st.tags ? st.tags.split(',').slice(0, 5).join(', ') : ""
+                            });
                         seenUrls.add(streamUrl);
                     }
                 }
@@ -500,7 +525,7 @@ async function enrichStationsData(groups, oldEnrichedList = [], onProgress = nul
             for (const targetName of allStationNames) {
                 if (targetName === stationInfo.name) continue;
                 const score = FMUse.compareSets(targetName, stream.name);
-                if (score > bestScore + SCORE_BUFFER_STREAM_MOVE) {
+                if (score > bestScore + SP.streamMove) {
                     bestScore = score;
                     bestStationName = targetName;
                 }
@@ -523,13 +548,38 @@ async function enrichStationsData(groups, oldEnrichedList = [], onProgress = nul
         }
     }
 
-    // Canonical storage: url order, cap 5, keep last known bitrate (API zeroes it on check failure)
+    // Relevance order: exact > station-name prefix > contains-as-word > rest; set score; url tiebreak
     const oldBitrateMap = new Map(oldList.map(s => [s.name, new Map((s.streams || []).filter(x => x && x.url && x.bitrate).map(x => [x.url, x.bitrate]))]));
     for (const stationInfo of enrichedList) {
-        stationInfo.streams.sort((a, b) => (a.url < b.url ? -1 : a.url > b.url ? 1 : 0));
+        const rawMain = stationInfo.name.toLowerCase().replace(/\s+/g, ' ').trim();
+        const cleanMain = FMUse.normalizeName(stationInfo.name);
+        const relRank = (s) => {
+            const raw = (s.name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+            const n = FMUse.normalizeName(s.name || '');
+            if (!raw || !rawMain) return 3;
+            // Raw name exact/prefix beats cleaned matches ("Rock FM" > "Rock" for station "Rock FM")
+            if (raw === rawMain) return 0;
+            if (raw.startsWith(rawMain + ' ') || raw.startsWith(rawMain + '-') || raw.startsWith(rawMain + '(')) return 0;
+            if (!n || !cleanMain) return 3;
+            if (n === cleanMain) return 1;
+            if (n.startsWith(cleanMain + ' ')) return 2;
+            if (n.includes(' ' + cleanMain + ' ') || n.endsWith(' ' + cleanMain)) return 2;
+            return 3;
+        };
+        stationInfo.streams.sort((a, b) => {
+            const ra = relRank(a), rb = relRank(b);
+            if (ra !== rb) return ra - rb;
+            const sa = a.name ? FMUse.compareSets(cleanMain, a.name) : 0;
+            const sb = b.name ? FMUse.compareSets(cleanMain, b.name) : 0;
+            if (sa !== sb) return sb - sa;
+            return a.url < b.url ? -1 : a.url > b.url ? 1 : 0;
+        });
         const obm = oldBitrateMap.get(stationInfo.name);
         if (obm) stationInfo.streams.forEach(s => { if (!s.bitrate && obm.has(s.url)) s.bitrate = obm.get(s.url); });
         if (stationInfo.streams.length > 5) stationInfo.streams.length = 5;
+        // Main logo: first favicon among top-ranked streams
+        const topFav = stationInfo.streams.find(s => s.favicon && s.favicon !== 'null' && s.favicon !== 'undefined');
+        if (topFav) stationInfo.favicon = topFav.favicon;
     }
 
     // Unified diff vs old data (after moves, so changedStations match the counts)
@@ -620,6 +670,20 @@ if (typeof require !== 'undefined' && require.main === module) {
     });
 }
 
+// Sandbox tuning: runtime score overrides + raw radio-browser cache for instant re-runs
+const SCORE_OVERRIDES = {};
+const RB_CACHE = {};
+
 if (typeof window !== 'undefined') {
-    window.FetchBackup = { generateLists, enrichStationsData, compareData, saveHistory, mergeData };
+    window.FetchBackup = { generateLists, enrichStationsData, compareData, saveHistory, mergeData,
+        setScoreOverrides: (o) => Object.assign(SCORE_OVERRIDES, o),
+        clearScoreOverrides: () => { for (const k in SCORE_OVERRIDES) delete SCORE_OVERRIDES[k]; },
+        getScoreParams: () => ({
+            mainMatch: SCORE_OVERRIDES.mainMatch ?? SCORE_THRESHOLD_MAIN_MATCH,
+            streams: SCORE_OVERRIDES.streams ?? SCORE_THRESHOLD_STREAMS,
+            streamsStrict: SCORE_OVERRIDES.streamsStrict ?? SCORE_THRESHOLD_STREAMS_STRICT,
+            streamMove: SCORE_OVERRIDES.streamMove ?? SCORE_BUFFER_STREAM_MOVE,
+            lowScoreCap: SCORE_OVERRIDES.lowScoreCap ?? 2,
+            shortHard: SCORE_OVERRIDES.shortHard ?? 0.75
+        }) };
 }
