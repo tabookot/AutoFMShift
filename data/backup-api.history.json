@@ -221,6 +221,635 @@
           "reason": "glitch_protect"
         }
       ]
+    },
+    {
+      "timestamp": "2026-08-27T18:37:09.803Z",
+      "status": "success",
+      "requiresAttention": false,
+      "attentionReasons": [],
+      "changes": {
+        "cities": {
+          "new": [],
+          "deleted": [],
+          "renamed": []
+        },
+        "stations": {
+          "new": [],
+          "deleted": [],
+          "renamed": [],
+          "frequency_migrated": []
+        }
+      },
+      "radioBrowser": {
+        "new": 0,
+        "changed": 90,
+        "deleted": 0,
+        "streamsAdded": 133,
+        "streamsRemoved": 10,
+        "changedStations": [
+          {
+            "name": "32 радио",
+            "changes": [
+              "favicon",
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Авторадио",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Бизнес FM",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Владивосток FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Волгоград FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Восток FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Детское радио",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Джем FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Диалог FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Дорожное радио",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Европа Плюс",
+            "changes": [
+              "favicon",
+              "streams (+5/-5)"
+            ]
+          },
+          {
+            "name": "Кавказ радио",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Красноярск FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Москва FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Мост Радио",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Наше радио",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Новое Радио",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Первое радио",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Первое Спортивное радио",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Пи FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Пилот Радио",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Питер FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Планета FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио 100",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио 107",
+            "changes": [
+              "favicon",
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио 40",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио 53",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио 7",
+            "changes": [
+              "favicon",
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио 99,1 FM",
+            "changes": [
+              "favicon",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Ваня",
+            "changes": [
+              "favicon",
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Гордость",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Дача",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио для двоих",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Звезда",
+            "changes": [
+              "favicon",
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Китап",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Комсомольская правда",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Красная Армия",
+            "changes": [
+              "favicon",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Краснодар",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Маяк",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Мегаполис",
+            "changes": [
+              "favicon",
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Мелодия",
+            "changes": [
+              "favicon",
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Мир",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Монте-Карло",
+            "changes": [
+              "homepage",
+              "streams (+1/-3)"
+            ]
+          },
+          {
+            "name": "Радио Москвы",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Ностальжи",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Образ",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Орфей",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Рекорд",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Родных Дорог",
+            "changes": [
+              "favicon",
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Роксана",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Русские песни",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Русский Хит",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Седьмое Небо",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Сибирь",
+            "changes": [
+              "favicon",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Спутник",
+            "changes": [
+              "favicon",
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Трансмит",
+            "changes": [
+              "favicon",
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Шансон",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Шоколад",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Эрмитаж",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Юлдаш",
+            "changes": [
+              "favicon",
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Юнитон",
+            "changes": [
+              "favicon",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Chocolate",
+            "changes": [
+              "favicon",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио JAZZ",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Maximum",
+            "changes": [
+              "favicon",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио Nostalgie",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио Sputnik",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Релакс FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Ретро FM",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Рок Радио",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Русское радио",
+            "changes": [
+              "favicon",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Такси FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Татар радиосы",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "ТКР FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Хит FM",
+            "changes": [
+              "favicon",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Юмор FM",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Юность",
+            "changes": [
+              "homepage",
+              "tags"
+            ]
+          },
+          {
+            "name": "Business FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Comedy Radio",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "DFM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "FM-на-Дону",
+            "changes": [
+              "favicon",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Heart FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Love Radio",
+            "changes": [
+              "favicon",
+              "streams (+3)"
+            ]
+          },
+          {
+            "name": "Mix FM",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Monte Carlo",
+            "changes": [
+              "tags",
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Radio Metro",
+            "changes": [
+              "tags",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Radio Record",
+            "changes": [
+              "favicon",
+              "tags",
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Relax FM",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Rock FM",
+            "changes": [
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Royal Radio",
+            "changes": [
+              "favicon",
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Studio 21",
+            "changes": [
+              "streams (+1)"
+            ]
+          }
+        ]
+      },
+      "restored": [
+        {
+          "type": "station",
+          "city": "Владимир",
+          "name": "план Регион-Медиа",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Мурманск",
+          "name": "&#160;",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио 1-й Канал",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио КП",
+          "reason": "glitch_protect"
+        }
+      ]
     }
   ]
 }
