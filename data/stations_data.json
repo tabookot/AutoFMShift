@@ -1342,24 +1342,32 @@
         "tags": ""
       },
       {
-        "name": "Радио СИ - 103.7 FM",
-        "url": "https://online.radioc.ru/radioc",
-        "bitrate": 128,
+        "name": "Radio 7",
+        "url": "https://radio7server.streamr.ru:8040/radio7256.mp3",
+        "bitrate": 0,
         "codec": "MP3",
-        "favicon": "https://www.radioc.ru/online/logo.png",
+        "favicon": "https://radio7.ru/favicon.png",
         "tags": ""
       },
       {
-        "name": "Авторадио 107.7 FM",
-        "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
-        "bitrate": 64,
-        "codec": "AAC+",
+        "name": "Radio 7 Tyumen",
+        "url": "http://live.radio7.su:9000/radio7_128",
+        "bitrate": 128,
+        "codec": "MP3",
         "favicon": "",
-        "tags": ""
+        "tags": "hits, pop"
+      },
+      {
+        "name": "Radio 7 Moscow",
+        "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
+        "bitrate": 320,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "hits, russian hits"
       }
     ],
     "homepage": "https://radio7.ru/",
-    "favicon": "https://www.radioc.ru/online/logo.png",
+    "favicon": "https://radio7.ru/favicon.png",
     "tags": ""
   },
   {
@@ -2264,7 +2272,7 @@
         "url": "http://77.232.167.247:1007/admin",
         "bitrate": 0,
         "codec": "MP3",
-        "favicon": "",
+        "favicon": "http://priboy.news/static/favicon_150x150.png",
         "tags": ""
       },
       {
@@ -2276,7 +2284,7 @@
         "tags": "folk"
       }
     ],
-    "homepage": "https://www.radiopriboy.ru/",
+    "homepage": "http://priboy.news/",
     "favicon": "http://priboy.news/static/favicon_150x150.png",
     "tags": "folk"
   },
@@ -2346,6 +2354,14 @@
         "codec": "MP3",
         "favicon": "",
         "tags": "rap"
+      },
+      {
+        "name": "рекорд ",
+        "url": "http://online-2.gkvr.ru:8000/record_kra_128.aac",
+        "bitrate": 128,
+        "codec": "AAC+",
+        "favicon": "null",
+        "tags": ""
       }
     ],
     "homepage": "http://radiorecord.ru/",
@@ -3593,14 +3609,6 @@
       },
       {
         "name": "DFM",
-        "url": "https://dfm.hostingradio.ru/dfm96.aacp?5c80d70c",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "DFM",
         "url": "https://hls-01-dfm.hostingradio.ru/dfm/playlist.m3u8",
         "bitrate": 100,
         "codec": "AAC",
@@ -3614,6 +3622,14 @@
         "codec": "AAC+",
         "favicon": "https://dfm.ru/uploads/favicon.ico",
         "tags": "breakbeat"
+      },
+      {
+        "name": "DFM - Club ",
+        "url": "https://dfm-dfmclub.hostingradio.ru/dfmclub96.aacp",
+        "bitrate": 96,
+        "codec": "AAC+",
+        "favicon": "",
+        "tags": "club, dance, dancefloor, house"
       }
     ],
     "homepage": "https://dfm.ru/",
@@ -3882,7 +3898,7 @@
         "tags": "phonk, rap, witch house"
       }
     ],
-    "homepage": "https://www.radiorecord.ru/",
+    "homepage": "https://www.radiorecord.fm/m3u/rr320-28kbps.m3u",
     "favicon": "https://cdn-profiles.tunein.com/s309967/images/logod.jpg?t=1",
     "tags": "classical"
   },
@@ -3942,6 +3958,14 @@
     "name": "Rock FM",
     "streams": [
       {
+        "name": "Rock FM",
+        "url": "http://nashe.streamr.ru/rock-128.mp3",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "https://cdn.onlineradiobox.com/img/apple-touch-icon-120x120.png",
+        "tags": "russian rock"
+      },
+      {
         "name": "ROCK FM",
         "url": "http://nashe1.hostingradio.ru/rock-128.mp3",
         "bitrate": 0,
@@ -3972,18 +3996,10 @@
         "codec": "AAC+",
         "favicon": "",
         "tags": ""
-      },
-      {
-        "name": "Acoustic Rock Radio",
-        "url": "http://live-radio.ru:8111/live",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "http://live-radio.ru/favicon.png",
-        "tags": "accordion, acoustic, acoustic rock, autor-interprete, cantautor"
       }
     ],
     "homepage": "http://www.rockfm.ru/",
-    "favicon": "https://lh3.googleusercontent.com/D3taObR7tfyhwDFY40VS8DIVri7iif5RuzI9C-mXxRwF41vGZ_dO_n6MWM57P-mZczFC=w300",
+    "favicon": "https://cdn.onlineradiobox.com/img/apple-touch-icon-120x120.png",
     "tags": "classic rock, pop rock, rock"
   },
   {
