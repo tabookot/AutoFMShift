@@ -1350,20 +1350,20 @@
         "tags": ""
       },
       {
-        "name": "Radio 7 Tyumen",
-        "url": "http://live.radio7.su:9000/radio7_128",
-        "bitrate": 128,
-        "codec": "MP3",
+        "name": "Авторадио 107.7 FM",
+        "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
+        "bitrate": 64,
+        "codec": "AAC+",
         "favicon": "",
-        "tags": "hits, pop"
+        "tags": ""
       },
       {
-        "name": "Radio 7 Moscow",
-        "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
-        "bitrate": 320,
-        "codec": "MP3",
+        "name": "Russkoe Radio - Moskva 105.7 FM",
+        "url": "http://rusradio.hostingradio.ru/rusradio96.aacp",
+        "bitrate": 0,
+        "codec": "AAC",
         "favicon": "",
-        "tags": "hits, russian hits"
+        "tags": ""
       }
     ],
     "homepage": "https://radio7.ru/",
@@ -2272,7 +2272,7 @@
         "url": "http://77.232.167.247:1007/admin",
         "bitrate": 0,
         "codec": "MP3",
-        "favicon": "http://priboy.news/static/favicon_150x150.png",
+        "favicon": "",
         "tags": ""
       },
       {
@@ -2284,7 +2284,7 @@
         "tags": "folk"
       }
     ],
-    "homepage": "http://priboy.news/",
+    "homepage": "https://vobook.ru/http://77.232.167.247:1007/admin",
     "favicon": "http://priboy.news/static/favicon_150x150.png",
     "tags": "folk"
   },
@@ -2340,11 +2340,11 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд Breaks",
-        "url": "http://radiorecord.hostingradio.ru/brks96.aacp",
+        "name": "Радио Рекорд Christmas",
+        "url": "http://radiorecord.hostingradio.ru/christmas96.aacp",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
+        "favicon": "http://radiorecord.ru/local/templates/record/assets/build/favicon-set/apple-touch-icon.png",
         "tags": ""
       },
       {
@@ -2545,7 +2545,7 @@
         "bitrate": 128,
         "codec": "MP3",
         "favicon": "https://fm-24.ru/assets/image/radio/180/ruhitnew.jpg",
-        "tags": "поп-музыка"
+        "tags": "поп"
       },
       {
         "name": "Русский Хит",
@@ -2616,7 +2616,7 @@
         "url": "https://stream.radiosibir.ru:8093/HQ",
         "bitrate": 192,
         "codec": "MP3",
-        "favicon": "",
+        "favicon": "https://radiosibir.ru/img/logo-small.png",
         "tags": "томск"
       },
       {
@@ -2629,7 +2629,7 @@
       }
     ],
     "homepage": "https://radiosibir.ru/",
-    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241008_175133555.jpg?alt=media&token=ae43a0c7-60da-4f7e-aa10-bfe3db95d518",
+    "favicon": "https://radiosibir.ru/img/logo-small.png",
     "tags": "томск"
   },
   {
@@ -3536,9 +3536,9 @@
         "tags": "ретро"
       }
     ],
-    "homepage": "http://radiounost.ru/",
+    "homepage": "https://top-radio.ru/web/yunost",
     "favicon": "https://top-radio.ru/assets/image/radio/180/radiounost.png",
-    "tags": "70s, 80s, retro"
+    "tags": "ретро"
   },
   {
     "name": "Business FM",
@@ -3624,12 +3624,12 @@
         "tags": "breakbeat"
       },
       {
-        "name": "DFM - Club ",
-        "url": "https://dfm-dfmclub.hostingradio.ru/dfmclub96.aacp",
+        "name": "DFM - Chill",
+        "url": "https://dfm-dfmchill.hostingradio.ru/dfmchill96.aacp",
         "bitrate": 96,
         "codec": "AAC+",
-        "favicon": "",
-        "tags": "club, dance, dancefloor, house"
+        "favicon": "https://dfm.ru/uploads/favicon.ico",
+        "tags": "ambient, chill, relax, relaxation music"
       }
     ],
     "homepage": "https://dfm.ru/",
@@ -3898,7 +3898,7 @@
         "tags": "phonk, rap, witch house"
       }
     ],
-    "homepage": "https://www.radiorecord.fm/m3u/rr320-28kbps.m3u",
+    "homepage": "https://www.radiorecord.ru/",
     "favicon": "https://cdn-profiles.tunein.com/s309967/images/logod.jpg?t=1",
     "tags": "classical"
   },
@@ -3982,16 +3982,16 @@
         "tags": ""
       },
       {
-        "name": "Rock",
-        "url": "http://79.120.77.11:8000/rock",
-        "bitrate": 320,
-        "codec": "AAC+",
-        "favicon": "",
-        "tags": ""
+        "name": "ROCK FM",
+        "url": "https://nashe1.hostingradio.ru:80/rock-128.mp3",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "https://www.rockfm.ru/favicons/apple-touch-icon.png",
+        "tags": "rock"
       },
       {
-        "name": "Folk Rock",
-        "url": "http://79.111.14.76:8000/folkrock",
+        "name": "Rock",
+        "url": "http://79.120.77.11:8000/rock",
         "bitrate": 320,
         "codec": "AAC+",
         "favicon": "",
