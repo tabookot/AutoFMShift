@@ -1045,6 +1045,122 @@
           "reason": "glitch_protect"
         }
       ]
+    },
+    {
+      "timestamp": "2026-08-30T09:04:24.180Z",
+      "status": "success",
+      "requiresAttention": false,
+      "attentionReasons": [],
+      "changes": {
+        "cities": {
+          "new": [],
+          "deleted": [],
+          "renamed": []
+        },
+        "stations": {
+          "new": [],
+          "deleted": [],
+          "renamed": [],
+          "frequency_migrated": []
+        }
+      },
+      "radioBrowser": {
+        "new": 0,
+        "changed": 9,
+        "deleted": 0,
+        "streamsAdded": 9,
+        "streamsRemoved": 7,
+        "changedStations": [
+          {
+            "name": "Радио 10",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Радио 7",
+            "changes": [
+              "favicon",
+              "streams (+1/-2)"
+            ]
+          },
+          {
+            "name": "Радио Прибой",
+            "changes": [
+              "homepage"
+            ]
+          },
+          {
+            "name": "Радио Рекорд",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Радио Сибирь",
+            "changes": [
+              "favicon"
+            ]
+          },
+          {
+            "name": "Радио Z",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "DFM",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Radio Record",
+            "changes": [
+              "homepage",
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Rock FM",
+            "changes": [
+              "favicon",
+              "streams (+2/-2)"
+            ]
+          }
+        ]
+      },
+      "restored": [
+        {
+          "type": "station",
+          "city": "Владимир",
+          "name": "план Регион-Медиа",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Мурманск",
+          "name": "&#160;",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио 1-й Канал",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио КП",
+          "reason": "glitch_protect"
+        }
+      ]
     }
   ]
 }
