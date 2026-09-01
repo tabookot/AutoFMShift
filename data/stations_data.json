@@ -119,12 +119,12 @@
         "tags": "news"
       },
       {
-        "name": "Бизнес ФМ Казань 93.5 FM",
-        "url": "https://stream.volnorez.com/live-app/891608?br=192",
-        "bitrate": 192,
+        "name": "Бизнес ФМ Краснодар 106.8 FM",
+        "url": "http://195.128.153.153:8005/bfm_tuner",
+        "bitrate": 96,
         "codec": "MP3",
-        "favicon": "null",
-        "tags": "army, business fm, kazan', news, politics"
+        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20240927_221032831.jpg?alt=media&token=0d824763-9ebb-4aa9-aafa-5edcb59303de",
+        "tags": "news, talk"
       }
     ],
     "homepage": "https://www.bfm.ru/",
@@ -405,7 +405,7 @@
       {
         "name": "Динамит FM",
         "url": "http://listen7.myradio24.com/76923",
-        "bitrate": 128,
+        "bitrate": 256,
         "codec": "MP3",
         "favicon": "https://pcradio.ru/images/stations/62e280c32067d.jpg",
         "tags": "00s, танцевальная"
@@ -2248,7 +2248,7 @@
         "url": "http://77.232.167.247:1007/admin",
         "bitrate": 0,
         "codec": "MP3",
-        "favicon": "http://priboy.news/static/favicon_150x150.png",
+        "favicon": "",
         "tags": ""
       },
       {
@@ -2362,14 +2362,6 @@
         "codec": "MP3",
         "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20250111_000229150.jpg?alt=media&token=d7b2a8c7-5700-4c55-98c2-8846031700ca",
         "tags": "music, nostalgia, pop, rrd, semenov"
-      },
-      {
-        "name": "Радио Родных Дорог Ярославль 93.0 FM",
-        "url": "https://s0.radioheart.ru:8000/r93fm",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241228_113621685.jpg?alt=media&token=6a20331f-6cc0-4186-ae92-e177bfface40",
-        "tags": "chanson, music, pop, radio native roads, yaroslavl"
       }
     ],
     "homepage": "http://radiord.ru/",
@@ -3090,7 +3082,19 @@
   },
   {
     "name": "Радио Z",
-    "streams": []
+    "streams": [
+      {
+        "name": "Z Fm",
+        "url": "https://node0.craftradio.ru:8000/193_CB039DF9",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "null",
+        "tags": "фронтовое радио"
+      }
+    ],
+    "homepage": "https://node0.craftradio.ru:8000/193_CB039DF9",
+    "favicon": "",
+    "tags": "фронтовое радио"
   },
   {
     "name": "Радио-3",
@@ -3504,9 +3508,9 @@
         "tags": "ретро"
       }
     ],
-    "homepage": "https://top-radio.ru/web/yunost",
+    "homepage": "http://radiounost.ru/",
     "favicon": "https://top-radio.ru/assets/image/radio/180/radiounost.png",
-    "tags": "ретро"
+    "tags": "70s, 80s, retro"
   },
   {
     "name": "Business FM",
@@ -3716,7 +3720,7 @@
       {
         "name": "Deep House Mix",
         "url": "https://listen9.myradio24.com/oldclub",
-        "bitrate": 192,
+        "bitrate": 320,
         "codec": "MP3",
         "favicon": "https://static.tildacdn.com/tild3763-6436-4261-b330-623130393834/Original.png",
         "tags": ""
