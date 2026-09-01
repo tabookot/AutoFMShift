@@ -142,10 +142,11 @@ function attemptPlay(name, streamIndex, corsRetry) {
       resolve(false);
       return;
     }
-    if (window.location.protocol === 'https:' && url.startsWith('http:')) {
-      url = 'https:' + url.substring(5);
-    }
+    // no https-upgrade: many stream servers are plain-http only; forced TLS
+    // produces ERR_SSL_PROTOCOL_ERROR and false "broken" marks. Passive media
+    // is allowed on https pages; real blocks fall through to the retry path.
     
+    const origUrl = url; // untouched original for any retry
     let settled = false;
     const cleanup = () => {
       clearTimeout(playTimeout);
@@ -178,7 +179,9 @@ function attemptPlay(name, streamIndex, corsRetry) {
       // CORS mode failed -> retry same stream without crossorigin, no spectrum but sound
       if (corsRetry && audioPlayer.crossOrigin === 'anonymous') {
         audioPlayer.crossOrigin = null;
-        resolve('retry-plain');
+        audioPlayer.src = origUrl; // original protocol preserved
+        audioPlayer.play().catch(() => {});
+        resolve(true);
         return;
       }
       resolve(false); 
