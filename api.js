@@ -75,7 +75,7 @@ const Api = {
                     if (!["частота", "радиостанция", "мгц", "квт", "мощность", "передатчик", "вт"].some(x => lower.includes(x))) name = text.replace(/\[\d+\]/g, "").trim();
                 }
             });
-            if (freq && name) stations.push({ freq, name });
+            if (freq && name && !FMUse.isJunkName(name)) stations.push({ freq, name });
         }
         return stations;
     },

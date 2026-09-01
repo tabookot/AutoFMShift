@@ -12,6 +12,15 @@ const FMUse = {
       return cleanName;
     },
   
+    // Date/period junk from wiki history rows ("01.02.2015-26.12.2016", "до 01.04.2001", "2001-2011")
+    isJunkName(name) {
+      if (!name) return true;
+      const t = String(name).toLowerCase().replace(/\u00A0/g, ' ').trim();
+      if (t === '?' || t === '') return true;
+      const rest = t.replace(/(до|с|по|гг|г|года|год|лет)/gi, '').replace(/[\d\s.,\-–—№?]/g, '');
+      return rest.length === 0;
+    },
+  
     tokenizeAndClean(name) {
       return { primary: this.normalizeName(name).split(' ').filter((w) => w.length > 0) };
     },

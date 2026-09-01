@@ -178,6 +178,7 @@ function mergeData(oldData, newData) {
         for (const oldSt of oldCity.stations) {
             if (!newCity.stations.find(s => s.name === oldSt.name)) {
                 if (renamedOldStNames.has(oldSt.name)) continue; // Была переименована
+                if (FMUse.isJunkName(oldSt.name)) continue; // Дата-мусор старого парсера: тихо дропаем
                 
                 if (timeDiffHours < MAGIC_PARAMS.GLITCH_THRESHOLD_HOURS) {
                     // Сбой! Восстанавливаем
@@ -278,8 +279,8 @@ function compareData(oldData, newData) {
         }
 
         if (oldCity && oldCity.stations.length > 0) {
-            const oldStations = [...new Set(oldCity.stations.map(s => s.name))].filter(n => FMUse.normalizeName(n) !== '');
-            const newStations = [...new Set(newCity.stations.map(s => s.name))].filter(n => FMUse.normalizeName(n) !== '');
+            const oldStations = [...new Set(oldCity.stations.map(s => s.name))].filter(n => !FMUse.isJunkName(n));
+            const newStations = [...new Set(newCity.stations.map(s => s.name))].filter(n => !FMUse.isJunkName(n));
             
             const stMatches = FMUse.matchArrays(oldStations, newStations, SCORE_THRESHOLD_STATION_RENAME);
             const matchedOldSt = new Set();

@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
-  "appVersion": "0.5.1-github-action",
-  "exportDate": 1788168601200,
+  "appVersion": "sandbox-test",
+  "exportDate": 1788188266953,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -6434,90 +6434,6 @@
       "name": "Новосибирск",
       "stations": [
         {
-          "name": "01.02.2015-26.12.2016",
-          "freq": 106.2,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "01.03.2014-30.06.2017",
-          "freq": 94.2,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "01.07.2007-30.11.2011",
-          "freq": 105.7,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "01.08.2010-31.12.2011",
-          "freq": 96.2,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "04.2001-31.12.2011",
-          "freq": 105.2,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "06.03.2008-01.02.2016",
-          "freq": 100,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "07.06.2005-09.09.2012",
-          "freq": 107.7,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "10.05.2005-26.12.2007",
-          "freq": 101.4,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "10.07.2000-28.02.2009",
-          "freq": 106.7,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "15.03.2002-02.01.2003",
-          "freq": 99.5,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "16.12.2002-07.06.2005",
-          "freq": 103.9,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "22.12.2014-01.03.2024",
-          "freq": 102.6,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "23.12.2013-24.09.2015",
-          "freq": 92.8,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "25.01.2011-29.06.2016",
-          "freq": 97.4,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
           "name": "Авторадио",
           "freq": 98.7,
           "isDeleted": false,
@@ -6538,18 +6454,6 @@
         {
           "name": "Детское радио",
           "freq": 95.8,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "до 01.04.2001",
-          "freq": 98.7,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "до 08.06.2008",
-          "freq": 104.6,
           "isDeleted": false,
           "deletedAt": null
         },
@@ -8041,12 +7945,6 @@
         {
           "name": "(ПЛАН) Радио Орфей",
           "freq": 97,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "199? — ?",
-          "freq": 105.7,
           "isDeleted": false,
           "deletedAt": null
         },
@@ -11194,12 +11092,6 @@
     "хабаровск": {
       "name": "Хабаровск",
       "stations": [
-        {
-          "name": "711",
-          "freq": 103.7,
-          "isDeleted": false,
-          "deletedAt": null
-        },
         {
           "name": "Вести FM",
           "freq": 104.8,

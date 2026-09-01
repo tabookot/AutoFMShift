@@ -123,8 +123,8 @@ async function restorePlayback() {
   }
 }
 
-function attemptPlay(name, streamIndex) {
-  const myToken = ++playbackToken; // Get a new token for this attempt
+function attemptPlay(name, streamIndex, corsRetry) {
+  const myToken = ++playbackToken;
   return new Promise((resolve) => {
     const streamData = stationStreamMap[FMUse.generateCodeName(name)];
     if (!streamData || !streamData.streams || streamIndex >= streamData.streams.length || streamData.streams[streamIndex].broken) {
@@ -154,7 +154,7 @@ function attemptPlay(name, streamIndex) {
     };
 
     const onPlaying = () => { 
-      if (myToken !== playbackToken) { // Request was superseded
+      if (myToken !== playbackToken) { 
         if (!settled) { settled = true; cleanup(); resolve('aborted'); }
         return;
       }
@@ -168,18 +168,24 @@ function attemptPlay(name, streamIndex) {
     };
     
     const onError = () => { 
-      if (myToken !== playbackToken) { // Request was superseded
+      if (myToken !== playbackToken) { 
         if (!settled) { settled = true; cleanup(); resolve('aborted'); }
         return;
       }
       if (settled) return; 
       settled = true; 
       cleanup(); 
+      // CORS mode failed -> retry same stream without crossorigin, no spectrum but sound
+      if (corsRetry && audioPlayer.crossOrigin === 'anonymous') {
+        audioPlayer.crossOrigin = null;
+        resolve('retry-plain');
+        return;
+      }
       resolve(false); 
     };
     
     playTimeout = setTimeout(() => { 
-      if (myToken !== playbackToken) { // Request was superseded
+      if (myToken !== playbackToken) { 
         if (!settled) { settled = true; cleanup(); resolve('aborted'); }
         return;
       }
@@ -188,16 +194,17 @@ function attemptPlay(name, streamIndex) {
       audioPlayer.pause();
       audioPlayer.load(); 
       resolve(false); 
-    }, 5000); // Уменьшен таймаут до 5 секунд для быстрой перемотки
+    }, 5000);
     
     audioPlayer.addEventListener('playing', onPlaying);
     audioPlayer.addEventListener('error', onError);
     
+    audioPlayer.crossOrigin = corsRetry === false ? null : 'anonymous';
     audioPlayer.src = url;
     const playPromise = audioPlayer.play();
     if (playPromise !== undefined) {
       playPromise.catch((e) => { 
-        if (myToken !== playbackToken) { // Request was superseded
+        if (myToken !== playbackToken) { 
           if (!settled) { settled = true; cleanup(); resolve('aborted'); }
           return;
         }
@@ -208,8 +215,6 @@ function attemptPlay(name, streamIndex) {
           audioPlayer.load();
           resolve('blocked'); 
         } else if (e.name === 'AbortError') {
-          // AbortError означает, что воспроизведение было отменено (например, при быстрой смене станции).
-          // Это НЕ ошибка потока, поэтому мы НЕ помечаем его как broken.
           settled = true; cleanup();
           resolve('aborted');
         } else {
@@ -229,6 +234,10 @@ async function tryPlayStation(st) {
   let savedIdx = parseInt(localStorage.getItem('fm_working_stream_' + FMUse.generateCodeName(st.name)));
   if (!isNaN(savedIdx) && savedIdx < streamData.streams.length && !streamData.streams[savedIdx].broken) {
     played = await attemptPlay(st.name, savedIdx);
+    if (played === 'retry-plain') {
+      audioPlayer.pause();
+      played = await attemptPlay(st.name, savedIdx, false);
+    }
     if (played === true || played === 'blocked' || played === 'aborted') return played;
     if (!played) streamData.streams[savedIdx].broken = true;
   }
@@ -467,7 +476,8 @@ function initAudioContext() {
     sourceNode = audioContext.createMediaElementSource(audioPlayer);
     sourceNode.connect(analyser);
     analyser.connect(audioContext.destination);
-    if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+    window.scAnalyser = analyser;
+    audioContext.resume().catch(() => {});
   } catch (e) {
     audioContext = null;
     analyser = null;
@@ -488,10 +498,12 @@ function drawSpectrum() {
     return;
   }
   spectrumCtx.clearRect(0, 0, w, h);
-  if (analyser && !audioPlayer.paused && currentPlayingStation) {
+  if (analyser && !audioPlayer.paused && currentPlayingStation && audioPlayer.crossOrigin === 'anonymous') {
     const bL = analyser.frequencyBinCount;
     const dA = new Uint8Array(bL);
     analyser.getByteFrequencyData(dA);
+    let sum = 0; for (let i = 0; i < bL; i++) sum += dA[i];
+    if (sum === 0) { requestAnimationFrame(drawSpectrum); return; } // non-CORS: silent canvas, no garbage
     const bW = w / bL;
     let x = 0;
     const aC = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#00d4ff';

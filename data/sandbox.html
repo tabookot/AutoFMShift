@@ -35,6 +35,18 @@
         .player-bar { padding: 8px 15px; display: flex; align-items: center; gap: 15px; }
         .pp-btn { background: var(--panel-light); border: 1px solid var(--border); color: var(--accent); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .pp-btn:hover { border-color: var(--accent); }
+        #ppBtn.stream-loading { color: transparent; border-color: var(--accent); }
+        #ppBtn.stream-loading::before {
+            content: '';
+            position: absolute;
+            left: 8px; top: 8px;
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            animation: pp-spin 0.8s linear infinite;
+        }
+        @keyframes pp-spin { to { transform: rotate(360deg); } }
         .vol-slider { -webkit-appearance: none; appearance: none; width: 100px; height: 6px; background: var(--border); border-radius: 3px; outline: none; cursor: pointer; }
         .vol-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; background: var(--accent); border-radius: 50%; cursor: pointer; }
         .vol-slider::-moz-range-thumb { width: 12px; height: 12px; background: var(--accent); border-radius: 50%; cursor: pointer; border: none; }
@@ -81,6 +93,24 @@
         .stream-item { display: flex; align-items: center; gap: 8px; margin: 5px 0; margin-left: 20px; }
         .play-stream-btn { background: var(--panel-light); border: 1px solid var(--accent); color: var(--accent); padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px; }
         .play-stream-btn:hover { background: var(--accent); color: var(--bg); }
+        #ppBtn.stream-loading, #tpPlayBtn.stream-loading {
+            position: relative;
+            color: transparent;
+            border-color: var(--accent) !important;
+            pointer-events: none;
+        }
+        #ppBtn.stream-loading::before, #tpPlayBtn.stream-loading::before {
+            content: '';
+            position: absolute;
+            left: 50%; top: 50%;
+            transform: translate(-50%, -50%);
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            animation: pp-spin 0.8s linear infinite;
+        }
+        @keyframes pp-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
         .lazy-btn { background: var(--panel-light); border: 1px dashed var(--accent); color: var(--accent); padding: 5px 10px; border-radius: 4px; cursor: pointer; margin: 5px 0; font-size: 12px; }
         
         /* Save Actions in Header */
@@ -311,6 +341,7 @@
             <div class="tp-panel">
                 <div class="tp-head">
                     <div class="tp-title">Настройка потоков</div>
+                    <button id="tpPlayBtn" class="play-stream-btn" style="width: 28px; height: 28px; font-size: 12px;">▶</button>
                     <input type="range" class="vol-slider" min="0" max="1" step="0.01" value="${audio.volume}" title="Громкость" style="width: 120px;">
                     <button class="btn tp-close">✕ Закрыть</button>
                 </div>
@@ -334,6 +365,11 @@
                 </div>
             </div>`;
             document.body.appendChild(overlay);
+        const tpPlayBtn = document.getElementById('tpPlayBtn');
+        tpPlayBtn.onclick = () => {
+            if (audio.paused) { if (audio.src) audio.play().catch(() => {}); }
+            else audio.pause();
+        };
         const tpVol = $('.tp-head .vol-slider');
         tpVol.oninput = (e) => { audio.volume = parseFloat(e.target.value); localStorage.setItem('sandboxVol', e.target.value); };
         tpVol.onwheel = (e) => {
@@ -863,10 +899,31 @@
                 audio.pause();
                 return;
             }
+            setStreamLoading(true);
             audio.src = url;
-            audio.play().catch(e => console.error(e));
+            audio.play().catch(e => { setStreamLoading(false); nowPlaying.textContent = `Ошибка: ${url}`; });
             nowPlaying.textContent = `${bitrate}k - ${url}`;
         }
+
+        const loadingBtns = () => [document.getElementById('ppBtn'), document.getElementById('tpPlayBtn')];
+        function setStreamLoading(loading) {
+            loadingBtns().forEach((pp) => {
+                if (!pp) return;
+                if (loading) {
+                    pp.classList.add('stream-loading');
+                    pp.textContent = '';
+                } else {
+                    pp.classList.remove('stream-loading');
+                    pp.textContent = audio.paused ? '▶' : '⏸';
+                }
+            });
+        }
+
+        audio.addEventListener('playing', () => { ppBtn.textContent = '⏸'; setStreamLoading(false); });
+        audio.addEventListener('pause', () => { ppBtn.textContent = '▶'; setStreamLoading(false); });
+        audio.addEventListener('error', () => setStreamLoading(false));
+        audio.addEventListener('waiting', () => setStreamLoading(true));
+        audio.addEventListener('loadstart', () => setStreamLoading(true));
 
         audio.addEventListener('play', () => ppBtn.textContent = '⏸');
         audio.addEventListener('pause', () => ppBtn.textContent = '▶');
