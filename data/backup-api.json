@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
-  "appVersion": "sandbox-test",
-  "exportDate": 1788188266953,
+  "appVersion": "0.5.1-github-action",
+  "exportDate": 1788232386054,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {

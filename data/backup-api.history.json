@@ -59,6 +59,178 @@
         "note": "Загружено из файла без сравнения со старым",
         "changedStations": []
       }
+    },
+    {
+      "timestamp": "2026-09-01T03:15:06.730Z",
+      "status": "success",
+      "requiresAttention": false,
+      "attentionReasons": [],
+      "changes": {
+        "cities": {
+          "new": [],
+          "deleted": [],
+          "renamed": []
+        },
+        "stations": {
+          "new": [
+            {
+              "city": "Краснодар",
+              "name": "? (Вещало на 104,1)"
+            },
+            {
+              "city": "Мурманск",
+              "name": "&#160;"
+            },
+            {
+              "city": "Салехард",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Ханты-Мансийск",
+              "name": "Радио Радио"
+            }
+          ],
+          "deleted": [
+            {
+              "city": "Краснодар",
+              "name": "? (Вещало на 104,1)"
+            },
+            {
+              "city": "Мурманск",
+              "name": "&#160;"
+            },
+            {
+              "city": "Салехард",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Ханты-Мансийск",
+              "name": "Радио Радио"
+            }
+          ],
+          "renamed": [],
+          "frequency_migrated": []
+        }
+      },
+      "radioBrowser": {
+        "new": 0,
+        "changed": 13,
+        "deleted": 0,
+        "streamsAdded": 11,
+        "streamsRemoved": 10,
+        "changedStations": [
+          {
+            "name": "Москва FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Первое радио",
+            "changes": [
+              "homepage",
+              "favicon",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио 7",
+            "changes": [
+              "favicon",
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Радио Гордость",
+            "changes": [
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио Краснодар",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Радио Прибой",
+            "changes": [
+              "homepage"
+            ]
+          },
+          {
+            "name": "Радио JAZZ",
+            "changes": [
+              "favicon",
+              "streams (+2/-2)"
+            ]
+          },
+          {
+            "name": "Радио Maximum",
+            "changes": [
+              "favicon"
+            ]
+          },
+          {
+            "name": "Ретро FM",
+            "changes": [
+              "streams (+2/-2)"
+            ]
+          },
+          {
+            "name": "Рок Радио",
+            "changes": [
+              "favicon",
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Юность",
+            "changes": [
+              "homepage",
+              "tags"
+            ]
+          },
+          {
+            "name": "Mix FM",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Rock FM",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          }
+        ]
+      },
+      "restored": [
+        {
+          "type": "station",
+          "city": "Владимир",
+          "name": "план Регион-Медиа",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Мурманск",
+          "name": "&#160;",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио 1-й Канал",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио КП",
+          "reason": "glitch_protect"
+        }
+      ]
     }
   ]
 }
