@@ -346,6 +346,154 @@
           "reason": "glitch_protect"
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-02T07:47:05.255Z",
+      "status": "success",
+      "requiresAttention": false,
+      "attentionReasons": [],
+      "changes": {
+        "cities": {
+          "new": [],
+          "deleted": [],
+          "renamed": []
+        },
+        "stations": {
+          "new": [
+            {
+              "city": "Краснодар",
+              "name": "? (Вещало на 104,1)"
+            },
+            {
+              "city": "Мурманск",
+              "name": "&#160;"
+            },
+            {
+              "city": "Салехард",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Ханты-Мансийск",
+              "name": "Радио Радио"
+            }
+          ],
+          "deleted": [
+            {
+              "city": "Краснодар",
+              "name": "? (Вещало на 104,1)"
+            },
+            {
+              "city": "Мурманск",
+              "name": "&#160;"
+            },
+            {
+              "city": "Салехард",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Ханты-Мансийск",
+              "name": "Радио Радио"
+            }
+          ],
+          "renamed": [],
+          "frequency_migrated": []
+        }
+      },
+      "radioBrowser": {
+        "new": 0,
+        "changed": 9,
+        "deleted": 0,
+        "streamsAdded": 4,
+        "streamsRemoved": 7,
+        "changedStations": [
+          {
+            "name": "Вести FM",
+            "changes": [
+              "favicon"
+            ]
+          },
+          {
+            "name": "Радио 7",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (+1/-2)"
+            ]
+          },
+          {
+            "name": "Радио Роксана",
+            "changes": [
+              "streams (~)"
+            ]
+          },
+          {
+            "name": "Радио Сибирь",
+            "changes": [
+              "favicon"
+            ]
+          },
+          {
+            "name": "Радио Z",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Юность",
+            "changes": [
+              "homepage",
+              "tags"
+            ]
+          },
+          {
+            "name": "DFM",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Radio Record",
+            "changes": [
+              "tags",
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Rock FM",
+            "changes": [
+              "streams (+1/-2)"
+            ]
+          }
+        ]
+      },
+      "restored": [
+        {
+          "type": "station",
+          "city": "Владимир",
+          "name": "план Регион-Медиа",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Мурманск",
+          "name": "&#160;",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио 1-й Канал",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио КП",
+          "reason": "glitch_protect"
+        }
+      ]
     }
   ]
 }
