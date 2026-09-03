@@ -1326,6 +1326,14 @@
     "name": "Радио 7",
     "streams": [
       {
+        "name": "Radio 7",
+        "url": "http://europaplus.hostingradio.ru:8014/radiosept320.mp3",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": ""
+      },
+      {
         "name": "Radio 7 Moscow",
         "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
         "bitrate": 320,
@@ -1342,9 +1350,9 @@
         "tags": ""
       }
     ],
-    "homepage": "https://www.radio7.ru/",
+    "homepage": "https://radio7.ru/",
     "favicon": "",
-    "tags": "hits, russian hits"
+    "tags": ""
   },
   {
     "name": "Радио 7 на семи холмах",
@@ -2252,7 +2260,7 @@
         "tags": "folk"
       }
     ],
-    "homepage": "https://www.radiopriboy.ru/",
+    "homepage": "http://priboy.news/",
     "favicon": "http://priboy.news/static/favicon_150x150.png",
     "tags": "folk"
   },
@@ -2308,8 +2316,8 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд 2step",
-        "url": "http://radiorecord.hostingradio.ru/2step96.aacp",
+        "name": "Радио Рекорд Dubstep",
+        "url": "http://radiorecord.hostingradio.ru/dub96.aacp",
         "bitrate": 0,
         "codec": "AAC",
         "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
@@ -2516,9 +2524,9 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://www.ruhit.fm/player.htm?region=1",
+    "homepage": "https://fm-24.ru/web/russkij-xit",
     "favicon": "https://fm-24.ru/assets/image/radio/180/ruhitnew.jpg",
-    "tags": "поп-музыка"
+    "tags": "поп"
   },
   {
     "name": "Радио Русь",
@@ -2558,7 +2566,27 @@
   },
   {
     "name": "Радио Си",
-    "streams": []
+    "streams": [
+      {
+        "name": "Радио Си (Екатеринбург)",
+        "url": "https://online.radioc.ru/radioc_aacplus?v=1702736359326",
+        "bitrate": 64,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "Радио СИ - 103.7 FM",
+        "url": "https://online.radioc.ru/radioc",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "https://www.radioc.ru/online/logo.png",
+        "tags": ""
+      }
+    ],
+    "homepage": "https://m.radioc.ru/",
+    "favicon": "https://www.radioc.ru/online/logo.png",
+    "tags": ""
   },
   {
     "name": "Радио Сибирь",
@@ -2568,7 +2596,7 @@
         "url": "https://stream.radiosibir.ru:8093/HQ",
         "bitrate": 192,
         "codec": "MP3",
-        "favicon": "https://radiosibir.ru/img/logo-small.png",
+        "favicon": "",
         "tags": "томск"
       },
       {
@@ -2581,7 +2609,7 @@
       }
     ],
     "homepage": "https://radiosibir.ru/",
-    "favicon": "https://radiosibir.ru/img/logo-small.png",
+    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241008_175133555.jpg?alt=media&token=ae43a0c7-60da-4f7e-aa10-bfe3db95d518",
     "tags": "томск"
   },
   {
@@ -3074,7 +3102,19 @@
   },
   {
     "name": "Радио Z",
-    "streams": []
+    "streams": [
+      {
+        "name": "Z Fm",
+        "url": "https://node0.craftradio.ru:8000/193_CB039DF9",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "null",
+        "tags": "фронтовое радио"
+      }
+    ],
+    "homepage": "https://node0.craftradio.ru:8000/193_CB039DF9",
+    "favicon": "",
+    "tags": "фронтовое радио"
   },
   {
     "name": "Радио-3",
@@ -3245,12 +3285,12 @@
         "bitrate": 192,
         "codec": "MP3",
         "favicon": "https://vk.com/images/icons/pwa/favicon_32.png?12",
-        "tags": "music, rock"
+        "tags": "rock"
       }
     ],
     "homepage": "https://vk.com/samara_maximum",
     "favicon": "https://vk.com/images/icons/pwa/favicon_32.png?12",
-    "tags": "music, rock"
+    "tags": "rock"
   },
   {
     "name": "Серебряная ладья",
@@ -3561,19 +3601,19 @@
       },
       {
         "name": "DFM",
-        "url": "https://dfm.hostingradio.ru/dfm96.aacp?5c80d70c",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "DFM",
         "url": "https://hls-01-dfm.hostingradio.ru/dfm/playlist.m3u8",
         "bitrate": 100,
         "codec": "AAC",
         "favicon": "",
         "tags": "club, dance, edm, electronic, pop dance"
+      },
+      {
+        "name": "DFM - Breakbeat",
+        "url": "https://dfm-breakbeat.hostingradio.ru/breakbeat96.aacp",
+        "bitrate": 96,
+        "codec": "AAC+",
+        "favicon": "https://dfm.ru/uploads/favicon.ico",
+        "tags": "breakbeat"
       },
       {
         "name": "DFM - Chill",
@@ -3810,6 +3850,14 @@
     "name": "Radio Record",
     "streams": [
       {
+        "name": "Radio Record",
+        "url": "https://radiorecord.hostingradio.ru/rr_main96.aacp",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": "classical"
+      },
+      {
         "name": "Radio Record Ambient",
         "url": "http://radiorecord.hostingradio.ru/ambient96.aacp",
         "bitrate": 0,
@@ -3826,14 +3874,6 @@
         "tags": "deep house, house"
       },
       {
-        "name": "Radio Record Organic",
-        "url": "http://radiorecord.hostingradio.ru/organic96.aacp",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "https://www.radiorecord.ru/icons/apple-touch-icon.png",
-        "tags": "house, organic house, progressive house"
-      },
-      {
         "name": "Radio Record Phonk",
         "url": "http://radiorecord.hostingradio.ru/phonk96.aacp",
         "bitrate": 0,
@@ -3842,17 +3882,17 @@
         "tags": "phonk, rap, witch house"
       },
       {
-        "name": "Radio Record Synthwave",
-        "url": "http://radiorecord.hostingradio.ru/synth96.aacp",
+        "name": "Radio Record - Reggae",
+        "url": "http://radiorecord.hostingradio.ru/reggae96.aacp",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "http://www.radiorecord.ru/icons/apple-touch-icon.png",
-        "tags": ""
+        "favicon": "https://www.radiorecord.ru/icons/apple-touch-icon.png",
+        "tags": "chill, reggae"
       }
     ],
     "homepage": "https://www.radiorecord.ru/",
     "favicon": "https://cdn-profiles.tunein.com/s309967/images/logod.jpg?t=1",
-    "tags": "ambient"
+    "tags": "classical"
   },
   {
     "name": "Relax FM",
