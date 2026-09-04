@@ -1156,7 +1156,27 @@
   },
   {
     "name": "Радио 10",
-    "streams": []
+    "streams": [
+      {
+        "name": "Радио 10",
+        "url": "https://ic.radio10.live/stream.mp3",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "pop music"
+      },
+      {
+        "name": "Град Петров Санкт Петербург 73.10 УКВ",
+        "url": "http://stream.grad-petrov.ru:8093/mp3",
+        "bitrate": 96,
+        "codec": "MP3",
+        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241228_214012596.jpg?alt=media&token=1844ad26-1a93-4b6a-807a-2dfcebf2d413",
+        "tags": "christian, grad petrov, religious, sankt peterburg"
+      }
+    ],
+    "homepage": "https://radio10.live/",
+    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241228_214012596.jpg?alt=media&token=1844ad26-1a93-4b6a-807a-2dfcebf2d413",
+    "tags": "pop music"
   },
   {
     "name": "Радио 100",
@@ -1334,24 +1354,24 @@
         "tags": ""
       },
       {
-        "name": "Radio 7 Moscow",
-        "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
-        "bitrate": 320,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": "hits, russian hits"
-      },
-      {
         "name": "Авторадио 107.7 FM",
         "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
         "bitrate": 64,
         "codec": "AAC+",
         "favicon": "",
         "tags": ""
+      },
+      {
+        "name": "Дорожное радио Выборг 106.7 FM",
+        "url": "http://78.140.197.238:9877/DR-Vyborg",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241102_173428649.jpg?alt=media&token=2904b04a-3216-481d-b1d4-b93c77c9541a",
+        "tags": "47, music, nostalgie, region 47, vyborg"
       }
     ],
     "homepage": "https://radio7.ru/",
-    "favicon": "",
+    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241102_173428649.jpg?alt=media&token=2904b04a-3216-481d-b1d4-b93c77c9541a",
     "tags": ""
   },
   {
@@ -2316,11 +2336,11 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд Dubstep",
-        "url": "http://radiorecord.hostingradio.ru/dub96.aacp",
+        "name": "Радио Рекорд Dancecore",
+        "url": "http://radiorecord.hostingradio.ru/dc96.aacp",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
+        "favicon": "http://radiorecord.ru/local/templates/record/assets/build/favicon-set/apple-touch-icon.png",
         "tags": ""
       },
       {
@@ -2330,6 +2350,14 @@
         "codec": "MP3",
         "favicon": "",
         "tags": "rap"
+      },
+      {
+        "name": "рекорд ",
+        "url": "http://online-2.gkvr.ru:8000/record_kra_128.aac",
+        "bitrate": 128,
+        "codec": "AAC+",
+        "favicon": "null",
+        "tags": ""
       }
     ],
     "homepage": "http://radiorecord.ru/",
@@ -2524,9 +2552,9 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://fm-24.ru/web/russkij-xit",
+    "homepage": "https://www.ruhit.fm/player.htm?region=1",
     "favicon": "https://fm-24.ru/assets/image/radio/180/ruhitnew.jpg",
-    "tags": "поп"
+    "tags": "поп-музыка"
   },
   {
     "name": "Радио Русь",
@@ -2566,27 +2594,7 @@
   },
   {
     "name": "Радио Си",
-    "streams": [
-      {
-        "name": "Радио Си (Екатеринбург)",
-        "url": "https://online.radioc.ru/radioc_aacplus?v=1702736359326",
-        "bitrate": 64,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Радио СИ - 103.7 FM",
-        "url": "https://online.radioc.ru/radioc",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://www.radioc.ru/online/logo.png",
-        "tags": ""
-      }
-    ],
-    "homepage": "https://m.radioc.ru/",
-    "favicon": "https://www.radioc.ru/online/logo.png",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Радио Сибирь",
@@ -3104,6 +3112,14 @@
     "name": "Радио Z",
     "streams": [
       {
+        "name": "Радио Z Белгород 105.2 FM",
+        "url": "http://node0.craftradio.ru:8000/169_2FC31C8F",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20240916_222922183.jpg?alt=media&token=021115f8-8187-41a5-9dd0-d3a8af34b023",
+        "tags": "music"
+      },
+      {
         "name": "Z Fm",
         "url": "https://node0.craftradio.ru:8000/193_CB039DF9",
         "bitrate": 0,
@@ -3113,7 +3129,7 @@
       }
     ],
     "homepage": "https://node0.craftradio.ru:8000/193_CB039DF9",
-    "favicon": "",
+    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20240916_222922183.jpg?alt=media&token=021115f8-8187-41a5-9dd0-d3a8af34b023",
     "tags": "фронтовое радио"
   },
   {
@@ -3408,7 +3424,7 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://wwv.zvuch.com/radio-online/ulyanovsk-fm",
+    "homepage": "https://ruradio.net/ulyanovsk/ulyanovsk-fm-1042-fm-gFeVDpD3oe",
     "favicon": "https://ruradio.net/api/img/w150/f7/f77c947c874ac7de2aa19b337a758469.jpeg",
     "tags": "поп-музыка"
   },
@@ -3528,9 +3544,9 @@
         "tags": "ретро"
       }
     ],
-    "homepage": "https://top-radio.ru/web/yunost",
+    "homepage": "http://radiounost.ru/",
     "favicon": "https://top-radio.ru/assets/image/radio/180/radiounost.png",
-    "tags": "ретро"
+    "tags": "70s, 80s, retro"
   },
   {
     "name": "Business FM",
@@ -3850,14 +3866,6 @@
     "name": "Radio Record",
     "streams": [
       {
-        "name": "Radio Record",
-        "url": "https://radiorecord.hostingradio.ru/rr_main96.aacp",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": "classical"
-      },
-      {
         "name": "Radio Record Ambient",
         "url": "http://radiorecord.hostingradio.ru/ambient96.aacp",
         "bitrate": 0,
@@ -3872,6 +3880,14 @@
         "codec": "AAC",
         "favicon": "https://www.radiorecord.ru/icons/apple-touch-icon.png",
         "tags": "deep house, house"
+      },
+      {
+        "name": "Radio Record Organic",
+        "url": "http://radiorecord.hostingradio.ru/organic96.aacp",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "https://www.radiorecord.ru/icons/apple-touch-icon.png",
+        "tags": "house, organic house, progressive house"
       },
       {
         "name": "Radio Record Phonk",
@@ -3890,9 +3906,9 @@
         "tags": "chill, reggae"
       }
     ],
-    "homepage": "https://www.radiorecord.ru/",
+    "homepage": "https://www.radiorecord.fm/m3u/rr320-28kbps.m3u",
     "favicon": "https://cdn-profiles.tunein.com/s309967/images/logod.jpg?t=1",
-    "tags": "classical"
+    "tags": "chill, reggae"
   },
   {
     "name": "Relax FM",
@@ -3956,6 +3972,14 @@
         "codec": "MP3",
         "favicon": "https://lh3.googleusercontent.com/D3taObR7tfyhwDFY40VS8DIVri7iif5RuzI9C-mXxRwF41vGZ_dO_n6MWM57P-mZczFC=w300",
         "tags": "classic rock, pop rock, rock"
+      },
+      {
+        "name": "Rock",
+        "url": "http://79.120.77.11:8000/rock",
+        "bitrate": 320,
+        "codec": "AAC+",
+        "favicon": "",
+        "tags": ""
       },
       {
         "name": "Arena Rock",
