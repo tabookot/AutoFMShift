@@ -548,7 +548,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .adapter-panel { padding: 8px 10px; }
 .panel-title { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: flex; align-items: center; }
 
-.hover-trigger { position: absolute; top: 0; right: 0; width: 80px; height: 100%; z-index: 2; cursor: help; }
+.hover-trigger { position: absolute; top: 0; right: 0; width: 80px; height: 100%; z-index: 4; cursor: help; touch-action: manipulation; pointer-events: auto; }
 .adapter-panel .hover-trigger { z-index: 1; }
 .adapter-panel .chips-container { z-index: 2; pointer-events: none; }
 .adapter-panel .chip { z-index: 3; pointer-events: auto; }
@@ -859,7 +859,7 @@ body.player-mode .preset-dropdown { display: none !important; }
         flex-wrap: wrap;
         justify-content: space-between;
     }
-    .hover-trigger { display: none; }
+    /* .hover-trigger re-enabled via JS fix (compact fixed zone, no chip overlap) */
     .col-status { width: 70px; }
     .status-cell { width: 70px; gap: 8px; }
     .status-icon { font-size: 22px; padding: 4px; min-width: 22px; min-height: 22px; }

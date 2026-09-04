@@ -49,12 +49,7 @@ async function init() {
     const hBg = () => bB.classList.remove('hovered');
     hT.addEventListener('mouseenter', sBg);
     hT.addEventListener('mouseleave', hBg);
-    hT.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      sBg();
-    }, { passive: false });
-    hT.addEventListener('touchend', hBg);
-    hT.addEventListener('touchcancel', hBg);
+    // touch on bandit zone handled by scorch.js (single master)
   }
 
   document.getElementById('downloadBtn').addEventListener('click', (e) => {
