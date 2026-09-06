@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "0.5.1-github-action",
-  "exportDate": 1788593445588,
+  "exportDate": 1788680689148,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -7705,18 +7705,6 @@
       "name": "Петропавловск-Камчатский",
       "stations": [
         {
-          "name": "(БЫЛ ПЛАН) Comedy Radio",
-          "freq": 90.3,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "(БЫЛ ПЛАН) DFM",
-          "freq": 101.6,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
           "name": "Авторадио",
           "freq": 104.5,
           "isDeleted": false,
@@ -7797,6 +7785,18 @@
         {
           "name": "Юмор FM",
           "freq": 88.9,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Comedy Radio",
+          "freq": 90.3,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "DFM",
+          "freq": 101.6,
           "isDeleted": false,
           "deletedAt": null
         },
