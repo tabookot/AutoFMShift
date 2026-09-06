@@ -74,24 +74,27 @@
     { p: 0.00, k: 'dawn' }, { p: 0.07, k: 'day' }, { p: 0.36, k: 'day' }, { p: 0.46, k: 'sunset' },
     { p: 0.55, k: 'night' }, { p: 0.90, k: 'night' }, { p: 0.965, k: 'dawn' }, { p: 1.00, k: 'dawn' }
   ];
+  // canonical round-end phrases (Scorched Earth / MK heritage), no Russian
+  // translation — {N} splices the addressee's name in. Draw phrases carry
+  // no {N}: nobody is addressed
   const BANNERS = {
     win: [
-      'FATALITY!', '{N} ПОБЕЖДАЕТ!', 'FLAWLESS VICTORY!', 'ПОБЕДА!', '{N} — ЧЕМПИОН!',
-      '{N} РАЗНОСИТ ВСЁ', 'ANNIHILATION', '{N} — WINNER', 'TOTAL VICTORY', '{N} СЛИВАЕТ СОПЕРНИКА',
-      'МИССИЯ ВЫПОЛНЕНА — {N}', 'ПОБЕДА БЕЗ ШАНСОВ', 'HUMILIATION', '{N} — ЛЕГЕНДА АРЕНЫ', '{N} WINNER WINNER',
-      '{N} ЛОВИТ ПОБЕДУ', 'GAME WON', 'VICTORY IS {N}\'S', 'МИССИЯ ПРОЙДЕНА — {N}', 'ПОБЕДА!'
+      'FATALITY!', '{N} WINS!', 'FLAWLESS VICTORY!', 'VICTORY!', 'WINNER!',
+      'MISSION ACCOMPLISHED', 'CONGRATULATIONS, {N}!', 'PERFECT!', 'CHAMPION!', '{N} IS THE WINNER',
+      'TOTAL VICTORY', 'ANNIHILATION', 'HUMILIATION', 'GAME WON', 'VICTORY IS {N}\'S',
+      'MISSION COMPLETE', '{N} HAS WON', 'ПОБЕДА, {N}!'
     ],
     lose: [
-      'ПОТРАЧЕНО, {N}!', '{N} WASTED', 'YOU DIED, {N}', 'GAME OVER ДЛЯ {N}', 'DEFEAT',
-      '{N} ПРОИГРЫВАЕТ', 'MISSION FAILED: {N}', '{N} BUSTED', '{N} ВЫБЫВАЕТ', 'FRAGGED',
-      '{N} РАЗОБРАН НА ЗАПЧАСТИ', 'GAME LOST', '{N} УСТРАИВАЕТ СЕБЕ ОТДЫХ', '{N} BUSTED AGAIN', 'TRY AGAIN',
-      '{N} — ЭТО БЫЛО БОЛЬНО', 'TOTAL DEFEAT', '{N} ПРОСИТ РЕВАНШ', 'DEFEATED', 'ПОРАЖЕНИЕ!'
+      'ПОТРАЧЕНО, {N}!', '{N} WASTED', 'YOU DIED, {N}', 'GAME OVER', 'DEFEAT',
+      'YOU LOSE', 'MISSION FAILED', 'BUSTED, {N}', 'YOU ARE DEAD', '{N} FRAGGED',
+      'YOU HAVE BEEN DEFEATED', 'GAME LOST', '{N} LOSES', 'TRY AGAIN, {N}', 'BETTER LUCK NEXT TIME',
+      'TOTAL DEFEAT', '{N} HAS LOST', '{N} DEFEATED', 'ПОРАЖЕНИЕ, {N}!'
     ],
     draw: [
-      'DRAW!', "IT'S A DRAW!", 'НИЧЬЯ!', 'DEAD HEAT', 'ОБА В АУТЕ',
-      'НИКТО НЕ ПОБЕДИЛ', 'ОБА ПРОИГРАЛИ', 'БЕЗ ПОБЕДИТЕЛЯ', 'РАВНЫЙ БОЙ', 'ДВЕ ЛОЖКИ ДЁГТЯ',
-      'NO WINNER', 'NO CONTEST', 'ВЗАИМНОЕ УНИЧТОЖЕНИЕ', 'STALEMATE!', 'НИЧЬЯ',
-      'ОТЛИЧНЫЙ ВЫСТРЕЛ — ПЛОХОЙ ИСХОД', 'EVEN MATCH', 'ВТОРАЯ КРУГЛАЯ?', 'РАВНЫЙ БОЙ', 'ВСЕ ПРОИГРАЛИ'
+      'DRAW!', "IT'S A DRAW!", 'TIE!', 'DRAW GAME', 'STALEMATE',
+      'DEAD HEAT', 'NO WINNER', 'EVEN MATCH', 'MATCH DRAWN', 'BOTH LOSE',
+      'NOBODY WINS', 'NO CONTEST', 'DRAW! DRAW! DRAW!', 'STALEMATE!', 'НИЧЬЯ!',
+      'НИКТО НЕ ПОБЕДИЛ', 'ОБА ПРОИГРАЛИ', 'БЕЗ ПОБЕДИТЕЛЯ', 'РАВНЫЙ БОЙ', 'ВСЕ ПРОИГРАЛИ'
     ]
   };
   const BANNER_COL = { win: '#ffd23f', lose: '#ff4a3a', draw: '#ff9a3a' };
@@ -121,6 +124,9 @@
   let cycleT = 0, dayness = 1, todT = 0;
   let tanks, wind, windDir, aiSkill;
   let ammoInv = {}, aiAmmo = {}, cur = 0, cur2 = 0, turn, state, turnOrder = 0;
+  // who opened the CURRENT round — strictly alternates between rounds in
+  // every mode; round 1 opener is random
+  let roundOpener = 0;
   let shot = null, subshots = [], liquids = [], debris = [], remains = [], sinkers = [], windParts = [], comets = [], grains = [], wreckBits = [];
   let fx = [];
   let firePatches = [];
@@ -142,10 +148,12 @@
   let wins = 0;
   let wins2 = 0, score2 = 0;
   let drag = null, killed = null, helpOpen = false, lastHitInfo = null;
-  let sliderOpen = null, sliderDrag = false, sliderGeom = null;
+  // bottom control panel (angle+power) open state — desktop toggles it via
+  // the HUD chips; touch devices show it automatically during the aim
+  let tctlOpen = false;
   let moonCv = null, moonCtx = null, giantCv = null, giantCtx = null, giantKey = '';
   let shake = 0;
-  let touchUI = false, powBar = null, powRange = null, powVal = null, hudRefs = null, apEl = null, apBuf = null;
+  let touchUI = false, tctlEl = null, angRange = null, powRange = null, angVal = null, powVal = null, hudRefs = null, apEl = null, apBuf = null;
   let lastKillMethod = 'weapon', lastShotApex = 0, lastWeapon = 'MISSILE';
   let turnTimer = 0, warnedAt = {};
   // whose shot is in the air — the round digit wears that fighter's colour
@@ -155,7 +163,7 @@
   let turnCard = null;
   let driftT = 0;
   let AC = null;
-  // combustible deposits (peat / xeno biomass): ignite, burn out, cave in
+  // combustible deposits (peat / alien biomass): ignite, burn out, cave in
   let pockets = [];
   // player identities for both modes; index 0 = left seat, 1 = right seat
   // { name, col, hull } — for GMODE 1 the right seat is the computer
@@ -166,6 +174,8 @@
   let confirmClose = false;
   let turnIntro = 0;
   let setupOpen = false, confirmOpen = false;
+  // pending action of the shared confirmation dialog (set by askConfirm)
+  let confirmAction = null;
   // first shooter of round 1 is random; rounds 2-5 alternate
   let firstShooter = Math.random() < 0.5 ? 0 : 1;
 
@@ -186,11 +196,46 @@
   const isHumanSeat = (i) => i === 0 || (GMODE === 2 && i === 1);
   const activeTank = () => tanks[turn] || tanks[0];
   const activeDir = () => { const me = activeTank(); const foe = tanks[turn === 0 ? 1 : 0]; return foe.x > me.x ? 1 : -1; };
-  const modalOpen = () => helpOpen || setupOpen || confirmOpen || !!sliderOpen;
+  // the bottom control panel is NON-MODAL — it never blocks the timer or
+  // the trajectory; only the true dialogs count
+  const modalOpen = () => helpOpen || setupOpen || confirmOpen;
   const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   // whose colour the round digit wears: the aiming seat, or the shooter
   // while their shot is still resolving
   const hudSeat = () => (state === 'aim' ? (turn === 0 ? 0 : 1) : shotOwner);
+  // shared confirmation dialog: message + action fired on YES (NO / Esc
+  // just close). Used by the duel-exit routes AND by fighter deletion
+  function askConfirm(msg, act) {
+    if (!overlay) return;
+    overlay.querySelector('.sc-confirm p').textContent = msg;
+    confirmAction = act;
+    overlay.querySelector('.sc-confirm').classList.add('show');
+    confirmOpen = true;
+  }
+  // LIGHT SITE THEME detection: walk from body UP the ancestor chain to the
+  // first OPAQUE background colour (a fully transparent chain means the
+  // browser's default white page), measure luminance. Light site → the
+  // .sc-light class rides on the overlay → every game modal panel, button
+  // and input goes crisp WHITE. Re-checked on each open() and on runtime
+  // theme switches (class / data-theme mutations on html+body)
+  function siteIsLight() {
+    let el = document.body;
+    while (el) {
+      let c = null;
+      try { c = getComputedStyle(el).backgroundColor; } catch (e) {}
+      if (c && c !== 'transparent') {
+        const m = c.match(/rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)(?:[\s,]+([\d.]+))?\s*\)/);
+        if (m && (m[4] === undefined || +m[4] > 0.05)) {
+          return (0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3]) / 255 > 0.5;
+        }
+      }
+      el = el.parentElement;
+    }
+    return true; // nothing opaque anywhere → default white page
+  }
+  function syncLightTheme() {
+    if (overlay) overlay.classList.toggle('sc-light', siteIsLight());
+  }
   function hexA(hex, a) {
     const n = parseInt(hex.slice(1), 16);
     return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
@@ -241,7 +286,6 @@
     const r = cv.getBoundingClientRect();
     return { x: (e.clientX - r.left) * (Wc / r.width), y: (e.clientY - r.top) * (Hc / r.height) };
   }
-  const inRect = (p, r) => !!r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
   const blastRange = (x, r) => [clamp(Math.round((x - r * 1.5) / cols.step), 1, cols.length - 2), clamp(Math.round((x + r * 1.5) / cols.step), 1, cols.length - 2)];
 
   function updateAimFromPointer(p) {
@@ -253,14 +297,22 @@
     const reach = Math.min(Wc * 0.42, 300);
     aim.pow = clamp(Math.round(5 + 95 * (dist - 26) / reach), 5, 100);
   }
-  function applySliderVal(px) {
-    const g = sliderGeom;
-    if (!g) return;
-    const v = Math.round(g.min + clamp((px - g.tx0) / (g.tx1 - g.tx0), 0, 1) * (g.max - g.min));
-    if (sliderOpen === 'ang') aim.ang = clamp(v, 0, 90);
-    else aim.pow = clamp(v, 5, 100);
+  // bottom control panel (angle + power), NON-MODAL: the trajectory stays
+  // live and the canvas keeps aiming while it is up. On touch it auto-opens
+  // with both sliders stacked; on desktop the HUD chips toggle it. Values
+  // sync from the live aim every frame
+  function updateTctl() {
+    if (!tctlEl) return;
+    const active = state === 'aim' && isHumanSeat(turn);
+    const blocked = helpOpen || setupOpen || confirmOpen;
+    tctlEl.classList.toggle('show', active && !blocked && (touchUI || tctlOpen));
+    if (active) {
+      angRange.value = Math.round(aim.ang);
+      powRange.value = Math.round(aim.pow);
+      angVal.textContent = Math.round(aim.ang) + '\u00b0';
+      powVal.textContent = Math.round(aim.pow);
+    }
   }
-  function closeSlider() { sliderOpen = null; sliderDrag = false; draw(); }
 
   function trailLife(w) {
     switch (w.type) {
@@ -346,64 +398,6 @@
       }
     }
     ctx.globalAlpha = 1;
-    ctx.restore();
-  }
-
-  function drawSlider() {
-    if (!sliderOpen || state !== 'aim') return;
-    const isAng = sliderOpen === 'ang';
-    const w = clamp(Wc * 0.72, 240, 380), h = 112;
-    const x = (Wc - w) / 2, y = Math.max(56, Hc * 0.26);
-    const tx0 = x + 30, tx1 = x + w - 30, ty = y + 62;
-    const min = isAng ? 0 : 5, max = isAng ? 90 : 100;
-    const val = isAng ? aim.ang : aim.pow;
-    const hx = tx0 + (tx1 - tx0) * ((val - min) / (max - min));
-    const acc = isDayT() ? '#e67e22' : '#ffb020';
-    sliderGeom = { body: { x, y, w, h }, close: { x: x + w - 34, y: y + 12, w: 22, h: 22 }, tx0, tx1, ty, min, max };
-    ctx.save();
-    ctx.fillStyle = 'rgba(4,8,14,0.5)';
-    ctx.fillRect(0, 0, Wc, Hc);
-    rrectPath(ctx, x, y, w, h, 12);
-    ctx.fillStyle = 'rgba(12,18,30,0.96)';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.font = '600 12px Orbitron, monospace';
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.textAlign = 'left';
-    ctx.fillText(isAng ? 'УГОЛ' : 'СИЛА', x + 18, y + 30);
-    ctx.font = '700 24px Orbitron, monospace';
-    ctx.fillStyle = acc;
-    ctx.textAlign = 'right';
-    ctx.fillText(isAng ? val + '°' : '' + val, x + w - 44, y + 34);
-    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    const cl = sliderGeom.close;
-    ctx.beginPath();
-    ctx.moveTo(cl.x + 6, cl.y + 6); ctx.lineTo(cl.x + 16, cl.y + 16);
-    ctx.moveTo(cl.x + 16, cl.y + 6); ctx.lineTo(cl.x + 6, cl.y + 16);
-    ctx.stroke();
-    rrectPath(ctx, tx0, ty - 4, tx1 - tx0, 8, 4);
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.fill();
-    rrectPath(ctx, tx0, ty - 4, Math.max(8, hx - tx0), 8, 4);
-    ctx.fillStyle = acc;
-    ctx.fill();
-    ctx.beginPath(); ctx.arc(hx, ty, 13, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = acc;
-    ctx.stroke();
-    ctx.font = '600 11px Orbitron, monospace';
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.textAlign = 'left'; ctx.fillText('' + min, tx0, ty + 28);
-    ctx.textAlign = 'right'; ctx.fillText('' + max, tx1, ty + 28);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.fillText('тяните ручку, X или клик мимо - закрыть', x + w / 2, y + h - 10);
     ctx.restore();
   }
 
@@ -752,6 +746,9 @@
   function open() {
     build();
     ensureAudio();
+    // re-check the site theme at every open — it may have been switched
+    // while the overlay was hidden
+    syncLightTheme();
     // restore the last session: mode + both fighters' looks
     const lc = lastCfg();
     if (lc.mode === 1 || lc.mode === 2) GMODE = lc.mode;
@@ -760,31 +757,57 @@
     setTimeout(() => { resize(); start(); }, 60);
   }
   function close(boom) { if (boom) apocalypsis(); else { stop(); overlay.classList.remove('show'); } }
+  // the closing apocalypse REUSES the actual NUKE weapon's impact package
+  // (nukeStrike) — the very same code path the fired nuke takes, just with
+  // zero damage. The show is bounded by a HARD 2-second WALL-CLOCK budget:
+  // the game clock advances ~2.2x real time (so every scheduled stage up to
+  // 2.6 game-s fires inside the window) and the overlay fades out over the
+  // last quarter-second. Slow frames can no longer stretch the closing —
+  // frame-count-based timing used to turn 120 frames into ~5s on heavy
+  // scenes; wall time cannot drift
   function apocalypsis() {
     if (state === 'closing') return;
     stop();
     state = 'closing';
     shot = null; subshots = []; liquids = []; events = []; firePatches = [];
+    const NUKE0 = { ...ARSENAL.find(w => w.key === 'NUKE'), dmg: 0 };
     tanks.forEach((t, i) => {
-      boomsAt(t.x, t.y - 10, 60, 'nuke', 0);
+      nukeStrike(t.x, t.y - 10, { ...NUKE0, r: 60 });
       t.dead = true; killed = i;
       remains.push({ x: t.x, y: t.y, col: t.col, hull: t.hull, style: 'nuke', falling: true, sunk: false, wreck: 1 });
       tankParts(t);
     });
     for (let i = 0; i < 4; i++) {
       const bx = R(Wc * 0.15, Wc * 0.85);
-      schedule(() => boomsAt(bx, surfaceAt(bx) - 10, 80, 'nuke', 0), 0.12 + i * 0.14);
+      schedule(() => nukeStrike(bx, surfaceAt(bx) - 10, NUKE0), 0.12 + i * 0.14);
     }
-    let fr = 0;
+    const tEnd = performance.now() + 2000;
+    let lastT = performance.now();
     const fin = () => {
-      fr++;
-      gt += 1 / 60;
-      for (let i = events.length - 1; i >= 0; i--) if (gt >= events[i].at) { const fn = events[i].fn; events.splice(i, 1); fn(); }
-      stepTerra(1 / 30);
-      stepFx(1 / 30);
-      stepWater(1 / 30);
+      const now = performance.now();
+      const dtr = clamp((now - lastT) / 1000, 0, 0.05);
+      lastT = now;
+      // advance game time 2.2x the real elapsed time, in fixed substeps
+      const adv = dtr * 2.2;
+      const n = Math.max(1, Math.ceil(adv * 30));
+      const sdt = adv / n;
+      for (let s = 0; s < n; s++) {
+        gt += sdt;
+        for (let i = events.length - 1; i >= 0; i--) if (gt >= events[i].at) { const fn = events[i].fn; events.splice(i, 1); fn(); }
+        stepTerra(sdt);
+        stepFx(sdt);
+        stepWater(sdt);
+      }
       draw();
-      if (fr > 55) { stop(); overlay.classList.remove('show'); return; }
+      const left = tEnd - now;
+      if (left <= 0) {
+        overlay.style.opacity = '';
+        stop();
+        overlay.classList.remove('show');
+        return;
+      }
+      // soft dissolve over the final 250ms, then a hard cut at 2s
+      overlay.style.opacity = clamp(left / 250, 0, 1).toFixed(3);
       requestAnimationFrame(fin);
     };
     requestAnimationFrame(fin);
@@ -989,28 +1012,32 @@
       volcano = { x: vx, y: vy, r: vr, coneBot: vy + Hc * 0.17, power: 0.35, doused: 0, craters: [] };
     }
 
-    // combustible deposits: 1-2 buried pockets on fuel worlds, dry ground
-    // only, clear of the volcano — find them by blasting or digging.
-    // `bl` is the cloud blob set (fractions of the pocket box) — the deposit
-    // is drawn as an irregular rounded cloud, not a rectangle
+    // combustible / explosive deposits: 2-4 per fuel world, dry ground only,
+    // clear of the volcano and of each other. Burial depth grows with the
+    // seam's width; ~10% are MEGA seams — huge, sunk 80-160px deep, and
+    // they don't smoulder: a hit sets off a catastrophic detonation
+    // (pocketDetonate) that resculpts half the map
     pockets = [];
     if (biome.fuel) {
-      const npk = 1 + (S() < 0.6 ? 1 : 0);
+      const npk = 2 + (S() < 0.7 ? 1 : 0) + (S() < 0.45 ? 1 : 0);
       for (let k = 0; k < npk; k++) {
-        for (let a = 0; a < 8; a++) {
-          const cx = R(Wc * 0.12, Wc * 0.88);
+        for (let a = 0; a < 10; a++) {
+          const cx = R(Wc * 0.10, Wc * 0.90);
           if (volcano && Math.abs(cx - volcano.x) < volcano.r + 40) continue;
           const cy0 = surfaceAt(cx);
           if (cy0 > waterLevel - 30) continue;
-          const w = R(28, 64);
-          const y0 = cy0 + R(8, 24);
-          const y1 = Math.min(y0 + R(12, 30), Hc - 8);
+          if (pockets.some(pk => cx > pk.x0 - 30 && cx < pk.x1 + 30)) continue;
+          const mega = S() < 0.1;
+          const w = mega ? R(85, 130) : R(26, 62);
+          const depth = R(8, 22) + (w - 26) * (mega ? 1.15 : 0.85);
+          const y0 = cy0 + depth;
+          const y1 = Math.min(y0 + (mega ? R(34, 60) : R(12, 30)), Hc - 8);
           if (y1 - y0 < 10) continue;
           const bl = [];
           const nb = 5 + ((w / 16) | 0);
           for (let q = 0; q < nb; q++) bl.push([R(-0.3, 0.3), R(-0.3, 0.32), R(0.3, 0.5)]);
           bl.push([0, R(-0.1, 0.1), R(0.5, 0.62)]);
-          pockets.push({ x0: cx - w / 2, x1: cx + w / 2, y0, y1, bl, t: 0, state: 0, dur: (y1 - y0 + w) / 16 });
+          pockets.push({ x0: cx - w / 2, x1: cx + w / 2, y0, y1, bl, mega, t: 0, state: 0, dur: (y1 - y0 + w) / 16 });
           break;
         }
       }
@@ -1576,10 +1603,12 @@
     genTerrain();
     wind = windDir * R(0.3, 4);
     placeTanks();
-    // round 1 starts with the random first shooter; every later round
-    // alternates from the previous round's opener
-    if (first) turnOrder = firstShooter;
-    else turnOrder = 1 - turnOrder;
+    // round 1 opens with the random first shooter; every later round is
+    // opened by the OTHER seat — strict alternation, every mode, whatever
+    // happened inside the previous round
+    if (first) roundOpener = firstShooter;
+    else roundOpener = 1 - roundOpener;
+    turnOrder = roundOpener;
     turn = turnOrder;
     state = 'aim';
     aim = { ...seatAim[turn] };
@@ -1589,7 +1618,7 @@
     updateTod();
     shot = null; subshots = []; liquids = []; debris = []; remains = []; terraJobs = []; events = []; sinkers = []; fx = []; firePatches = []; wreckBits = [];
     windParts = []; comets = []; grains = []; lavaBits = []; lastHitInfo = null; killed = null; lastKillMethod = 'weapon'; lastShotApex = 0;
-    sliderOpen = null; sliderDrag = false; shake = 0;
+    shake = 0;
     skyLight = { x: -999, col: '255,255,255', a: 0 };
     roundStart = Date.now();
     turnTimer = TURN_TIME;
@@ -1863,7 +1892,8 @@
     });
     // burning fuel pockets: fire breaks through the surface, the burn front
     // eats the deposit; when it's gone the volume becomes a REAL void
-    // (carve) and a big shallow one drags the overburden down
+    // (carve) and a big shallow one drags the overburden down. MEGA seams
+    // never get here — they detonate instead (pocketDetonate)
     pockets.forEach(pk => {
       if (pk.state !== 1) return;
       pk.t += dt;
@@ -1924,19 +1954,65 @@
   // ================= EXPLOSIONS =================
   function hitFx(x, y, r, nuke) { shake = Math.min(10, shake + r * 0.08 + (nuke ? 3 : 0)); }
 
+  // pocket ignition, shared by EVERY heat source (blasts, napalm fires,
+  // plasma, the drill): a hit overlapping a dormant seam sets it alight —
+  // normal seams smoulder, MEGA seams are flagged and detonate a moment
+  // later via pocketDetonate (async, so chains can't recurse)
+  function igniteAt(x, y, r) {
+    pockets.forEach(pk => {
+      if (pk.state !== 0) return;
+      if (x > pk.x0 - r * 0.5 && x < pk.x1 + r * 0.5 && y > pk.y0 - r * 0.5 && y < pk.y1 + r * 0.5) {
+        if (pk.mega) {
+          pk.state = 2;
+          schedule(() => pocketDetonate(pk), R(0.06, 0.25));
+        } else {
+          pk.state = 1; pk.t = 0;
+          fx.push({ k: 'flash', x, y, r: 12, t: 0, life: 0.12, col: '#ff9a3a' });
+        }
+      }
+    });
+  }
+  // a MEGA seam goes up all at once: staged surface blasts along the seam,
+  // a giant carved void where it sat, the overburden collapsing in, an
+  // ejecta column, fires along the seam — and any other seam caught in the
+  // blast joins the chain (igniteAt inside boomsAt)
+  function pocketDetonate(pk) {
+    const cx = (pk.x0 + pk.x1) / 2;
+    const wP = pk.x1 - pk.x0;
+    fx.push({ k: 'skyflash', t: 0, life: 0.9, col: 'rgba(255,214,150,', a: 0.4 });
+    const n = 4;
+    for (let k = 0; k < n; k++) {
+      schedule(() => {
+        const bx = cx + (k / (n - 1) - 0.5) * wP * 0.85;
+        boomsAt(bx, surfaceAt(bx) - 6, 30 + wP * 0.2, 'nuke', 26, false, true);
+      }, 0.1 + k * 0.15);
+    }
+    schedule(() => {
+      const cy = (pk.y0 + pk.y1) / 2;
+      const sid = ++digSid;
+      for (let k = 0; k < 4; k++) carve(cx + (k - 1.5) * wP * 0.22, cy, wP * 0.33, sid);
+      collapseHoles(cx, wP * 0.8);
+      const [sa, sb] = blastRange(cx, wP * 0.9);
+      slump(sa, sb, 10);
+      spawnDirtFall(cx, Math.min(150, wP * 1.1));
+      spawnEmbers(cx, surfaceAt(cx) - 10, 24, wP * 0.5);
+      for (let k = 0; k < 5; k++) {
+        const fxp = R(pk.x0, pk.x1);
+        firePatches.push({ x: fxp, y: surfaceAt(fxp) - 2, life: R(2.5, 5) });
+      }
+      shake = Math.min(12, shake + 9);
+      sfx(1.4);
+    }, 0.12);
+  }
+
   function boomsAt(x, y, r, style, dmg, noTerr, noDouble) {
     dmg = dmg || 0;
     const m = M();
     const nuke = style === 'nuke';
     hitFx(x, y, r, nuke);
-    // a blast landing inside (or in touch with) a combustible pocket ignites it
-    pockets.forEach(pk => {
-      if (pk.state !== 0) return;
-      if (x > pk.x0 - r * 0.5 && x < pk.x1 + r * 0.5 && y > pk.y0 - r * 0.5 && y < pk.y1 + r * 0.5) {
-        pk.state = 1; pk.t = 0;
-        fx.push({ k: 'flash', x, y, r: 12, t: 0, life: 0.12, col: '#ff9a3a' });
-      }
-    });
+    // a blast landing inside (or in touch with) a combustible pocket ignites
+    // it — mega seams detonate (igniteAt)
+    igniteAt(x, y, r);
     fx.push({ k: 'flash', x, y, r: r * 1.6, t: 0, life: nuke ? 0.22 : 0.11 });
     fx.push({ k: 'shock', x, y, r0: r * 0.4, r1: r * (nuke ? 4.2 : 2.2), t: 0, life: nuke ? 0.5 : 0.28 });
     fx.push({ k: 'fire', x, y, r, t: 0, life: nuke ? 1.4 : 0.45, nuke });
@@ -1975,6 +2051,29 @@
     if (dmg > 0) tanks.forEach((tk, i) => {
       if (!tk.dead && Math.hypot(tk.x - x, tk.y - 6 - y) < r * (nuke ? 3.2 : 2.2)) { damageTank(i, dmg, style, x, y); confirmClose = true; }
     });
+  }
+
+  // the NUKE weapon's FULL impact package — the single code path used by the
+  // fired nuke (resolveHit) AND by the closing apocalypse: same boomsAt
+  // 'nuke' core, skyflash, shock ring, ember fan, circular fire patch ring,
+  // dust pillars and smoke collar. One implementation, zero visual drift
+  function nukeStrike(x, y, w, noTerr) {
+    boomsAt(x, y, w.r, 'nuke', w.dmg, noTerr);
+    fx.push({ k: 'skyflash', t: 0, life: 1.1, col: 'rgba(255,246,220,', a: 0.55 });
+    schedule(() => fx.push({ k: 'ring', x, y, t: 0, life: 1.0, r0: w.r * 0.5, r1: w.r * 3.8, col: '255,224,150' }), 0.22);
+    schedule(() => spawnEmbers(x, y, 26, w.r), 0.5);
+    schedule(() => {
+      for (let k = 0; k < 7; k++) {
+        const a = k / 7 * Math.PI * 2;
+        firePatches.push({ x: x + Math.cos(a) * w.r * 1.15, life: R(2, 3.6) });
+      }
+    }, 1.1);
+    schedule(() => spawnDust(x, y - w.r * 0.8, w.r * 0.6, M().dustN * 0.8), 1.7);
+    schedule(() => spawnDust(x + R(-w.r, w.r), y, w.r * 0.5, M().dustN * 0.6), 2.2);
+    for (let k = 0; k < 7; k++) {
+      schedule(() => fx.push({ k: 'smoke', x: x + R(-w.r * 0.5, w.r * 0.5), y: y - w.r * 0.5, r: w.r * R(0.2, 0.4), t: 0, life: R(2, 3.5) }), 2.0 + k * 0.3);
+    }
+    schedule(() => { const [sa, sb] = blastRange(x, w.r * 1.4); slump(sa, sb, 10); }, 2.6);
   }
 
   function spawnChunks(x, y, r, n) {
@@ -2034,8 +2133,42 @@
     }
   }
 
+  // the PLASMA orb is alive between frames: it sticks to its prey — a tank
+  // in reach, INCLUDING one sinking into the melting pit — chases it down,
+  // burns it over time (~13 hp/s), and melts the ground under both with a
+  // steady drip of shallow star craters. It can acquire a NEW victim that
+  // walks or falls into the burn zone, and it ignites any combustible seam
+  // its melt reaches
+  function stepPlasmaOrbs(dt) {
+    for (let i = 0; i < fx.length; i++) {
+      const f = fx[i];
+      if (!f || f.k !== 'plasmaOrb' || f.t >= f.life) continue;
+      if (f.tid >= 0) {
+        const tk = tanks[f.tid];
+        if (!tk || tk.dead) f.tid = -1;
+        else {
+          f.x += (tk.x - f.x) * Math.min(1, dt * 8);
+          f.y += ((tk.y - 10) - f.y) * Math.min(1, dt * 8);
+          if (f.t < f.life * 0.72) { damageTank(f.tid, 13 * dt, 'plasma', f.x, tk.y - 10); confirmClose = true; }
+        }
+      } else if (f.t < f.life * 0.6) {
+        tanks.forEach((tk, ti) => {
+          if (!tk.dead && Math.hypot(tk.x - f.x, (tk.y - 8 - f.y) * 0.7) < f.r) f.tid = ti;
+        });
+      }
+      f.eatT += dt;
+      if (f.eatT > 0.3) {
+        f.eatT = 0;
+        craterMask(f.x, f.r * 0.45, 0.3, 'blast', 'star', 1);
+        if (Math.random() < 0.5 && fx.length < 380) fx.push({ k: 'wisp', x: f.x + R(-8, 8), y: f.y - 4, vx: R(-6, 6), vy: -R(14, 30), ph: R(0, 6.28), t: 0, life: R(0.6, 1.2) });
+        igniteAt(f.x, f.y + 10, 14);
+      }
+    }
+  }
+
   function stepFx(dt) {
     shake = Math.max(0, shake - dt * (4 + shake * 4));
+    stepPlasmaOrbs(dt);
     fx = fx.filter(f => {
       f.t += dt;
       if (f.k === 'wring') { f.r += f.vr * dt; }
@@ -2067,7 +2200,6 @@
           cols[ci].burn = Math.max(cols[ci].burn, 0.8);
           f.burnT += dt;
           if (f.burnT > 0.5) { f.burnT = 0; firePatches.push({ x: f.x, y: f.y, life: R(0.8, 1.6), volc: true }); }
-          if (Math.random() < dt * 0.9) fx.push({ k: 'wisp', x: f.x, y: f.y - 3, vx: R(-3, 3), vy: -R(8, 16), ph: R(0, 6.28), t: 0, life: R(0.6, 1.2) });
           if (f.y > waterAt(f.x) - 1) { spawnWisps(f.x, waterAt(f.x), 3); f.t = f.life; }
           if (Math.abs(f.vx) < 2.5 && Math.abs(sl) < 0.08 && f.t > 3) f.t = f.life;
         }
@@ -2132,12 +2264,15 @@
     firePatches = firePatches.filter(fp => {
       fp.life -= dt;
       const fy = fp.volc && fp.y !== undefined ? fp.y : surfaceAt(fp.x);
-      // napalm/forest fire sitting on top of a fuel pocket seeps into it
+      // napalm/forest fire sitting on top of a fuel pocket seeps into it;
+      // a mega seam caught by deep fire detonates
       if (!fp.volc && fp.life > 0.5) {
-        for (let q = 0; q < pockets.length; q++) {
-          const pk = pockets[q];
-          if (pk.state === 0 && fp.x > pk.x0 && fp.x < pk.x1 && Math.abs(fy - pk.y0) < 40) { pk.state = 1; pk.t = 0; }
-        }
+        pockets.forEach(pk => {
+          if (pk.state === 0 && fp.x > pk.x0 && fp.x < pk.x1 && Math.abs(fy - pk.y0) < 40) {
+            if (pk.mega) { pk.state = 2; schedule(() => pocketDetonate(pk), 0.05); }
+            else { pk.state = 1; pk.t = 0; }
+          }
+        });
       }
       const ci = clamp(Math.round(fp.x / cols.step), 0, cols.length - 1);
       const c = cols[ci];
@@ -2248,7 +2383,7 @@
       w, trail: [], dir, t0: gt, apex: t.y - 12, rot: 0,
       owner: tanks.indexOf(t), arm: gt + 0.3
     };
-    state = 'fly'; turn = who; drag = null; sliderOpen = null; sliderDrag = false;
+    state = 'fly'; turn = who; drag = null;
     draw();
   }
 
@@ -2326,7 +2461,7 @@
   // be punched toward the enemy. Tunnels deeper than DIG_COLLAPSE_H collapse,
   // dropping all ground above; the drill grinds tanks it passes (rock pressure
   // ticks), and its final burst hits like a missile. Drilling into a buried
-  // fuel pocket ignites it.
+  // fuel pocket ignites it (mega seams detonate).
   function digEnter(p) {
     p.digging = true;
     p.sid = ++digSid;
@@ -2376,13 +2511,7 @@
     if (nx < 4 || nx > Wc - 4) { p.dead = true; p.dug = true; return; }
     carveLine(p.x, p.y, nx, ny, p.w.r * DIG_RADIUS_F, p.sid);
     // the drill grinding through a fuel pocket sets it alight
-    for (let q = 0; q < pockets.length; q++) {
-      const pk = pockets[q];
-      if (pk.state === 0 && p.x > pk.x0 - 4 && p.x < pk.x1 + 4 && p.y > pk.y0 - 4 && p.y < pk.y1 + 4) {
-        pk.state = 1; pk.t = 0;
-        fx.push({ k: 'flash', x: p.x, y: p.y, r: 12, t: 0, life: 0.12, col: '#ff9a3a' });
-      }
-    }
+    igniteAt(p.x, p.y, 12);
     const mv = Math.hypot(nx - p.x, ny - p.y);
     p.dugLen += mv; p.charge -= mv;
     p.x = nx; p.y = ny;
@@ -2634,27 +2763,16 @@
         break;
       }
       case 'nuke': {
-        boomsAt(x, y, w.r, 'nuke', w.dmg);
-        fx.push({ k: 'skyflash', t: 0, life: 1.1, col: 'rgba(255,246,220,', a: 0.55 });
-        schedule(() => fx.push({ k: 'ring', x, y, t: 0, life: 1.0, r0: w.r * 0.5, r1: w.r * 3.8, col: '255,224,150' }), 0.22);
-        schedule(() => spawnEmbers(x, y, 26, w.r), 0.5);
-        schedule(() => {
-          for (let k = 0; k < 7; k++) {
-            const a = k / 7 * Math.PI * 2;
-            firePatches.push({ x: x + Math.cos(a) * w.r * 1.15, life: R(2, 3.6) });
-          }
-        }, 1.1);
-        schedule(() => spawnDust(x, y - w.r * 0.8, w.r * 0.6, M().dustN * 0.8), 1.7);
-        schedule(() => spawnDust(x + R(-w.r, w.r), y, w.r * 0.5, M().dustN * 0.6), 2.2);
-        for (let k = 0; k < 7; k++) {
-          schedule(() => fx.push({ k: 'smoke', x: x + R(-w.r * 0.5, w.r * 0.5), y: y - w.r * 0.5, r: w.r * R(0.2, 0.4), t: 0, life: R(2, 3.5) }), 2.0 + k * 0.3);
-        }
-        schedule(() => { const [sa, sb] = blastRange(x, w.r * 1.4); slump(sa, sb, 10); }, 2.6);
+        // the shared nuke package — the SAME code the closing apocalypse uses
+        nukeStrike(x, y, w);
         break;
       }
       case 'plasma': {
-        hitFx(x, y, w.r * 0.55, false);
-        // a Life colony (B3/S23) instead of blobs — the plasma boils and starves
+        // reworked: no blast, no pit to fall into first. The orb LANDS ON the
+        // tank (nearest in reach), sticks to it and chases it as it sinks,
+        // burning ~13 hp/s while the ground under both melts gradually —
+        // see stepPlasmaOrbs. A shallow scorch instead of a crater
+        hitFx(x, y, w.r * 0.45, false);
         const GW = 34;
         const grid = new Uint8Array(GW * GW);
         for (let gy = 0; gy < GW; gy++) {
@@ -2664,26 +2782,20 @@
             grid[gy * GW + gx] = Math.random() < clamp(0.6 - Math.hypot(dx, dy) * 0.55, 0.05, 0.6) ? 1 : 0;
           }
         }
-        fx.push({ k: 'plasmaOrb', x, y, r: w.r, t: 0, life: 3.4, gw: GW, grid, gen: 0 });
+        let ti = -1;
+        tanks.forEach((tk, i) => { if (ti < 0 && !tk.dead && Math.hypot(tk.x - x, (tk.y - 8 - y) * 0.7) < w.r * 1.7) ti = i; });
+        const ox = ti >= 0 ? tanks[ti].x : x;
+        const oy = ti >= 0 ? tanks[ti].y - 10 : y;
+        fx.push({ k: 'plasmaOrb', x: ox, y: oy, r: w.r, t: 0, life: 3.6, gw: GW, grid, gen: 0, tid: ti, eatT: 0 });
         fx.push({ k: 'skyflash', t: 0, life: 0.4, col: 'rgba(255,120,80,', a: 0.22 });
-        schedule(() => craterMask(x, w.r, 1.1, 'blast', 'star', 1), 0.05);
-        schedule(() => collapseHoles(x, w.r), 0.2);
-        [0.3, 0.85, 1.4].forEach(dl => {
-          schedule(() => fx.push({ k: 'ring', x, y, t: 0, life: 0.8, r0: w.r * 0.3, r1: w.r * 2.4, col: '255,90,50' }), dl);
+        schedule(() => craterMask(x, w.r * 0.4, 0.3, 'blast', 'star', 1), 0.05);
+        igniteAt(x, y, w.r * 0.8);
+        [0.25, 0.9].forEach(dl => {
+          schedule(() => fx.push({ k: 'ring', x, y, t: 0, life: 0.8, r0: w.r * 0.3, r1: w.r * 2.2, col: '255,90,50' }), dl);
         });
-        schedule(() => craterMask(x, w.r * 0.6, 0.7, 'blast', 'star', 1), 0.9);
-        schedule(() => { const [sa, sb] = blastRange(x, w.r); slump(sa, sb, 4); }, 1.6);
-        schedule(() => spawnWisps(x, y - 6, 6), 2.0);
-        if (volcano && !volcano.doused && nearCrater(x, y)) {
-          schedule(() => { boomsAt(x, y, w.r, 'plasma', w.dmg, false, true); volcAgitate(x, y, 0.4); }, 0.16);
-        }
+        volcAgitate(x, y, 0.25);
+        if (ti >= 0) { damageTank(ti, w.dmg, 'plasma', x, y); confirmClose = true; }
         sfx(0.7);
-        tanks.forEach((tk, i) => {
-          if (!tk.dead && Math.hypot(tk.x - x, tk.y - 6 - y) < w.r * 1.9) {
-            if (tk.shield > 0) { tk.shield = 0; fx.push({ k: 'shieldPop', x: tk.x, y: tk.y - 12, col: tk.col, t: 0, life: 0.45 }); }
-            else { damageTank(i, w.dmg, 'plasma', x, y); confirmClose = true; }
-          }
-        });
         break;
       }
       case 'napalm': {
@@ -2927,8 +3039,9 @@
       score += 30;
       score2 += 30;
     }
-    // who the final phrase addresses: PvP — randomly the winner or the loser
-    // (the phrase matches THAT player); PvC — always the human
+    // who the banner addresses: PvP — randomly the winner or the loser; PvC
+    // — the human; draw — nobody. {N} in the phrase is spliced with the
+    // addressee's name (draw phrases carry no {N})
     let kind = res, whoIdx = 0;
     if (res === 'draw') { kind = 'draw'; whoIdx = -1; }
     else if (GMODE === 2) {
@@ -2940,21 +3053,34 @@
       kind = res;
       whoIdx = 0;
     }
+    const who = whoIdx >= 0 ? players[whoIdx] : null;
     const list = BANNERS[kind];
-    const txt = list[(Math.random() * list.length) | 0].replace('{N}', whoIdx >= 0 ? players[whoIdx].name : '');
-    const bcol = whoIdx >= 0 ? players[whoIdx].col : BANNER_COL.draw;
+    const txt = list[(Math.random() * list.length) | 0].replace('{N}', who ? who.name : '');
+    const bcol = who ? who.col : BANNER_COL.draw;
     fx.push({ k: 'banner', txt, col: bcol, t: 0, life: 2.3 });
     if (round >= ROUNDS_MAX) { schedule(() => showOver(), 2.3); return; }
     schedule(() => newRound(false), 2.3);
   }
 
-  function renderRecords(hlIdx) {
-    const tab = $('.sc-rectab');
+  // builds the records table (same look as the game-end screen) into any
+  // target table element; shared by the over-screen and the help panel
+  function fillRecordsTable(tab, hlIdx) {
+    if (!tab) return;
     tab.innerHTML = '';
     const hr = document.createElement('tr');
     ['#', 'Очки', 'Побед', 'Игрок', 'Дата'].forEach(h => { const th = document.createElement('th'); th.textContent = h; hr.appendChild(th); });
     tab.appendChild(hr);
-    records().slice(0, MAX_REC).forEach((r, i) => {
+    const recs = records().slice(0, MAX_REC);
+    if (!recs.length) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 5;
+      td.textContent = 'рекордов пока нет';
+      tr.appendChild(td);
+      tab.appendChild(tr);
+      return;
+    }
+    recs.forEach((r, i) => {
       const tr = document.createElement('tr');
       if (i === hlIdx) tr.className = 'me';
       const td0 = document.createElement('td');
@@ -2978,15 +3104,16 @@
       tab.appendChild(tr);
     });
   }
+  function renderRecords(hlIdx) { fillRecordsTable($('.sc-over .sc-rectab'), hlIdx); }
 
   function showOver() {
     const won = wins >= Math.ceil(ROUNDS_MAX / 2);
     const key = (r) => r.date + '|' + r.score + '|' + (r.wins || 0);
     const before = records().map(key);
-    // BOTH fighters get their own record row — the table is global by score,
-    // so the weaker fighter isn't pushed out by the mode's winner
+    // BOTH fighters get their record row — in every mode, the computer's
+    // GLM included (zero results are filtered out by saveRec anyway)
     saveRec(players[0], score, wins);
-    if (GMODE === 2) saveRec(players[1], score2, wins2);
+    saveRec(players[1], score2, wins2);
     const recs = records();
     const myIdx = recs.findIndex(r => !before.includes(key(r)));
     const titleEl = $('.sc-over-title');
@@ -3048,7 +3175,8 @@
     for (let i = events.length - 1; i >= 0; i--) if (gt >= events[i].at) { const fn = events[i].fn; events.splice(i, 1); fn(); }
 
     // turn clock runs only for a HUMAN seat, is frozen for the 3s hand-over
-    // card and whenever a modal window (help / setup / confirm / slider) is up
+    // card and for the dialogs — the bottom slider panel is non-modal, the
+    // clock keeps running while it is up
     if (state === 'aim' && isHumanSeat(turn) && turnIntro <= 0 && !modalOpen()) {
       const before = turnTimer;
       turnTimer -= dt;
@@ -3061,7 +3189,7 @@
       }
       if (turnTimer <= 0) {
         turnTimer = 0;
-        drag = null; sliderOpen = null; sliderDrag = false;
+        drag = null;
         lastHitInfo = 'Время вышло — ход пропущен';
         const msg = lastHitInfo;
         schedule(() => { if (lastHitInfo === msg) lastHitInfo = ''; }, 4);
@@ -3285,15 +3413,15 @@
     drawHpLate();
     drawBanners();
     drawTurnCards();
-    // the trajectory is live during the 3s hand-over card too — only the
-    // SHOT stays locked until the countdown ends
-    if (state === 'aim' && isHumanSeat(turn) && !helpOpen && !sliderOpen && !setupOpen && !confirmOpen) drawAim();
+    // the trajectory is live during the 3s hand-over card AND while the
+    // bottom control panel is up — both are non-modal
+    if (state === 'aim' && isHumanSeat(turn) && !helpOpen && !setupOpen && !confirmOpen) drawAim();
     ctx.restore();
     drawHUD();
     // the off-screen projectile indicator is a DOM layer ABOVE the HUD —
     // the canvas marks used to hide behind the HUD bar
     drawOffscreenMarks();
-    drawSlider();
+    updateTctl();
   }
 
   function drawSky() {
@@ -3651,7 +3779,8 @@
     // fuel pockets: peat / alien biomass. The deposit is an irregular rounded
     // CLOUD (blob set in fractions of the pocket box — resize-safe); the
     // burn front eats it from the top, the burnt crown reads as charred, and
-    // blob overlaps deepen the fill for a layered organic look
+    // blob overlaps deepen the fill for a layered organic look. MEGA seams
+    // render the same — their size IS the tell
     const fuel = biome.fuel;
     pockets.forEach(pk => {
       if (pk.state === 2 || !fuel) return;
@@ -4098,6 +4227,8 @@
     });
   }
 
+  // round-end banner: the canonical phrase in full glory, {N} already
+  // spliced inline with the addressee's name before the fx is pushed
   function drawBanners() {
     fx.forEach(f => {
       if (f.k !== 'banner') return;
@@ -4272,7 +4403,9 @@
         ctx.lineWidth = 1;
       } else if (f.k === 'plasmaOrb') {
         // cellular automaton (Life: B3/S23 on a torus) instead of blobs —
-        // the plasma colony boils, migrates and slowly starves with the blast
+        // the plasma colony boils, migrates and slowly starves; it rides the
+        // orb that chases its prey (f.x/f.y are updated every frame by
+        // stepPlasmaOrbs)
         const r = p < 0.15 ? f.r * (0.3 + (p / 0.15) * 0.7) : f.r;
         const GW = f.gw || 34;
         const cell = (2 * r) / GW;
@@ -4689,7 +4822,7 @@
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(t.x, cy, 14 + aim.pow * 0.45, 0, Math.PI * 2); ctx.stroke();
       ctx.globalAlpha = 1;
-      const label = `${Math.round(aim.ang)}°  ${Math.round(aim.pow)}`;
+      const label = `${Math.round(aim.ang)}\u00b0  ${Math.round(aim.pow)}`;
       ctx.font = '700 12px Orbitron, monospace';
       const tw = ctx.measureText(label).width + 16;
       let lx = drag.x + 14, ly = drag.y - 26;
@@ -4704,6 +4837,9 @@
     }
   }
 
+  // HUD is DECOUPLED from the sky: the floating strips carry their own
+  // fixed bright palette plus the strong dark text-shadow, readable over
+  // day and night skies alike; nothing here switches with dayness anymore
   function drawHUD() {
     if (!hudRefs) return;
     const H = hudRefs;
@@ -4718,28 +4854,25 @@
     // the computer's wins and score are counted and shown in PvC too
     H.wins.innerHTML = `<b style="color:${players[0].col}">${wins}</b> : <b style="color:${players[1].col}">${wins2}</b>`;
     H.score.innerHTML = `<b style="color:${players[0].col}">${score}</b> : <b style="color:${players[1].col}">${score2}</b>`;
+    // hp digits: constant bright, over any sky
+    const hpCol = 'rgba(250,252,255,0.97)';
     const t0 = tanks[0], t1 = tanks[1];
     const shd = (t) => t && t.shield > 0 ? ' <i class="sc-shd"></i>' : '';
-    H.you.innerHTML = `${biomeLabel()}&nbsp;&nbsp;<span style="color:${players[0].col}">${esc(players[0].name)}</span> <b>${Math.max(0, Math.round(t0 ? t0.hp : 0))}</b>${shd(t0)}`;
-    H.enemy.innerHTML = `<span style="color:${players[1].col}">${esc(players[1].name)}</span> <b>${Math.max(0, Math.round(t1 ? t1.hp : 0))}</b>${shd(t1)}`;
+    H.you.innerHTML = `${biomeLabel()}&nbsp;&nbsp;<span style="color:${players[0].col}">${esc(players[0].name)}</span> <b style="color:${hpCol}">${Math.max(0, Math.round(t0 ? t0.hp : 0))}</b>${shd(t0)}`;
+    H.enemy.innerHTML = `<span style="color:${players[1].col}">${esc(players[1].name)}</span> <b style="color:${hpCol}">${Math.max(0, Math.round(t1 ? t1.hp : 0))}</b>${shd(t1)}`;
     H.lasthit.textContent = lastHitInfo || '';
+    // wind indicator: fixed day/night palette chosen for contrast against
+    // the TERRAIN it floats over (its strip sits at the bottom of the field)
     const strength = Math.round(Math.abs(wind));
     const ch = wind < 0 ? '‹' : '›';
-    const light = isDayT();
+    const daySky = isDayT();
     H.windarrow.textContent = ch.repeat(Math.max(1, strength));
-    const wc = w.wind > 0.45 ? (light ? '#a03030' : '#ff6a7a') : w.wind > 0.2 ? (light ? '#9a6a00' : '#f1c40f') : (light ? '#1b3f8f' : '#00d4ff');
+    const wc = w.wind > 0.45 ? (daySky ? '#a03030' : '#ff6a7a') : w.wind > 0.2 ? (daySky ? '#9a6a00' : '#f1c40f') : (daySky ? '#1b3f8f' : '#00d4ff');
     H.windarrow.style.color = wc;
     H.windval.style.color = wc;
     H.windval.textContent = Math.abs(wind).toFixed(1);
-    if (H.windlbl) H.windlbl.style.color = light ? 'rgba(20,25,40,0.75)' : 'rgba(139,144,154,0.9)';
-    // the round digit wears the ACTIVE fighter's colour; the labels keep
-    // the common dim style with a dark outline, readable on any backdrop
+    // the round digit wears the ACTIVE fighter's colour
     H.round.style.color = players[hudSeat()].col;
-    if (powBar) {
-      powBar.classList.toggle('show', touchUI && state === 'aim' && isHumanSeat(turn) && !helpOpen && !sliderOpen && !setupOpen && !confirmOpen);
-      powVal.textContent = Math.round(aim.pow);
-      powRange.value = Math.round(aim.pow);
-    }
     if (state === 'aim' && isHumanSeat(turn) && Wc > 420 && turnIntro <= 0) {
       const tleft = Math.ceil(Math.max(0, turnTimer));
       const warn = turnTimer < 10;
@@ -4766,41 +4899,68 @@
       .sc-wrap { position: relative; width: 92vw; height: 92vh; border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; background: #03050a; }
       .sc-close { position: absolute; right: 10px; top: 10px; z-index: 5; width: 34px; height: 34px; background: var(--panel-light); border: 1px solid var(--pink); color: var(--pink); border-radius: 6px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', 'DejaVu Sans', sans-serif; }
       .sc-close:hover { background: var(--pink); color: var(--bg); }
-      .sc-hud { position: absolute; left: 0; right: 0; top: 0; z-index: 4; display: flex; gap: 8px 20px; align-items: center; padding: 8px 56px 8px 14px; font-family: 'Orbitron', monospace; font-size: 22px; color: var(--text-dim); text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.7); pointer-events: none; flex-wrap: wrap; line-height: 1.3; }
-      .sc-hud b { color: var(--accent); }
-      .sc-hud .sc-lasthit { color: var(--yellow); max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 18px; }
+      /* HUD palette is the game's OWN: fixed bright text + dark text-shadow,
+         decoupled from both the sky and the site theme — always readable */
+      .sc-hud { position: absolute; left: 0; right: 0; top: 0; z-index: 4; display: flex; gap: 8px 20px; align-items: center; padding: 8px 56px 8px 14px; font-family: 'Orbitron', monospace; font-size: 22px; color: rgba(212,222,238,0.92); text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.7); pointer-events: none; flex-wrap: wrap; line-height: 1.3; }
+      .sc-hud b { color: #f0f6ff; }
+      .sc-hud .sc-lasthit { color: #ffd23f; max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 18px; }
       .sc-hud .sc-aimctl { pointer-events: auto; cursor: pointer; border: 1px solid transparent; border-radius: 6px; padding: 3px 8px; }
-      .sc-hud .sc-aimctl:hover { border-color: var(--accent); color: var(--text); }
-      .sc-hud .sc-aimctl:hover b { color: var(--yellow); }
-      .sc-wpn { pointer-events: auto; cursor: pointer; border: 1px solid var(--border); padding: 3px 10px; border-radius: 6px; color: var(--text); background: rgba(5,7,10,0.7); display: flex; gap: 8px; align-items: center; }
-      .sc-wpn:hover { border-color: var(--accent); }
-      .sc-wpn .sc-ammo { color: var(--green); } .sc-wpn .sc-ammo.limited { color: var(--yellow); } .sc-wpn .sc-ammo.critical { color: var(--pink); }
-      .sc-helpbtn { pointer-events: auto; cursor: pointer; color: var(--text-dim); border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; background: rgba(5,7,10,0.7); }
-      .sc-helpbtn:hover { color: var(--accent); border-color: var(--accent); }
-      .sc-pvpbtn { pointer-events: auto; cursor: pointer; color: var(--text-dim); border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; background: rgba(5,7,10,0.7); }
-      .sc-pvpbtn:hover { color: var(--accent); border-color: var(--accent); }
+      .sc-hud .sc-aimctl:hover { border-color: rgba(150,190,235,0.55); color: #fff; }
+      .sc-hud .sc-aimctl:hover b { color: #ffd23f; }
+      .sc-wpn { pointer-events: auto; cursor: pointer; border: 1px solid var(--border); padding: 3px 10px; border-radius: 6px; color: rgba(232,240,250,0.95); background: rgba(5,7,10,0.7); display: flex; gap: 8px; align-items: center; }
+      .sc-wpn:hover { border-color: rgba(150,190,235,0.55); }
+      .sc-wpn .sc-ammo { color: #6ee7a0; } .sc-wpn .sc-ammo.limited { color: #ffd23f; } .sc-wpn .sc-ammo.critical { color: #ff7a8a; }
+      .sc-helpbtn { pointer-events: auto; cursor: pointer; color: rgba(222,232,246,0.92); border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; background: rgba(5,7,10,0.7); }
+      .sc-helpbtn:hover { color: #7ecbff; border-color: rgba(126,203,255,0.6); }
+      .sc-pvpbtn { pointer-events: auto; cursor: pointer; color: rgba(222,232,246,0.92); border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; background: rgba(5,7,10,0.7); }
+      .sc-pvpbtn:hover { color: #7ecbff; border-color: rgba(126,203,255,0.6); }
       .sc-sym { font-style: normal; font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', 'Noto Sans Symbols 2', 'DejaVu Sans', sans-serif; }
       .sc-offmark { position: absolute; left: 0; right: 0; top: 0; z-index: 5; pointer-events: none; }
       .sc-offmark .sc-om { position: absolute; top: 5px; transform: translateX(-50%); font-family: 'Orbitron', monospace; font-size: 10px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.85); white-space: nowrap; letter-spacing: 0.5px; }
       canvas.sc-cv { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
-      .sc-help { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; background: var(--panel); border: 1px solid var(--accent); border-radius: 10px; padding: 20px 24px; max-width: 500px; font-size: 12px; line-height: 1.8; color: var(--text); display: none; max-height: 80vh; overflow-y: auto; }
-      .sc-help.show { display: block; }
-      .sc-help h4 { color: var(--accent); margin-bottom: 10px; } .sc-help h5 { margin: 12px 0 4px; }
-      .sc-help td { padding: 2px 8px; } .sc-help td:first-child { color: var(--accent); font-family: monospace; white-space: nowrap; }
-      .sc-helpx { position: absolute; right: 14px; top: 10px; width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+      /* help panel: 1.5x type scale, fixed header with the close button,
+         scrollable body, stretched to 90% of the game panel width */
+      .sc-help { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; background: var(--panel); border: 1px solid var(--accent); border-radius: 10px; padding: 16px 22px 18px; width: 90%; font-size: 21px; line-height: 1.65; color: var(--text); display: none; max-height: 84vh; }
+      .sc-help.show { display: flex; flex-direction: column; }
+      .sc-help-top { position: relative; flex-shrink: 0; margin-bottom: 8px; }
+      .sc-help-top h4 { margin: 0; }
+      .sc-help-body { overflow-y: auto; min-height: 0; padding-right: 4px; }
+      .sc-help h4 { color: var(--accent); margin-bottom: 8px; font-size: 26px; }
+      .sc-help h5 { margin: 16px 0 6px; font-size: 20px; }
+      .sc-help table { font-size: 20px; }
+      .sc-help td { padding: 4px 12px; }
+      .sc-help td:first-child { color: var(--accent); font-family: monospace; white-space: nowrap; }
+      .sc-help .sc-rectab { margin-bottom: 0; font-size: 14px; }
+      .sc-help .sc-rectab th { padding: 5px 6px; }
+      .sc-help .sc-rectab td { padding: 6px 6px; }
+      .sc-helpx { position: absolute; right: 0; top: -2px; width: 34px; height: 34px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; z-index: 2; }
       .sc-helpx:hover { border-color: var(--pink); color: var(--pink); }
-      .sc-lives { position: absolute; left: 14px; bottom: 10px; z-index: 4; display: flex; gap: 22px; font-family: 'Orbitron', monospace; font-size: 22px; pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.7); }
+      /* weapon cards in help: icon + damage breakdown + wind factor */
+      .sc-wpnhelp { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+      .sc-wpnhelp .sc-wpnrow { display: flex; align-items: center; gap: 12px; }
+      .sc-wpnhelp .sc-wpnrow canvas { flex-shrink: 0; }
+      .sc-wpnhelp .sc-wt { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
+      .sc-wpnhelp .sc-wt b { color: var(--accent); font-size: 18px; }
+      .sc-wpnhelp .sc-wt span { color: var(--text-dim); font-size: 15px; }
+      .sc-wpnhelp .sc-ww { margin-left: auto; flex-shrink: 0; color: var(--text-dim); font-size: 14px; font-family: 'Orbitron', monospace; white-space: nowrap; }
+      .sc-lives { position: absolute; left: 14px; bottom: 10px; z-index: 4; display: flex; gap: 22px; font-family: 'Orbitron', monospace; font-size: 22px; color: rgba(212,222,238,0.92); pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.7); }
       .sc-lives b { font-weight: 700; }
       .sc-lives .sc-shd { display: inline-block; width: 13px; height: 13px; border: 2px solid #4ac0ff; border-radius: 50%; vertical-align: -1px; opacity: 0.85; margin-left: 5px; }
-      .sc-windbar { position: absolute; right: 14px; bottom: 12px; z-index: 4; pointer-events: none; display: flex; align-items: center; gap: 10px; font-family: 'Orbitron', monospace; font-size: 28px; color: var(--text-dim); text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.7); }
+      .sc-windbar { position: absolute; right: 14px; bottom: 12px; z-index: 4; pointer-events: none; display: flex; align-items: center; gap: 10px; font-family: 'Orbitron', monospace; font-size: 28px; color: rgba(212,222,238,0.92); text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.7); }
       .sc-windarrow { font-size: 40px; letter-spacing: -4px; }
-      .sc-powbar { position: absolute; left: 50%; transform: translateX(-50%); bottom: 10px; z-index: 5; display: none; align-items: center; gap: 8px; background: rgba(6,10,18,0.78); border: 1px solid var(--border); border-radius: 9px; padding: 5px 10px; font-family: 'Orbitron', monospace; font-size: 10px; color: var(--text-dim); pointer-events: auto; }
-      .sc-powbar.show { display: flex; }
-      .sc-powbar input { width: clamp(120px, 34vw, 260px); accent-color: var(--accent); cursor: pointer; }
-      .sc-powbar b { color: var(--accent); min-width: 26px; text-align: right; font-size: 12px; }
-      .sc-pb-btn { width: 36px; height: 36px; border-radius: 7px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text); font-size: 20px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
-      .sc-pb-btn:active { background: var(--accent); color: var(--bg); }
-      @media (max-width: 640px) { .sc-lives { bottom: 72px; } .sc-windbar { bottom: 70px; } }
+      /* bottom control panel — NON-MODAL angle+power sliders pinned just
+         above the bottom indicator row (over the water strip): both rows
+         stacked at finger height, each with −/+ fine-step buttons. Touch
+         devices show it automatically; desktop toggles it via the HUD chips.
+         The aim trajectory and canvas input stay live while it is up */
+      .sc-tctl { position: absolute; left: 50%; transform: translateX(-50%); bottom: 62px; z-index: 5; display: none; flex-direction: column; gap: 5px; width: calc(100% - 20px); background: rgba(6,10,18,0.86); border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px; font-family: 'Orbitron', monospace; pointer-events: auto; }
+      .sc-tctl.show { display: flex; }
+      .sc-tctl .sc-trow { display: flex; align-items: center; gap: 8px; height: 42px; }
+      .sc-tctl .sc-tl { width: 46px; flex-shrink: 0; color: #9fb2cc; font-size: 10px; letter-spacing: 1px; }
+      .sc-tctl input { flex: 1; min-width: 0; accent-color: #ffb020; cursor: pointer; }
+      .sc-tctl .sc-tv { min-width: 40px; text-align: right; color: #ffd23f; font-weight: 700; font-size: 13px; }
+      .sc-tb { width: 42px; height: 42px; flex-shrink: 0; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-light); color: #e8eef8; font-size: 20px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+      .sc-tb:active { background: #ffb020; color: #10131a; }
       .sc-over { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 8; background: var(--panel); border: 1px solid var(--accent); border-radius: 10px; padding: 24px 28px; min-width: 320px; max-width: 90%; max-height: 85vh; overflow-y: auto; display: none; text-align: center; }
       .sc-over.show { display: block; }
       .sc-over h3 { color: var(--accent); margin-bottom: 10px; font-size: 18px; }
@@ -4828,6 +4988,8 @@
       .sc-setup.show { display: block; }
       .sc-setup h3 { color: var(--accent); margin: 0 0 4px; font-size: 17px; letter-spacing: 2px; }
       .sc-setup .sc-setup-sub { color: var(--text-dim); font-size: 11px; margin-bottom: 14px; font-family: 'Orbitron', monospace; letter-spacing: 1px; }
+      .sc-set-x { position: absolute; right: 12px; top: 10px; z-index: 2; width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+      .sc-set-x:hover { border-color: var(--pink); color: var(--pink); }
       .sc-setup .sc-mode-row { display: flex; gap: 10px; margin-bottom: 14px; }
       .sc-setup .sc-mode-btn { flex: 1; padding: 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text); cursor: pointer; font-size: 15px; text-align: center; }
       .sc-setup .sc-mode-btn .sc-mm { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; }
@@ -4841,14 +5003,15 @@
       .sc-setup .sc-pl-block .sc-pl-err { color: var(--pink); font-size: 10px; min-height: 14px; margin: 2px 0 4px; font-family: 'Orbitron', monospace; }
       .sc-setup .sc-pl-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; position: relative; }
       .sc-setup .sc-pl-head label { width: 74px; flex-shrink: 0; color: var(--accent); font-family: 'Orbitron', monospace; font-size: 11px; letter-spacing: 1px; }
-      .sc-setup .sc-pl-head input { flex: 1; min-width: 0; padding: 7px 58px 7px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; }
+      .sc-setup .sc-pl-head input { flex: 1; min-width: 0; padding: 7px 32px 7px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; }
       .sc-setup .sc-pl-head input:disabled { opacity: 0.55; }
       .sc-setup .sc-pl-head input::placeholder { color: var(--text-dim); }
       .sc-setup .sc-pl-block input.sc-name-bad { border-color: var(--pink); }
       .sc-setup .sc-pl-tools { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: flex; gap: 3px; }
       .sc-setup .sc-pl-tools button { width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); font-size: 11px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
       .sc-setup .sc-pl-tools button:hover { border-color: var(--accent); color: var(--accent); }
-      .sc-setup .sc-pl-tools .sc-t-del:hover { border-color: var(--pink); color: var(--pink); }
+      .sc-pl-del { display: block; width: 100%; margin-top: 10px; padding: 7px 0; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); font-size: 10px; letter-spacing: 1px; font-family: 'Orbitron', monospace; cursor: pointer; }
+      .sc-pl-del:hover { border-color: var(--pink); color: var(--pink); }
       .sc-setup .sc-matrix { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
       .sc-setup .sc-mcell { border: 2px solid var(--border); border-radius: 8px; cursor: pointer; background: rgba(8,12,20,0.5); padding: 0; }
       .sc-setup .sc-mcell:hover { border-color: var(--accent); }
@@ -4871,13 +5034,30 @@
       .sc-setup .sc-setup-btns button:hover { border-color: var(--accent); }
       .sc-hullgal { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
       .sc-hullgal .sc-hg-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-      .sc-hullgal .sc-hg-item span { font-size: 10px; color: var(--text-dim); }
+      .sc-hullgal .sc-hg-item span { font-size: 15px; color: var(--text-dim); }
       .sc-confirm { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 11; background: var(--panel); border: 2px solid var(--pink); border-radius: 10px; padding: 20px 24px; width: min(360px, 90%); display: none; text-align: center; }
       .sc-confirm.show { display: block; }
       .sc-confirm p { color: var(--text); font-size: 13px; margin: 0 0 16px; }
       .sc-confirm .sc-confirm-btns { display: flex; gap: 10px; justify-content: center; }
       .sc-confirm button { padding: 8px 18px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text); cursor: pointer; font-size: 12px; }
       .sc-confirm .sc-yes { border-color: var(--pink); color: var(--pink); }
+      /* LIGHT SITE THEME (auto-detected, .sc-light rides on the overlay):
+         EVERY game modal goes crisp WHITE — panels, mode buttons, small
+         buttons, inputs, list rows, the bottom control panel. Never gray
+         var(--panel-light), never the dark translucent blocks */
+      .sc-light .sc-setup, .sc-light .sc-help, .sc-light .sc-confirm, .sc-light .sc-over, .sc-light .sc-wmenu, .sc-light .sc-suggest { background: #ffffff; }
+      .sc-light .sc-mode-btn, .sc-light .sc-set-x, .sc-light .sc-helpx, .sc-light .sc-pb-btn, .sc-light .sc-pl-tools button, .sc-light .sc-pl-del, .sc-light .sc-sug-del, .sc-light .sc-over button, .sc-light .sc-confirm button, .sc-light .sc-setup .sc-setup-btns button { background: #ffffff; border-color: rgba(22,32,48,0.22); }
+      .sc-light .sc-helpbtn, .sc-light .sc-pvpbtn, .sc-light .sc-wpn { background: rgba(255,255,255,0.82); border-color: rgba(22,32,48,0.18); }
+      .sc-light .sc-setup .sc-pl-block { background: rgba(240,244,250,0.65); border-color: rgba(22,32,48,0.16); }
+      .sc-light .sc-setup .sc-mcell { background: #ffffff; border-color: rgba(22,32,48,0.22); }
+      .sc-light .sc-mode-btn.sel { background: rgba(230,126,34,0.14); }
+      .sc-light .sc-setup .sc-pl-head input { background: #ffffff; border-color: rgba(22,32,48,0.25); }
+      .sc-light .sc-suggest .sc-sug-item:hover, .sc-light .sc-suggest .sc-sug-item.hov { background: rgba(226,232,240,0.9); }
+      .sc-light .sc-tctl { background: rgba(255,255,255,0.94); border-color: rgba(22,32,48,0.2); }
+      .sc-light .sc-tctl .sc-tl { color: #51617a; }
+      .sc-light .sc-tctl .sc-tv { color: #b35a00; }
+      .sc-light .sc-tb { background: #ffffff; border-color: rgba(22,32,48,0.22); color: #22304a; }
+      .sc-light .sc-tb:active { background: #ffb020; color: #10131a; }
     `;
 //scorch.js part09
     document.head.appendChild(css);
@@ -4887,8 +5067,8 @@
       <div class="sc-wrap">
         <button class="sc-close" title="Ядерный выход">☢</button>
         <div class="sc-hud">
-          <span class="sc-aimctl" data-k="ang" title="Открыть ползунок угла">Угол <b class="sc-ang"></b>°</span>
-          <span class="sc-aimctl" data-k="pow" title="Открыть ползунок силы">Сила <b class="sc-pow"></b></span>
+          <span class="sc-aimctl" title="Показать/скрыть панель настройки">Угол <b class="sc-ang"></b>°</span>
+          <span class="sc-aimctl" title="Показать/скрыть панель настройки">Сила <b class="sc-pow"></b></span>
           <span class="sc-wpn"><span class="sc-wname"></span><span class="sc-ammo"></span></span>
           <span class="sc-helpbtn" title="Справка">?</span>
           <span class="sc-pvpbtn sc-sym" title="Игроки и режим">&#x2699;&#xFE0E;</span>
@@ -4901,78 +5081,104 @@
         <div class="sc-wmenu"></div>
         <div class="sc-offmark"></div>
         <canvas class="sc-cv"></canvas>
+        <div class="sc-tctl">
+          <div class="sc-trow" data-k="ang">
+            <span class="sc-tl">УГОЛ</span>
+            <button class="sc-tb" data-d="-1" title="−1">&minus;</button>
+            <input type="range" min="0" max="90" step="1">
+            <button class="sc-tb" data-d="1" title="+1">+</button>
+            <b class="sc-tv"></b>
+          </div>
+          <div class="sc-trow" data-k="pow">
+            <span class="sc-tl">СИЛА</span>
+            <button class="sc-tb" data-d="-1" title="−1">&minus;</button>
+            <input type="range" min="5" max="100" step="1">
+            <button class="sc-tb" data-d="1" title="+1">+</button>
+            <b class="sc-tv"></b>
+          </div>
+        </div>
         <div class="sc-lives"><span class="sc-you"></span><span class="sc-enemy"></span></div>
-        <div class="sc-powbar"><span>СИЛА</span><button class="sc-pb-btn" data-d="-1">−</button><input type="range" min="5" max="100" step="1"><button class="sc-pb-btn" data-d="1">+</button><b class="sc-pv"></b></div>
         <div class="sc-help">
-          <button class="sc-helpx" title="Закрыть справку">✕</button>
-          <h4>Scorched Earth</h4>
-          <table>
-            <tr><td>Drag / свайп</td><td>прицел: направление от турели - угол, расстояние - сила (ближе - слабее)</td></tr>
-            <tr><td>Клик «Угол» / «Сила»</td><td>ползунок: тянуть ручку; X / клик мимо / Esc - закрыть</td></tr>
-            <tr><td>Слайдер снизу (тач)</td><td>точная сила выстрела; кнопки −/+ шаг по 1</td></tr>
-            <tr><td>Колесо / ↑↓ / ←→</td><td>сила / угол ствола — свои у каждого игрока; выстрел — только в свой ход</td></tr>
-            <tr><td>Space / клик / тап</td><td>огонь (после отсчёта 3-2-1)</td></tr>
-            <tr><td>1–9, 0 / W / клик по оружию</td><td>выбор оружия</td></tr>
-            <tr><td>Esc / ✕</td><td>закрыть окно (справку, выбор игроков); повтор — выход</td></tr>
-            <tr><td>Esc / ☢ / клик мимо</td><td>выход (☢ - всё взрывается; из дуэли — через подтверждение)</td></tr>
-          </table>
-          <h5>Правила</h5>
-          <div style="color:var(--text-dim);font-size:11px">
-            5 раундов, боезапас на всю игру. Первый стрелок раунда 1 —
-            случайный, дальше раунды чередуются. Карта случая: либо архипелаг -
-            море на всю ширину окна и острова (суши ~половина экрана), либо
-            материк с озёрами. Утонувшее оседает на дно. На ход даётся 60
-            секунд (таймер стоит, пока открыто окно): на 10, 5 и 1 секунде -
-            тихий сигнал, по истечении ход пропускается. Обычные ракеты в
-            воде просто тонут. Напалм выжигает в земле ямы. Смерть с
-            перевесом урона разваливает танк на куски. Лава вулкана жалит
-            на 1-3 hp за шарик, у склона турель прикрывает вал с рвом. В
-            песке, снегу и ржавых дюнах ветер переносит частицы грунта:
-            рельеф мигрирует по ветру. Тройной клик по таблице рекордов
-            сбрасывает её и записывает текущий результат (нули не пишутся).
+          <div class="sc-help-top">
+            <button class="sc-helpx" title="Закрыть справку">✕</button>
+            <h4>Scorched Earth</h4>
           </div>
-          <h5>Дуэль на одном устройстве</h5>
-          <div style="color:var(--text-dim);font-size:11px">
-            Кнопка «⚙» — режим: против компьютера или двое за одним экраном.
-            Угол и сила у каждого игрока свои и восстанавливаются при
-            передаче хода. Игроки с именами, цветом и видом турели
-            сохраняются отдельно для каждого режима; цвет и вид компьютера
-            тоже настраиваются, имя менять нельзя. В дуэли между ходами
-            карточка «ХОД ПЕРЕДАН» с отсчётом 3-2-1 даёт время передать
-            клавиатуру; как только она исчезла — сразу можно стрелять. Выход
-            из начатой дуэли — только через подтверждение (Esc, клик мимо, ☢).
+          <div class="sc-help-body">
+            <table>
+              <tr><td>Drag / свайп</td><td>прицел: направление от турели - угол, расстояние - сила (ближе - слабее)</td></tr>
+              <tr><td>Клик «Угол» / «Сила»</td><td>панель ползунков внизу экрана (не модальная — траектория видна); Esc - закрыть</td></tr>
+              <tr><td>Панель внизу (тач)</td><td>угол и сила сразу оба, кнопки −/+ шаг по 1 для точной настройки</td></tr>
+              <tr><td>Колесо / ↑↓ / ←→</td><td>сила / угол ствола — свои у каждого игрока; выстрел — только в свой ход</td></tr>
+              <tr><td>Space / клик / тап</td><td>огонь (после отсчёта 3-2-1)</td></tr>
+              <tr><td>1–9, 0 / W / клик по оружию</td><td>выбор оружия</td></tr>
+              <tr><td>Esc / ✕</td><td>закрыть окно (справку, панель, выбор игроков); повтор — выход</td></tr>
+              <tr><td>Esc / ☢ / клик мимо</td><td>выход (☢ - всё взрывается как настоящий Nuke, ровно 2 секунды; из дуэли — через подтверждение)</td></tr>
+            </table>
+            <h5>Правила</h5>
+            <div style="color:var(--text-dim);font-size:19px">
+              5 раундов, боезапас на всю игру. Первый стрелок раунда 1 —
+              случайный, дальше раунды строго чередуются. Карта случая: либо
+              архипелаг - море на всю ширину окна и острова (суши ~половина
+              экрана), либо материк с озёрами. Утонувшее оседает на дно. На
+              ход даётся 60 секунд (таймер стоит, пока открыто окно): на 10,
+              5 и 1 секунде - тихий сигнал, по истечении ход пропускается.
+              Обычные ракеты в воде просто тонут. Напалм выжигает в земле
+              ямы. Смерть с перевесом урона разваливает танк на куски. Лава
+              вулкана жалит на 1-3 hp за шарик, у склона турель прикрывает
+              вал с рвом. В песке, снегу и ржавых дюнах ветер переносит
+              частицы грунта: рельеф мигрирует по ветру. Тройной клик по
+              таблице рекордов сбрасывает её и записывает текущий результат
+              (нули не пишутся; рекорды пишутся обоим бойцам, включая
+              компьютер).
+            </div>
+            <h5>Дуэль на одном устройстве</h5>
+            <div style="color:var(--text-dim);font-size:19px">
+              Кнопка «⚙» — режим: против компьютера или двое за одним экраном.
+              Угол и сила у каждого игрока свои и восстанавливаются при
+              передаче хода. Игроки с именами, цветом и видом турели
+              сохраняются отдельно для каждого режима; цвет и вид компьютера
+              тоже настраиваются, имя менять нельзя. В дуэли между ходами
+              карточка «ХОД ПЕРЕДАН» с отсчётом 3-2-1 даёт время передать
+              клавиатуру; как только она исчезла — сразу можно стрелять. Выход
+              из начатой дуэли — только через подтверждение (Esc, клик мимо, ☢).
+            </div>
+            <h5>Миры</h5>
+            <div style="color:var(--text-dim);font-size:19px">
+              Земные: Холмы, Пустыня, Арктика, Вулкан. Инопланетные: Ксено -
+              пурпурная кора с биолюминесцентными спорами под двойной звездой;
+              Ржавые дюны - железный песок луны газового гиганта с кольцом
+              (приливный ветер гонит дюны); Пепел - серый шлак кратеров,
+              сосед-гигант висит в небе. В глубине у всех миров залежи и жилы:
+              у вулкана дышат магматические трещины, в арктике мерцают ледяные
+              иглы. У холмов и ксено под землёй горючие пласты — их теперь
+              больше (2-4 на карту), любой огневое оружие поджигает; изредка
+              в большой глубине сидят ГИГАНТСКИЕ залежи — их детонация
+              перекраивает полкарты. На восходе и закате небо горит одинаково,
+              но в обратном порядке.
+            </div>
+            <h5>Как читать мир</h5>
+            <div style="color:var(--text-dim);font-size:19px">
+              День и ночь по кругу. Плазма больше не взрывает: она прилипает к
+              турели и жжёт её постепенно, плавит землю под жертвой и
+              проваливается вместе с ней в яму. Digger вгрызается в склон и
+              сверляет по расписанию (счётчик БУР % над буром): заряд на 0.42
+              экрана суммарного бурения, полёт в воздухе бесплатный. Сквозь
+              туннели пролетают снаряды, вода затекает и колышется, две трубы
+              в стопку - обвал. Редкое оружие бьет в несколько стадий.
+              Движение грунта не убивает - максимум 30 hp за раунд. У
+              туррелей щит. Вода живёт от музыки: дорожка бликов под
+              светилом — цвет и яркость светила, с учётом облачности.
+            </div>
+            <h5>Оружие</h5>
+            <div class="sc-wpnhelp"></div>
+            <h5>Турели</h5>
+            <div class="sc-hullgal"></div>
+            <h5>Рекорды (топ-10)</h5>
+            <table class="sc-rectab sc-rechelp"></table>
           </div>
-          <h5>Миры</h5>
-          <div style="color:var(--text-dim);font-size:11px">
-            Земные: Холмы, Пустыня, Арктика, Вулкан. Инопланетные: Ксено -
-            пурпурная кора с биолюминесцентными спорами под двойной звездой;
-            Ржавые дюны - железный песок луны газового гиганта с кольцом
-            (приливный ветер гонит дюны); Пепел - серый шлак кратеров,
-            сосед-гигант висит в небе. В глубине у всех миров залежи и жилы:
-            у вулкана дышат магматические трещины, в арктике мерцают ледяные
-            иглы. У холмов и ксено под землёй горючие пласты: взрыв, напалм
-            или бур поджигают их - пласт выгорает, а пустота обрушивает
-            свод. У рассвета свои розово-золотые тона, у заката -
-            оранжево-пурпурные; небо загорается вместе с светилом.
-          </div>
-          <h5>Как читать мир</h5>
-          <div style="color:var(--text-dim);font-size:11px">
-            День и ночь по кругу. Digger вгрызается в склон и сверлит по расписанию (счётчик БУР % над буром): заряд на 0.42 экрана суммарного бурения, полёт в воздухе бесплатный. Плазма после попадания живёт колонией клеточного автомата. Сквозь туннели пролетают снаряды, вода затекает и колышется, две трубы в стопку - обвал. Редкое оружие бьет в несколько стадий. Движение грунта не убивает - максимум 30 hp за раунд. У туррелей щит. Вода живёт от музыки: дорожка бликов под светилом — цвет и яркость светила, с учётом облачности.
-          </div>
-          <h5>Оружие</h5>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;font-size:11px">
-            <div>1 Missile 38hp ∞</div><div>2 Funky Bomb ×3</div>
-            <div>3 Death's Head ×2</div><div>4 Nuke ×1</div>
-            <div>5 Plasma ×2</div><div>6 Napalm ×2</div>
-            <div>7 Roller ×3</div><div>8 Digger ×3 - сверлит</div>
-            <div>9 Dirt Ball ×3 - грунт</div><div>0 MIRV ×2</div>
-          </div>
-          <h5>Турели</h5>
-          <div class="sc-hullgal"></div>
-          <h5>Рекорды (топ-10)</h5>
-          <div class="sc-rechelp" style="color:var(--text-dim);font-size:11px;line-height:1.7"></div>
         </div>
         <div class="sc-setup">
+          <button class="sc-set-x" title="Отмена">✕</button>
           <h3>SCORCH ARENA</h3>
           <div class="sc-setup-sub">SELECT YOUR FIGHTER</div>
           <div class="sc-mode-row">
@@ -4984,7 +5190,6 @@
             <div class="sc-pl-block" data-p="1"></div>
           </div>
           <div class="sc-setup-btns">
-            <button class="sc-set-cancel" title="Отмена">✕</button>
             <button class="sc-go sc-sym" title="В бой!">&#x25B6;</button>
           </div>
         </div>
@@ -5003,16 +5208,45 @@
         </div>
       </div>`;
     document.body.appendChild(overlay);
+    // LIGHT SITE THEME: measure now, re-check on every open() and on
+    // runtime theme switches (class / data-theme mutations on html+body)
+    syncLightTheme();
+    try {
+      const themeMO = new MutationObserver(syncLightTheme);
+      themeMO.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+      themeMO.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+    } catch (e) {}
     cv = overlay.querySelector('canvas.sc-cv');
     ctx = cv.getContext('2d');
-    powBar = overlay.querySelector('.sc-powbar');
-    powRange = powBar.querySelector('input');
-    powVal = powBar.querySelector('.sc-pv');
+    // bottom control panel: non-modal angle+power sliders
+    tctlEl = overlay.querySelector('.sc-tctl');
+    const angRow = tctlEl.querySelector('[data-k="ang"]');
+    const powRow = tctlEl.querySelector('[data-k="pow"]');
+    angRange = angRow.querySelector('input');
+    powRange = powRow.querySelector('input');
+    angVal = angRow.querySelector('.sc-tv');
+    powVal = powRow.querySelector('.sc-tv');
+    tctlEl.addEventListener('pointerdown', (e) => e.stopPropagation());
+    angRange.addEventListener('input', () => { aim.ang = clamp(+angRange.value, 0, 90); draw(); });
+    powRange.addEventListener('input', () => { aim.pow = clamp(+powRange.value, 5, 100); draw(); });
+    [angRow, powRow].forEach(row => {
+      const isAng = row.dataset.k === 'ang';
+      row.querySelectorAll('.sc-tb').forEach(b => {
+        b.addEventListener('pointerdown', (e) => e.stopPropagation());
+        b.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (state === 'over' || state === 'closing') return;
+          if (isAng) aim.ang = clamp(aim.ang + (+b.dataset.d), 0, 90);
+          else aim.pow = clamp(aim.pow + (+b.dataset.d), 5, 100);
+          draw();
+        });
+      });
+    });
     hudRefs = {
       ang: $('.sc-ang'), pow: $('.sc-pow'), wname: $('.sc-wname'), ammo: $('.sc-ammo'),
       round: $('.sc-round'), wins: $('.sc-wins'), score: $('.sc-score'),
       you: $('.sc-you'), enemy: $('.sc-enemy'), lasthit: $('.sc-lasthit'),
-      windarrow: $('.sc-windarrow'), windval: $('.sc-windval'), windlbl: overlay.querySelector('.sc-windbar span:last-child')
+      windarrow: $('.sc-windarrow'), windval: $('.sc-windval')
     };
     touchUI = !!(window.matchMedia && (window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window));
     // hull gallery in help
@@ -5029,32 +5263,52 @@
       it.appendChild(lb);
       gal.appendChild(it);
     });
-    powBar.addEventListener('pointerdown', (e) => e.stopPropagation());
-    powRange.addEventListener('input', () => { aim.pow = clamp(+powRange.value, 5, 100); draw(); });
-    overlay.querySelectorAll('.sc-pb-btn').forEach(b => {
-      b.addEventListener('pointerdown', (e) => e.stopPropagation());
-      b.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (state === 'over' || state === 'closing') return;
-        aim.pow = clamp(aim.pow + (+b.dataset.d), 5, 100);
-        draw();
-      });
+    // weapon cards in help: live icon (the same shape the projectile uses),
+    // damage breakdown incl. composite stages, and the wind factor
+    const wpnDesc = {
+      MISSILE: 'урон 36 hp',
+      FUNKY: 'каскад: 8×24 hp + финал 24 hp',
+      DEATH: 'урон 80 hp + ударная волна',
+      NUKE: 'урон 105 hp + кольцо пожаров',
+      PLASMA: 'прилипает: 50 hp + ~13 hp/с ожог и плавка грунта',
+      NAPALM: '10 hp + огонь ~7 hp/с (до 2 очагов)',
+      ROLLER: 'урон 42 hp, катится по склону',
+      DIGGER: 'бур 14 hp/такт + финал 38 hp',
+      DIRT: 'без урона — насыпь грунта',
+      MIRV: 'залп: 5×30 hp'
+    };
+    const wgal = overlay.querySelector('.sc-wpnhelp');
+    ARSENAL.forEach((w, i) => {
+      const row = document.createElement('div');
+      row.className = 'sc-wpnrow';
+      const ic = document.createElement('canvas');
+      ic.width = 40; ic.height = 40;
+      const mc = ic.getContext('2d');
+      mc.translate(20, 20); mc.rotate(-Math.PI / 4); mc.scale(1.5, 1.5);
+      drawProjectileShape(mc, w);
+      row.appendChild(ic);
+      const tx = document.createElement('div');
+      tx.className = 'sc-wt';
+      const b = document.createElement('b');
+      b.textContent = `${(i + 1) % 10} — ${w.name} ×${w.ammo === Infinity ? '∞' : w.ammo}`;
+      tx.appendChild(b);
+      const sp = document.createElement('span');
+      sp.textContent = wpnDesc[w.key] || `урон ${w.dmg} hp`;
+      tx.appendChild(sp);
+      row.appendChild(tx);
+      const ww = document.createElement('span');
+      ww.className = 'sc-ww';
+      ww.title = 'Подверженность ветру';
+      ww.textContent = `ветер ${Math.round(w.wind * 100)}%`;
+      row.appendChild(ww);
+      wgal.appendChild(row);
     });
     const helpEl = overlay.querySelector('.sc-help');
     const wmenu = overlay.querySelector('.sc-wmenu');
     const setupEl = overlay.querySelector('.sc-setup');
     const confirmEl = overlay.querySelector('.sc-confirm');
-    const refreshHelpRecs = () => {
-      const rh = helpEl.querySelector('.sc-rechelp');
-      rh.innerHTML = '';
-      const recs = records().slice(0, MAX_REC);
-      if (!recs.length) { rh.textContent = 'рекордов пока нет'; return; }
-      recs.forEach((r, i) => {
-        const row = document.createElement('div');
-        row.textContent = `${i + 1}. ${r.pname || 'Player1'} — ${r.score} очк. — побед: ${r.wins || 0} — ${r.date}`;
-        rh.appendChild(row);
-      });
-    };
+    // the help panel's records table — SAME look as the game-end screen
+    const refreshHelpRecs = () => fillRecordsTable(helpEl.querySelector('.sc-rechelp'), -1);
     const closeHelp = () => { helpEl.classList.remove('show'); helpOpen = false; };
     const closeSetup = () => { setupEl.classList.remove('show'); setupOpen = false; };
     const closeConfirm = () => { confirmEl.classList.remove('show'); confirmOpen = false; };
@@ -5076,7 +5330,7 @@
     // re-seeds it with the CURRENT run's results (zero results are skipped
     // by saveRec, so nothing phantom is left behind)
     let recClickN = 0, recClickT = 0;
-    $('.sc-rectab').addEventListener('click', (e) => {
+    $('.sc-over .sc-rectab').addEventListener('click', (e) => {
       e.stopPropagation();
       const now = Date.now();
       if (now - recClickT > 900) recClickN = 0;
@@ -5085,14 +5339,14 @@
       recClickN = 0;
       try { localStorage.removeItem(LS_KEY); } catch (e2) {}
       saveRec(players[0], score, wins);
-      if (GMODE === 2) saveRec(players[1], score2, wins2);
+      saveRec(players[1], score2, wins2);
       renderRecords(0);
       refreshHelpRecs();
     });
     // ============ MK-style setup, two side-by-side columns ============
     // picked[pi] = the profile row currently loaded/typed in column pi —
-    // the ✕ button deletes exactly THAT fighter, never a namesake or the
-    // other column's pick
+    // the delete button deletes exactly THAT fighter, never a namesake or
+    // the other column's pick
     const setup = { mode: GMODE, blocks: [null, null], draft: [null, null], sug: [null, null], picked: [null, null] };
     // per-mode drafts: the LAST SAVED pair for that exact mode — switching
     // PvP↔PvC loads each side's own config, the PC's look never leaks from
@@ -5127,8 +5381,8 @@
       return ps.filter(pr => pr.name.toLowerCase().indexOf(nm) === 0);
     };
     const closeSuggest = (pi) => { if (setup.sug[pi]) { setup.sug[pi].classList.remove('show'); } };
-    // delete a saved fighter: exact name match (case-insensitive) against
-    // the stored row; unrelated fighters and the other column are untouched
+    // remove the stored profile row (records are NOT touched here —
+    // deleteFighter handles them, with a confirmation when they exist)
     const removeProfile = (pi, name, reopen) => {
       const nm = (name || '').trim();
       if (nm) saveProfiles(profiles().filter(q => q.name.toLowerCase() !== nm.toLowerCase()));
@@ -5140,6 +5394,18 @@
       }
       renderSetupBlocks();
       if (reopen) renderSuggest(pi, true); else closeSuggest(pi);
+    };
+    // full fighter deletion: if he has record rows, ask first and wipe the
+    // profile AND the records together via the shared confirmation dialog
+    const deleteFighter = (pi, name) => {
+      const nm = (name || '').trim();
+      if (!nm) return;
+      const hasRecs = records().some(r => (r.pname || '').toLowerCase() === nm.toLowerCase());
+      if (!hasRecs) { removeProfile(pi, nm, false); return; }
+      askConfirm(`У бойца «${nm}» есть записи в таблице рекордов. Удалить бойца вместе с его рекордами?`, () => {
+        try { localStorage.setItem(LS_KEY, JSON.stringify(records().filter(r => (r.pname || '').toLowerCase() !== nm.toLowerCase()))); } catch (e2) {}
+        removeProfile(pi, nm, false);
+      });
     };
     const renderSuggest = (pi, showAll) => {
       const blk = setup.blocks[pi];
@@ -5169,7 +5435,7 @@
         del.className = 'sc-sug-del';
         del.title = 'Удалить бойца';
         del.textContent = '✕';
-        del.onmousedown = (ev) => { ev.preventDefault(); ev.stopPropagation(); removeProfile(pi, pr.name, true); };
+        del.onmousedown = (ev) => { ev.preventDefault(); ev.stopPropagation(); deleteFighter(pi, pr.name); };
         del.onclick = (ev) => ev.stopPropagation();
         si.appendChild(del);
         si.onmousedown = (ev) => { ev.preventDefault(); ev.stopPropagation(); loadProfile(pi, pr); };
@@ -5220,6 +5486,8 @@
         if (input && input !== document.activeElement) input.value = p.name;
         const tools = blk.querySelector('.sc-pl-tools');
         if (tools) tools.style.display = locked ? 'none' : 'flex';
+        const delB = blk.querySelector('.sc-pl-del');
+        if (delB) delB.style.display = locked ? 'none' : 'block';
         blk.querySelectorAll('.sc-mcell').forEach((mc, i) => {
           mc.classList.toggle('sel', HULLS[i].key === p.hull);
           drawMiniTurret(mc.getContext('2d'), 52, setup.draft[pi].col, HULLS[i].key);
@@ -5265,21 +5533,10 @@
       input.onfocus = () => renderSuggest(pi);
       input.onblur = () => setTimeout(() => closeSuggest(pi), 150);
       head.appendChild(input);
-      // ✕ deletes the PICKED fighter (the profile row this column loaded or
-      // typed to a match); ▾ toggles this column's own saved-fighters list,
-      // open even when a name is already typed
+      // ▾ toggles this column's own saved-fighters list, open even when a
+      // name is already typed (the DELETE button lives at the block bottom)
       const tools = document.createElement('span');
       tools.className = 'sc-pl-tools';
-      const del = document.createElement('button');
-      del.className = 'sc-t-del';
-      del.textContent = '✕';
-      del.title = 'Удалить выбранного бойца';
-      del.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
-      del.onclick = (e) => {
-        e.stopPropagation();
-        removeProfile(pi, setup.picked[pi] || setup.draft[pi].name, false);
-      };
-      tools.appendChild(del);
       const dd = document.createElement('button');
       dd.className = 'sc-t-dd';
       dd.textContent = '▾';
@@ -5330,6 +5587,18 @@
         pal.appendChild(sw);
       });
       blk.appendChild(pal);
+      // bottom-of-block delete: removes the PICKED fighter (the profile row
+      // this column loaded or typed to a match); with records present it
+      // asks for confirmation and wipes those rows too
+      const delBtn = document.createElement('button');
+      delBtn.className = 'sc-pl-del';
+      delBtn.textContent = '✕ УДАЛИТЬ БОЙЦА';
+      delBtn.title = 'Удалить сохранённого бойца (с рекордами — спросит)';
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        deleteFighter(pi, setup.picked[pi] || setup.draft[pi].name);
+      };
+      blk.appendChild(delBtn);
       setup.sug[pi] = null;
     };
     overlay.querySelectorAll('.sc-mode-btn').forEach(b => {
@@ -5357,7 +5626,7 @@
       setupOpen = true;
     };
     $('.sc-pvpbtn').onclick = (e) => { e.stopPropagation(); openSetup(); };
-    $('.sc-set-cancel').onclick = (e) => { e.stopPropagation(); closeSetup(); };
+    overlay.querySelector('.sc-set-x').onclick = (e) => { e.stopPropagation(); closeSetup(); };
     $('.sc-go').onclick = (e) => {
       e.stopPropagation();
       if (!checkName(0) || !checkName(1)) { beep(220, 0.12, 0.2); return; }
@@ -5391,46 +5660,45 @@
     // ============ exit confirmation — every exit route in pvp ============
     const requestExit = (boom) => {
       if (!boom && GMODE === 2 && confirmClose && state !== 'over') {
-        confirmEl.classList.add('show');
-        confirmOpen = true;
+        askConfirm('Дуэль не окончена. Сдаться и выйти?', () => close(false));
         return;
       }
       close(boom);
     };
-    $('.sc-no').onclick = (e) => { e.stopPropagation(); closeConfirm(); };
-    $('.sc-yes').onclick = (e) => { e.stopPropagation(); closeConfirm(); close(false); };
+    $('.sc-no').onclick = (e) => { e.stopPropagation(); confirmAction = null; closeConfirm(); };
+    $('.sc-yes').onclick = (e) => {
+      e.stopPropagation();
+      const act = confirmAction;
+      confirmAction = null;
+      closeConfirm();
+      if (act) act();
+    };
+    // HUD chips toggle the bottom control panel (non-modal)
     overlay.querySelectorAll('.sc-aimctl').forEach(el => {
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         if (state !== 'aim' || helpOpen) return;
-        sliderOpen = el.dataset.k;
+        tctlOpen = !tctlOpen;
         draw();
       });
     });
     document.addEventListener('click', () => wmenu.classList.remove('show'));
 
     window.addEventListener('resize', resize);
+    // canvas input stays fully live while the bottom panel is up — the
+    // panel swallows its own pointer events, everything else aims/fires
     cv.addEventListener('pointerdown', (e) => {
       if (setupOpen || confirmOpen) return;
       if (helpOpen) { closeHelp(); return; }
       if (wmenu.classList.contains('show')) { wmenu.classList.remove('show'); return; }
-      const p = ptrPos(e);
-      if (sliderOpen) {
-        if (inRect(p, sliderGeom && sliderGeom.close)) { closeSlider(); return; }
-        if (inRect(p, sliderGeom && sliderGeom.body) && Math.abs(p.y - sliderGeom.ty) < 26) { sliderDrag = true; try { cv.setPointerCapture(e.pointerId); } catch {} applySliderVal(p.x); return; }
-        if (inRect(p, sliderGeom && sliderGeom.body)) return;
-        closeSlider();
-        return;
-      }
       if (state === 'over' || state === 'closing') return;
       if (state !== 'aim' || !isHumanSeat(turn)) return;
-      drag = { x: p.x, y: p.y, moved: false };
+      drag = { x: ptrPos(e).x, y: ptrPos(e).y, moved: false };
       try { cv.setPointerCapture(e.pointerId); } catch {}
     });
     cv.addEventListener('pointermove', (e) => {
-      const p = ptrPos(e);
-      if (sliderDrag) { applySliderVal(p.x); return; }
       if (!drag) return;
+      const p = ptrPos(e);
       if (!drag.moved && Math.hypot(p.x - drag.x, p.y - drag.y) > 5) drag.moved = true;
       if (drag.moved) { drag.x = p.x; drag.y = p.y; updateAimFromPointer(p); }
     });
@@ -5439,18 +5707,11 @@
         if (turn === 0) fire();
         else if (GMODE === 2) fire2();
       }
-      drag = null; sliderDrag = false;
+      drag = null;
     });
     cv.addEventListener('wheel', (e) => {
       e.preventDefault();
       if (state !== 'aim' || !isHumanSeat(turn)) return;
-      if (sliderOpen) {
-        const d = e.deltaY < 0 ? 1 : -1;
-        if (sliderOpen === 'ang') aim.ang = clamp(aim.ang + d, 0, 90);
-        else aim.pow = clamp(aim.pow + d, 5, 100);
-        draw();
-        return;
-      }
       aim.pow = clamp(aim.pow + (e.deltaY < 0 ? 1 : -1), 10, 100);
       draw();
     }, { passive: false });
@@ -5550,16 +5811,16 @@
     if (!overlay || !overlay.classList.contains('show')) return;
     if (e.key === 'Escape') {
       // Esc unwinds ONE modal at a time: weapon menu → confirm → setup →
-      // slider → help, and only then considers leaving the game
+      // control panel → help, and only then considers leaving the game
       const wmenu = overlay.querySelector('.sc-wmenu');
       if (wmenu.classList.contains('show')) { wmenu.classList.remove('show'); return; }
-      if (confirmOpen) { overlay.querySelector('.sc-confirm').classList.remove('show'); confirmOpen = false; return; }
+      if (confirmOpen) { overlay.querySelector('.sc-confirm').classList.remove('show'); confirmOpen = false; confirmAction = null; return; }
       if (setupOpen) { overlay.querySelector('.sc-setup').classList.remove('show'); setupOpen = false; return; }
-      if (sliderOpen) { closeSlider(); return; }
+      if (tctlOpen && !touchUI) { tctlOpen = false; return; }
       if (helpOpen) { overlay.querySelector('.sc-help').classList.remove('show'); helpOpen = false; return; }
       if ($('.sc-over').classList.contains('show')) { $('.sc-over').classList.remove('show'); close(false); return; }
       // pvp in progress → confirmation, otherwise straight out
-      if (GMODE === 2 && confirmClose && state !== 'over') { overlay.querySelector('.sc-confirm').classList.add('show'); confirmOpen = true; return; }
+      if (GMODE === 2 && confirmClose && state !== 'over') { askConfirm('Дуэль не окончена. Сдаться и выйти?', () => close(false)); return; }
       close(false);
       return;
     }
