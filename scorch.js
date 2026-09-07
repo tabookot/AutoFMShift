@@ -1,4 +1,5 @@
-// scorch.js — modern Scorched Earth successor; experimental branch of game.js
+// Устаревший вариант - потом удалить. Современнный в папке scorch (scorch\scorch.js)
+// scorch.js — modern Scorch successor; experimental branch of game.js
 //scorch.js part01
 (() => {
   const LS_KEY = 'scorch_records';
@@ -24,6 +25,24 @@
   // hand-over card duration — the card is driven by turnIntro directly, so
   // it vanishes and the firing lock lifts on the SAME frame
   const TURN_INTRO = 3;
+  // LAST STAND: hp hitting 0 during the fighter's OWN aim turn (lingering
+  // napalm, lava) opens a short dying window with ONE final shot — the old
+  // "zombie turret" race turned into an explicit, very rare feature; the
+  // canAct/canHurt gates below are checked by EVERY firing / damage /
+  // resolution path, so a dead tank can never act and a dying one cannot
+  // be hurt any more
+  const LAST_STAND = 2.6;
+  // BARREL ARC: the turret sweeps a full 220° — from 20° BELOW the horizon
+  // on the foe's side, up over the top, to 20° below the horizon behind
+  // the back. The straight-down sector is excluded: at ±20° the barrel tip
+  // stays above the tracks and only grazes the glacis, never stabbing
+  // through the hull side
+  const AIM_MIN = -20, AIM_MAX = 200;
+  // liquid-lava timings (seconds on the column clock): molten window,
+  // full-cool mark, rock gain per second (dry / underwater — quenched lava
+  // builds the bed faster than it ever burned) and the slow burn-into-ground
+  const LAVA_MELT = 6, LAVA_COOL = 17;
+  const LAVA_FILL = 2.4, LAVA_FILL_WET = 5.2, LAVA_BURN = 0.55;
   // water layer display, randomized per round: 1 = lakes in basins,
   // 2 = full-width sea with islands (the sea line sits at the 55th height
   // percentile, so roughly half the screen width stays dry land)
@@ -36,15 +55,22 @@
     { key: 'FUNKY',    name: 'Funky Bomb',    r: 40, type: 'funky',    ammo: 3,  col: '#9a8ac8', dmg: 24, wind: 0.3,  shape: 'cluster',  water: 'surface' },
     { key: 'DEATH',    name: "Death's Head",  r: 62, type: 'death',    ammo: 2,  col: '#e8c14a', dmg: 80, wind: 0.15, shape: 'bomb',     water: 'bottom' },
     { key: 'NUKE',     name: 'Nuke',          r: 78, type: 'nuke',     ammo: 1,  col: '#ffd23f', dmg: 105, wind: 0.12, shape: 'bomb',    water: 'surface' },
-    { key: 'PLASMA',   name: 'Plasma',        r: 48, type: 'plasma',   ammo: 2,  col: '#d06050', dmg: 50, wind: 0.2,  shape: 'mirv',     water: 'fizzle' },
+    { key: 'PLASMA',   name: 'Plasma',        r: 48, type: 'plasma',   ammo: 2,  col: '#d06050', dmg: 32, wind: 0.2,  shape: 'mirv',     water: 'fizzle' },
     { key: 'NAPALM',   name: 'Napalm',        r: 50, type: 'napalm',   ammo: 2,  col: '#d85a18', dmg: 10, wind: 0.55, shape: 'canister', water: 'fizzle' },
-    { key: 'ROLLER',   name: 'Roller',        r: 30, type: 'roller',   ammo: 3,  col: '#5aa8a0', dmg: 42, wind: 0.05, shape: 'ball',     water: 'sink' },
+    { key: 'ROLLER',   name: 'Roller',        r: 34, type: 'roller',   ammo: 3,  col: '#5aa8a0', dmg: 56, wind: 0.05, shape: 'ball',     water: 'sink' },
     { key: 'DIGGER',   name: 'Digger',        r: 56, type: 'digger',   ammo: 3,  col: '#8a6a3a', dmg: 0,  wind: 0.2,  shape: 'drill',    water: 'sink' },
     { key: 'DIRT',     name: 'Dirt Ball',     r: 70, type: 'dirt',     ammo: 3,  col: '#cbb490', dmg: 0,  wind: 0.3,  shape: 'ball',     water: 'sink' },
     { key: 'MIRV',     name: 'MIRV',          r: 34, type: 'mirv',     ammo: 2,  col: '#c05a4a', dmg: 30, wind: 0.25, shape: 'mirv', subs: 5, water: 'surface' }
   ];
   const TERRAIN_WEAPONS = ['digger', 'dirt'];
   const isTerr = (t) => TERRAIN_WEAPONS.includes(t);
+  // per-weapon blast accents: tint the layered explosion fx (star / sparks /
+  // crackle / flash / fire) so each weapon reads differently
+  const BLAST_COL = {
+    missile: '255,190,110', funky: '185,165,255', death: '255,214,90', nuke: '255,244,214',
+    napalm: '255,150,60', roller: '140,235,215', plasma: '255,110,80',
+    digger: '235,205,150', dirt: '235,215,175', mirv: '230,150,130'
+  };
 
   // earth biomes plus three off-world ones. `pal` recolours sky/sun/clouds/
   // haze/water for the alien worlds; `under` drives the underground strata,
@@ -60,6 +86,15 @@
     ashen:    { surf: '#6a6a72', surfHi: '#8c8c96', sub: ['#4c4c54', '#33333a', '#141418'], mat: { depthF: 0.85, rimF: 0.45, slope: 5.0, drift: 0, dustN: 22, chunkN: 16, dustCol: '120,120,130', chunks: ['#55555e', '#3a3a42'] }, sky: { giant: { col: '#9c86b8', ring: 'rgba(205,185,255,0.45)' } }, pal: { day: ['#78748e', '#a09cb4', '#d4d2e0'], sun: '#f4f2ec', sunHalo: 'rgba(240,240,235,0.3)', cloud: '#5c5c70', haze: 'rgba(190,190,205,0.28)', water: { top: '#6f7f88', deep: '#101e28' } }, under: { strata: [['#55555e', 24], ['#3a3a42', 50]], wobble: 7, dec: 'ember', dep: 'dot', twink: '170,190,255', twN: 20 } }
   };
   const BIOME_POOL = ['green', 'green', 'desert', 'desert', 'arctic', 'arctic', 'volcanic', 'xeno', 'rust', 'ashen'];
+  // the volcano is REUSED on three worlds — only the lava palette differs:
+  // volcanic = classic orange, xeno = teal plasma-rock, ashen = violet slag
+  const VOLC_BIOMES = ['volcanic', 'xeno', 'ashen'];
+  const LAVA_STYLES = {
+    volcanic: { core: '255,235,160', hot: '255,110,30',  deep: '210,55,10',  glow: '255,150,50' },
+    xeno:     { core: '220,255,250', hot: '70,240,225',  deep: '15,130,120', glow: '90,250,235' },
+    ashen:    { core: '255,245,235', hot: '225,120,255', deep: '120,35,150', glow: '220,130,255' }
+  };
+
   const TOD = {
     day:    { stops: ['#7ab3d8', '#a8cde6', '#d8e8f0'], sun: '#fff6d8', sunHalo: 'rgba(255,246,216,0.35)', stars: false, clouds: 0.55, haze: 'rgba(220,235,245,0.25)' },
     // dusk and dawn each get their OWN palette: sunset burns orange-purple,
@@ -74,7 +109,7 @@
     { p: 0.00, k: 'dawn' }, { p: 0.07, k: 'day' }, { p: 0.36, k: 'day' }, { p: 0.46, k: 'sunset' },
     { p: 0.55, k: 'night' }, { p: 0.90, k: 'night' }, { p: 0.965, k: 'dawn' }, { p: 1.00, k: 'dawn' }
   ];
-  // canonical round-end phrases (Scorched Earth / MK heritage), no Russian
+  // canonical round-end phrases (Scorch / MK heritage), no Russian
   // translation — {N} splices the addressee's name in. Draw phrases carry
   // no {N}: nobody is addressed
   const BANNERS = {
@@ -191,11 +226,27 @@
   const biomeKey = () => Object.keys(BIOMES).find(k => BIOMES[k] === biome);
   const biomeLabel = () => ({ green: 'Холмы', desert: 'Пустыня', arctic: 'Арктика', volcanic: 'Вулкан', xeno: 'Ксено', rust: 'Ржавые дюны', ashen: 'Пепел' }[biomeKey()] || '');
   const windKind = () => ({ green: 'leaf', desert: 'sand', arctic: 'snow', volcanic: 'ash', xeno: 'dust', rust: 'sand', ashen: 'ash' }[biomeKey()] || 'dust');
+  // lava palette of the CURRENT world (volcanic by default) — drives the
+  // bits, flows, pools, crater glow and melt tint
+  const lav = () => LAVA_STYLES[biomeKey()] || LAVA_STYLES.volcanic;
+  // 'r,g,b' triplet helpers: hex → triplet and a lava→earth colour blend
+  // used by the cooling pools in drawTerrain
+  const hexTri = (h) => { const n = parseInt(h.slice(1), 16); return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`; };
+  const mixTri = (a, b, t) => {
+    const A = a.split(',').map(Number), B = b.split(',').map(Number);
+    return `${Math.round(A[0] + (B[0] - A[0]) * t)},${Math.round(A[1] + (B[1] - A[1]) * t)},${Math.round(A[2] + (B[2] - A[2]) * t)}`;
+  };
   // hot-seat plumbing: whose seat is human, which tank aims now, and the
   // active seat's firing direction (toward the foe)
   const isHumanSeat = (i) => i === 0 || (GMODE === 2 && i === 1);
   const activeTank = () => tanks[turn] || tanks[0];
   const activeDir = () => { const me = activeTank(); const foe = tanks[turn === 0 ? 1 : 0]; return foe.x > me.x ? 1 : -1; };
+  // the ONE zombie rule, checked by every firing / damage / resolution
+  // path: a DYING fighter (last stand) may fire exactly one last shot
+  // inside its window and cannot be hurt any more; a DEAD one can do
+  // nothing at all
+  const canAct = (i) => { const t = tanks && tanks[i]; return !!t && !t.dead && (!t.dying || (gt < t.lsUntil && !t.lsShot)); };
+  const canHurt = (i) => { const t = tanks && tanks[i]; return !!t && !t.dead && !t.dying; };
   // the bottom control panel is NON-MODAL — it never blocks the timer or
   // the trajectory; only the true dialogs count
   const modalOpen = () => helpOpen || setupOpen || confirmOpen;
@@ -204,10 +255,12 @@
   // while their shot is still resolving
   const hudSeat = () => (state === 'aim' ? (turn === 0 ? 0 : 1) : shotOwner);
   // shared confirmation dialog: message + action fired on YES (NO / Esc
-  // just close). Used by the duel-exit routes AND by fighter deletion
-  function askConfirm(msg, act) {
+  // just close). Button LABELS adapt per use (duel exit / fighter deletion)
+  function askConfirm(msg, act, labels) {
     if (!overlay) return;
     overlay.querySelector('.sc-confirm p').textContent = msg;
+    overlay.querySelector('.sc-no').textContent = (labels && labels.no) || 'Продолжить';
+    overlay.querySelector('.sc-yes').textContent = (labels && labels.yes) || 'Выйти';
     confirmAction = act;
     overlay.querySelector('.sc-confirm').classList.add('show');
     confirmOpen = true;
@@ -288,19 +341,25 @@
   }
   const blastRange = (x, r) => [clamp(Math.round((x - r * 1.5) / cols.step), 1, cols.length - 2), clamp(Math.round((x + r * 1.5) / cols.step), 1, cols.length - 2)];
 
+  // pointer aiming over the FULL barrel arc: atan2 over the forward-mirrored
+  // axis covers down-forward (negative), up and backward (90..180); the
+  // sector past -90° wraps to 180..360 so backward-down maps past 180
   function updateAimFromPointer(p) {
     const t = activeTank(), dir = activeDir();
     const dx = p.x - t.x, dy = (t.y - 14) - p.y;
     const dist = Math.hypot(dx, dy);
     const ax = Math.abs(dx) < 4 ? 4 : dx * dir;
-    aim.ang = clamp(Math.round(Math.atan2(Math.max(dy, 2), ax) * 180 / Math.PI), 0, 88);
+    let a = Math.atan2(dy, ax) * 180 / Math.PI;
+    if (a < -90) a += 360;
+    aim.ang = clamp(Math.round(a), AIM_MIN, AIM_MAX);
     const reach = Math.min(Wc * 0.42, 300);
     aim.pow = clamp(Math.round(5 + 95 * (dist - 26) / reach), 5, 100);
   }
   // bottom control panel (angle + power), NON-MODAL: the trajectory stays
   // live and the canvas keeps aiming while it is up. On touch it auto-opens
   // with both sliders stacked; on desktop the HUD chips toggle it. Values
-  // sync from the live aim every frame
+  // sync from the live aim every frame. The wind bar stays pinned to the
+  // bottom edge at all widths — the HP row wraps above its zone now
   function updateTctl() {
     if (!tctlEl) return;
     const active = state === 'aim' && isHumanSeat(turn);
@@ -551,7 +610,8 @@
       if (glow > 0.1) { c.fillStyle = `rgba(255,214,120,${glow.toFixed(3)})`; c.fillRect(0, topY - 2, 1, 1); }
     }
 
-    // barrel
+    // barrel — the rotation formula holds across the whole AIM arc:
+    // -20° dips it just over the glacis, 200° points it down behind the back
     const pivY = hull === 'stealth' ? -13 : hull === 'heavy' ? -12 : hull === 'retro' ? -18 : hull === 'howitzer' ? -15 : (hull === 'rail' || hull === 'bunker') ? -13 : -14;
     c.save();
     c.translate(0, pivY);
@@ -661,7 +721,6 @@
     c2.restore();
   }
 
-//scorch.js part02
   function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   function makeNoise(rnd) {
     const T = new Float32Array(256);
@@ -722,8 +781,10 @@
     try { localStorage.setItem(LS_PROFILE, JSON.stringify(p.slice(0, 20))); } catch (e) {}
   }
   // last-used fighters per game mode: { mode, 1: {p0,p1}, 2: {p0,p1} } —
-  // restored on open and when switching modes in setup, so the computer's
-  // look never leaks from PvP player 2
+  // restored on open and when switching modes in setup. A HUMAN fighter's
+  // look is re-merged from his PROFILE by name (a fighter with one name is
+  // the same fighter in every mode); only the computer's reserved GLM look
+  // is stored per mode
   function lastCfg() { try { return JSON.parse(localStorage.getItem(LS_LAST)) || {}; } catch { return {}; } }
   function saveLastCfg(mode, p0, p1) {
     try {
@@ -733,13 +794,18 @@
       localStorage.setItem(LS_LAST, JSON.stringify(c));
     } catch (e) {}
   }
+  // the stored look of a fighter BY NAME, or the fallback
+  const profLook = (name, fb) => {
+    const pr = profiles().find(q => q.name.toLowerCase() === (name || '').toLowerCase());
+    return pr ? { col: pr.col, hull: pr.hull } : fb;
+  };
   function applyLastPlayers() {
     const c = lastCfg()[GMODE];
     if (!c) return;
-    players[0] = { name: (c.p0 && c.p0.name) || 'Player1', col: (c.p0 && c.p0.col) || '#2ecc71', hull: (c.p0 && c.p0.hull) || 'classic', ai: false };
+    players[0] = { name: (c.p0 && c.p0.name) || 'Player1', ...profLook((c.p0 && c.p0.name) || 'Player1', { col: (c.p0 && c.p0.col) || '#2ecc71', hull: (c.p0 && c.p0.hull) || 'classic' }), ai: false };
     players[1] = GMODE === 1
       ? { name: 'GLM', col: (c.p1 && c.p1.col) || '#ff4757', hull: (c.p1 && c.p1.hull) || 'classic', ai: true }
-      : { name: (c.p1 && c.p1.name) || 'Player2', col: (c.p1 && c.p1.col) || '#3498db', hull: (c.p1 && c.p1.hull) || 'classic', ai: false };
+      : { name: (c.p1 && c.p1.name) || 'Player2', ...profLook((c.p1 && c.p1.name) || 'Player2', { col: (c.p1 && c.p1.col) || '#3498db', hull: (c.p1 && c.p1.hull) || 'classic' }), ai: false };
   }
   function schedule(fn, delay) { events.push({ at: gt + delay, fn }); }
 
@@ -773,7 +839,7 @@
     const NUKE0 = { ...ARSENAL.find(w => w.key === 'NUKE'), dmg: 0 };
     tanks.forEach((t, i) => {
       nukeStrike(t.x, t.y - 10, { ...NUKE0, r: 60 });
-      t.dead = true; killed = i;
+      t.dead = true; t.dying = false; killed = i;
       remains.push({ x: t.x, y: t.y, col: t.col, hull: t.hull, style: 'nuke', falling: true, sunk: false, wreck: 1 });
       tankParts(t);
     });
@@ -916,7 +982,7 @@
       } catch (e) {}
     }
   }
-
+//scorch.js part02
   function genTerrain() {
     seed = (Math.random() * 1e9) | 0;
     S = mulberry32(seed);
@@ -952,7 +1018,10 @@
       h += (fbm(u * 6 * sf + 50, 4) - 0.5) * 2 * detail;
       if (archetype === 'badlands') h += (1 - Math.abs(2 * fbm(u * 11 * sf + 90, 3) - 1)) * 0.14;
       h = clamp(h, 0.03, 0.95);
-      cols.push({ top: Math.round(Hc * 0.9 - h * Hc * 0.68), surf: 5 + Math.round(noise(u * 40) * 5), burn: 0, melt: 0, h0: 0, h1: 0, sid: 0 });
+      // lava/lavaT: the column's LIQUID lava pool (depth px) and its age —
+      // molten pools burn, level and damage; cooling pools harden into an
+      // earth layer, filling the pit (see the lava block in stepTerra)
+      cols.push({ top: Math.round(Hc * 0.9 - h * Hc * 0.68), surf: 5 + Math.round(noise(u * 40) * 5), burn: 0, melt: 0, h0: 0, h1: 0, sid: 0, lava: 0, lavaT: 0 });
     }
     cols.step = Wc / N;
 
@@ -997,7 +1066,9 @@
     dirtyA = 0; dirtyB = N - 1;
     waterReset();
 
-    if (biomeKey() === 'volcanic') {
+    // the volcano spawns on volcanic AND the two alien rock worlds; the
+    // whole behaviour is shared, only the lava palette differs (lav())
+    if (VOLC_BIOMES.includes(biomeKey())) {
       let hiI = 8;
       for (let i = 10; i < N - 10; i++) if (cols[i].top < cols[hiI].top) hiI = i;
       const vr = clamp(Wc * 0.075, 36, 66);
@@ -1050,6 +1121,8 @@
   function inVoid(x, y) { const c = colAt(x); return c.h1 > 0 && y >= c.h0 - 2 && y < c.h1; }
   function shotBlocked(x, y, ownSid) {
     const c = colAt(x);
+    // a pooled lava column is a liquid body: shots detonate on its surface
+    if (c.lava > 1.5 && y >= c.top - c.lava) return true;
     if (y < c.top) return false;
     if (c.h1 > 0 && y >= c.h0 - 2 && y < c.h1) return ownSid !== undefined && c.sid === ownSid;
     return true;
@@ -1142,7 +1215,7 @@
     if (v) {
       const n = 5 + Math.round(amt * 30);
       for (let k = 0; k < n; k++) emitLavaFrom(v, true);
-      fx.push({ k: 'flash', x: v.x, y: v.y - 10, r: 30, t: 0, life: 0.16, col: '#ff9a3a' });
+      fx.push({ k: 'flash', x: v.x, y: v.y - 10, r: 30, t: 0, life: 0.16, col: `rgb(${lav().glow})` });
     }
     sfx(0.8);
     shake = Math.min(10, shake + 3);
@@ -1162,7 +1235,7 @@
       dirtyA = Math.min(dirtyA, a); dirtyB = Math.max(dirtyB, b);
     };
     if (t === 'digger' || t === 'plasma') {
-      fx.push({ k: 'flash', x, y, r: 18, t: 0, life: 0.12, col: '#ff9a3a' });
+      fx.push({ k: 'flash', x, y, r: 18, t: 0, life: 0.12, col: `rgb(${lav().glow})` });
       fx.push({ k: 'fire', x, y, r: 14, t: 0, life: 0.5 });
       spawnWisps(x, y, 5);
       meltShaft(4);
@@ -1210,16 +1283,18 @@
       volcano.burst = null;
     }
   }
+  // lava LANDING feeds the column's liquid pool: the pool burns the ground
+  // under itself, levels into pits like a fluid and — on cooling — hardens
+  // into a layer of earth (see the lava block in stepTerra)
   function landLava(lb) {
-    firePatches.push({ x: lb.x, y: lb.y, life: R(2.5, 5), volc: true });
     const ci = clamp(Math.round(lb.x / cols.step), 0, cols.length - 1);
     const c = cols[ci];
+    c.lava = Math.min(30, c.lava + lb.s * 1.4);
+    c.lavaT = 0;
     c.burn = Math.max(c.burn, 0.85);
-    if (c.top < Hc - 6 && c.h1 <= 0) {
-      c.top += 0.5;
-      dirtyA = Math.min(dirtyA, ci); dirtyB = Math.max(dirtyB, ci + 1);
-    }
-    if (Math.random() < 0.3) fx.push({ k: 'wisp', x: lb.x, y: lb.y - 2, vx: R(-5, 5), vy: -R(14, 26), ph: R(0, 6.28), t: 0, life: R(0.7, 1.4) });
+    dirtyA = Math.min(dirtyA, ci); dirtyB = Math.max(dirtyB, ci + 1);
+    if (Math.random() < 0.35) firePatches.push({ x: lb.x, y: c.top - c.lava, life: R(0.8, 1.6), volc: true });
+    if (Math.random() < 0.3) fx.push({ k: 'wisp', x: lb.x, y: c.top - c.lava - 2, vx: R(-5, 5), vy: -R(14, 26), ph: R(0, 6.28), t: 0, life: R(0.7, 1.4) });
   }
   function stepLavaBits(dt) {
     lavaBits = lavaBits.filter(lb => {
@@ -1237,7 +1312,7 @@
       }
       for (let i = 0; i < tanks.length; i++) {
         const tk = tanks[i];
-        if (!tk.dead && Math.abs(lb.x - tk.x) < 11 && lb.y > tk.y - 30 && lb.y < tk.y + 8) {
+        if (canHurt(i) && Math.abs(lb.x - tk.x) < 11 && lb.y > tk.y - 30 && lb.y < tk.y + 8) {
           damageTank(i, 1 + Math.random() * 2, 'lava', lb.x, lb.y);
           return false;
         }
@@ -1250,8 +1325,6 @@
       return true;
     });
   }
-
-//scorch.js part03
   // ================= WATER =================
   const WP = {
     speed: 130, decay: 0.0012, ampBass: 13, ampMid: 7, ampTrb: 3,
@@ -1516,25 +1589,36 @@
         spots.push(c);
       });
     }
+    // pick the widest pair in PIXELS (not column indices — on narrow
+    // screens the step shrinks and index gaps lie), then the farthest-two
+    // fallback instead of a middle spot
     let bestPair = null, bestGap = -1;
     for (let t = 0; t < 40; t++) {
       const a = spots[(Math.random() * spots.length) | 0];
       const b = spots[(Math.random() * spots.length) | 0];
       if (a === b) continue;
-      const gap = Math.abs(a - b);
+      const gap = Math.abs(a - b) * cols.step;
       if (gap > bestGap) { bestGap = gap; bestPair = [a, b]; }
     }
-    if (!bestPair) bestPair = [spots[0], spots[Math.min(spots.length - 1, Math.floor(spots.length / 2))]];
+    if (!bestPair) {
+      const ss = spots.slice().sort((x, y) => x - y);
+      bestPair = [ss[0], ss[ss.length - 1]];
+    }
     const greenFirst = Math.random() < 0.5;
     const pi = greenFirst ? bestPair[0] : bestPair[1];
     const ei = greenFirst ? bestPair[1] : bestPair[0];
     tanks = [
-      { x: pi * cols.step, hp: TANK_HP, col: players[0].col, hull: players[0].hull, dispAng: 45, dead: false, fallFrom: undefined, wreck: 0, shield: 1, recoil: 0, terrDmg: 0, riseAcc: 0, dmgAcc: 0 },
-      { x: ei * cols.step, hp: TANK_HP, col: players[1].col, hull: players[1].hull, dispAng: 45, dead: false, fallFrom: undefined, wreck: 0, shield: 1, recoil: 0, terrDmg: 0, riseAcc: 0, dmgAcc: 0 }
+      { x: pi * cols.step, hp: TANK_HP, col: players[0].col, hull: players[0].hull, dispAng: 45, dead: false, dying: false, lsUntil: 0, lsShot: false, fallFrom: undefined, wreck: 0, shield: 1, recoil: 0, terrDmg: 0, riseAcc: 0, dmgAcc: 0 },
+      { x: ei * cols.step, hp: TANK_HP, col: players[1].col, hull: players[1].hull, dispAng: 45, dead: false, dying: false, lsUntil: 0, lsShot: false, fallFrom: undefined, wreck: 0, shield: 1, recoil: 0, terrDmg: 0, riseAcc: 0, dmgAcc: 0 }
     ];
     tanks.forEach(t => { t.x = clamp(t.x, 20, Wc - 20); t.y = surfaceAt(t.x); });
 
-    const minGap = Math.max(90, Wc * 0.22);
+    // min-gap enforcement: the floor scales with the screen so narrow maps
+    // keep ~a quarter of field between the fighters; when no dry flat spot
+    // exists, a fresh platform is carved — and the direction FLIPS if the
+    // screen edge clamps the first pick back into the gap zone (that clamp
+    // used to park the second turret right on top of the first one)
+    const minGap = Math.max(110, Wc * 0.22);
     if (Math.abs(tanks[0].x - tanks[1].x) < minGap) {
       const px = tanks[0].x;
       const want = px < Wc / 2 ? 1 : -1;
@@ -1552,9 +1636,14 @@
         if (score > bestScore) { bestScore = score; bestI = i; }
       }
       if (bestI < 0) {
-        let ex = clamp(px + want * Math.max(minGap * 1.4, Wc * 0.3), 30, Wc - 30);
+        const need = Math.max(minGap * 1.4, Wc * 0.3);
+        let ex = clamp(px + want * need, 30, Wc - 30);
+        if (Math.abs(ex - px) < minGap) ex = clamp(px - want * need, 30, Wc - 30);
+        if (Math.abs(ex - px) < minGap) ex = clamp(px < Wc / 2 ? Wc - 34 : 34, 30, Wc - 30);
         if (volcano && Math.abs(ex - volcano.x) < volcano.r + 70) {
-          ex = clamp(volcano.x + (ex < volcano.x ? -1 : 1) * (volcano.r + 100), 30, Wc - 30);
+          const side = ex < volcano.x ? -1 : 1;
+          ex = clamp(volcano.x + side * (volcano.r + 100), 30, Wc - 30);
+          if (Math.abs(ex - px) < minGap) ex = clamp(px - want * need, 30, Wc - 30);
         }
         const ci = clamp(Math.round(ex / cols.step), 4, N - 5);
         const target = waterLevel - 26;
@@ -1770,7 +1859,7 @@
     }
     if (did) {
       tanks.forEach((tk, i) => {
-        if (tk.dead) return;
+        if (!canHurt(i)) return;
         const cc = cols[clamp(Math.round(tk.x / cols.step), 0, N - 1)];
         if (cc.h1 <= 0 && tk.y > cc.top + 8) addTerrDmg(i, 14, 'обвал');
       });
@@ -1818,7 +1907,7 @@
 
   function addTerrDmg(i, dmg, src) {
     const t = tanks[i];
-    if (t.dead || dmg <= 0) return;
+    if (!canHurt(i) || dmg <= 0) return;
     const room = TERR_DMG_MAX - (t.terrDmg || 0);
     if (room <= 0) return;
     dmg = Math.min(dmg, room);
@@ -1890,6 +1979,60 @@
       if (c.burn > 0) c.burn = Math.max(0, c.burn - dt * 0.05);
       if (c.melt > 0) c.melt = Math.max(0, c.melt - dt * 0.06);
     });
+    // ============ LIQUID LAVA POOLS ============
+    // molten (lavaT < LAVA_MELT): slowly burns INTO the ground (the burn is
+    // deliberately tiny), scorches it, ignites buried fuel, scalds and sets
+    // FIRE to any turret it submerges, and LEVELS into neighbouring columns
+    // like a fluid. cooling (LAVA_MELT..LAVA_COOL): the mass hardens from
+    // the bottom up into a layer of EARTH — c.top rises exactly as c.lava
+    // shrinks, so the pit FILLS (the gain always beats the earlier burn,
+    // and once a pit is full the still-molten pools behind it flow on over
+    // the new ground). Under water the lava quenches — its clock runs 2.6x,
+    // the burn stage is skipped entirely and the bed builds at double
+    // speed: it never gets the chance to eat the bottom it is raising
+    for (let i = 0; i < cols.length; i++) {
+      const c = cols[i];
+      if (c.lava <= 0.4) { if (c.lava) c.lava = 0; continue; }
+      const x = i * cols.step;
+      const wet = c.top > waterLevel + 2;
+      c.lavaT += wet ? dt * 2.6 : dt;
+      if (wet) {
+        c.lavaT = Math.max(c.lavaT, LAVA_MELT + 0.01); // quench: no burn stage
+        if (Math.random() < dt * 2) fx.push({ k: 'wisp', x, y: waterAt(x), vx: R(-4, 4), vy: -R(16, 30), ph: R(0, 6.28), t: 0, life: R(0.8, 1.6) });
+      }
+      if (c.lavaT < LAVA_MELT) {
+        c.top = Math.min(Hc - 6, c.top + dt * (LAVA_BURN + c.lava * 0.05));
+        c.burn = Math.max(c.burn, 0.9); c.surf *= 0.92; c.melt = Math.max(c.melt || 0, 0.85);
+        if (Math.random() < dt * 1.5) igniteAt(x, c.top + 6, 10);
+        tanks.forEach((tk, ti) => {
+          if (!canHurt(ti) || Math.abs(tk.x - x) > cols.step + 6) return;
+          if (tk.y > c.top - c.lava - 8 && tk.y < c.top + 10) {
+            damageTank(ti, 8 * dt, 'lava', x, c.top - c.lava);
+            // the pool sets the turret itself alight while swallowing it
+            if (Math.random() < dt * 2.5) firePatches.push({ x: tk.x + R(-3, 3), y: tk.y - 2, life: R(0.5, 1.1), volc: true });
+          }
+        });
+        const s = c.top - c.lava;
+        [i - 1, i + 1].forEach(j => {
+          j = clamp(j, 0, cols.length - 1);
+          const nb = cols[j];
+          if (nb.h1 > 0) return; // never pour into tunnel voids
+          const ns = nb.top - nb.lava;
+          if (s > ns + 0.4) {
+            const q = Math.min(c.lava * 0.5, (s - ns) * 0.45, 30 * dt);
+            c.lava -= q; nb.lava += q;
+            nb.lavaT = Math.min(nb.lavaT, 3); // fresh lava is hot again
+          }
+        });
+        if (c.lava <= 0.4) c.lava = 0;
+      } else if (c.lavaT < LAVA_COOL) {
+        // rock gain: the ground rises under the pool, the pool surface holds
+        const q = Math.min(c.lava, (wet ? LAVA_FILL_WET : LAVA_FILL) * dt);
+        c.lava -= q; c.top -= q;
+        if (c.lava <= 0.4) { c.lava = 0; c.melt *= 0.4; }
+      } else c.lava = 0;
+      dirtyA = Math.min(dirtyA, i); dirtyB = Math.max(dirtyB, i + 1);
+    }
     // burning fuel pockets: fire breaks through the surface, the burn front
     // eats the deposit; when it's gone the volume becomes a REAL void
     // (carve) and a big shallow one drags the overburden down. MEGA seams
@@ -1949,15 +2092,14 @@
       if (t.y - waterLevel > 12) killTank(i, 'drown');
     });
   }
-
-//scorch.js part04
   // ================= EXPLOSIONS =================
   function hitFx(x, y, r, nuke) { shake = Math.min(10, shake + r * 0.08 + (nuke ? 3 : 0)); }
 
-  // pocket ignition, shared by EVERY heat source (blasts, napalm fires,
-  // plasma, the drill): a hit overlapping a dormant seam sets it alight —
-  // normal seams smoulder, MEGA seams are flagged and detonate a moment
-  // later via pocketDetonate (async, so chains can't recurse)
+  // pocket ignition, shared by EVERY heat source EXCEPT the exceptions the
+  // spec lists (the digger WHILE DRILLING, dirt, the roller while rolling
+  // and bouncing): blasts (boomsAt — covers missile / funky / death / nuke /
+  // roller explosion / digger final burst / mirv sub-missiles), napalm
+  // impact + its fires, plasma, the volcano's own lava pools
   function igniteAt(x, y, r) {
     pockets.forEach(pk => {
       if (pk.state !== 0) return;
@@ -1972,6 +2114,7 @@
       }
     });
   }
+//scorch.js part03
   // a MEGA seam goes up all at once: staged surface blasts along the seam,
   // a giant carved void where it sat, the overburden collapsing in, an
   // ejecta column, fires along the seam — and any other seam caught in the
@@ -2005,6 +2148,20 @@
     }, 0.12);
   }
 
+  // the layered blast signature added to every explosion: a jagged expanding
+  // STAR polygon (weapon-tinted, additive), a fan of radiating SPARK
+  // streaks with per-streak length / width / spin, and a CRACKLE ring of
+  // scattered glowing specks — shapes and fill differ per weapon accent
+  function pushBlastFx(x, y, r, style, nuke) {
+    const acc = BLAST_COL[style] || '255,190,110';
+    fx.push({ k: 'star', x, y, r, t: 0, life: nuke ? 0.5 : 0.34, col: acc, spikes: Math.round(6 + r / 12), rot: R(0, 6.28) });
+    const pts = [], ns = Math.min(14, 6 + (r / 8 | 0));
+    for (let k = 0; k < ns; k++) pts.push({ a: R(0, 6.28), l: R(0.3, 0.8), w: R(1, 2.4), spin: R(-1.5, 1.5) });
+    fx.push({ k: 'spark', x, y, r, t: 0, life: 0.5, col: acc, pts });
+    fx.push({ k: 'crackle', x, y, r, t: 0, life: 0.55, col: acc, rot: R(0, 6.28) });
+    return acc;
+  }
+
   function boomsAt(x, y, r, style, dmg, noTerr, noDouble) {
     dmg = dmg || 0;
     const m = M();
@@ -2013,9 +2170,11 @@
     // a blast landing inside (or in touch with) a combustible pocket ignites
     // it — mega seams detonate (igniteAt)
     igniteAt(x, y, r);
-    fx.push({ k: 'flash', x, y, r: r * 1.6, t: 0, life: nuke ? 0.22 : 0.11 });
+    // the layered signature, then the flash / shock / fire in the accent
+    const acc = pushBlastFx(x, y, r, style, nuke);
+    fx.push({ k: 'flash', x, y, r: r * 1.6, t: 0, life: nuke ? 0.22 : 0.11, col: `rgb(${acc})` });
     fx.push({ k: 'shock', x, y, r0: r * 0.4, r1: r * (nuke ? 4.2 : 2.2), t: 0, life: nuke ? 0.5 : 0.28 });
-    fx.push({ k: 'fire', x, y, r, t: 0, life: nuke ? 1.4 : 0.45, nuke });
+    fx.push({ k: 'fire', x, y, r, t: 0, life: nuke ? 1.4 : 0.45, nuke, col: acc });
     if (!noTerr) {
       schedule(() => craterMask(x, r * (nuke ? 1.15 : 1), nuke ? 1.4 : 1.25, 'blast'), 0.12);
       schedule(() => spawnChunks(x, y, r, m.chunkN * (nuke ? 1.8 : 1)), 0.16);
@@ -2049,7 +2208,7 @@
     schedule(() => { for (let k = 0; k < 2; k++) fx.push({ k: 'smoke', x: x + R(-r * 0.4, r * 0.4), y: y - r * 0.3, r: r * 0.22, t: 0, life: 1.2 + R(0, 0.5) }); }, 0.8);
     sfx(r / 45);
     if (dmg > 0) tanks.forEach((tk, i) => {
-      if (!tk.dead && Math.hypot(tk.x - x, tk.y - 6 - y) < r * (nuke ? 3.2 : 2.2)) { damageTank(i, dmg, style, x, y); confirmClose = true; }
+      if (canHurt(i) && Math.hypot(tk.x - x, tk.y - 6 - y) < r * (nuke ? 3.2 : 2.2)) { damageTank(i, dmg, style, x, y); confirmClose = true; }
     });
   }
 
@@ -2135,31 +2294,32 @@
 
   // the PLASMA orb is alive between frames: it sticks to its prey — a tank
   // in reach, INCLUDING one sinking into the melting pit — chases it down,
-  // burns it over time (~13 hp/s), and melts the ground under both with a
-  // steady drip of shallow star craters. It can acquire a NEW victim that
-  // walks or falls into the burn zone, and it ignites any combustible seam
-  // its melt reaches
+  // burns it over time and melts the ground under both with a steady drip
+  // of shallow star craters. REBALANCED so it can never nuke-kill: impact
+  // 32 hp, burn ~9 hp/s only while f.t < life*0.6 AND the orb's own damage
+  // budget (46 hp) holds, a smaller acquisition radius and a shorter life;
+  // it releases dead and DYING victims and cannot acquire them again
   function stepPlasmaOrbs(dt) {
     for (let i = 0; i < fx.length; i++) {
       const f = fx[i];
       if (!f || f.k !== 'plasmaOrb' || f.t >= f.life) continue;
       if (f.tid >= 0) {
         const tk = tanks[f.tid];
-        if (!tk || tk.dead) f.tid = -1;
+        if (!tk || tk.dead || tk.dying) f.tid = -1;
         else {
           f.x += (tk.x - f.x) * Math.min(1, dt * 8);
           f.y += ((tk.y - 10) - f.y) * Math.min(1, dt * 8);
-          if (f.t < f.life * 0.72) { damageTank(f.tid, 13 * dt, 'plasma', f.x, tk.y - 10); confirmClose = true; }
+          if (f.t < f.life * 0.6 && (f.dmgDone || 0) < 46) { f.dmgDone = (f.dmgDone || 0) + 9 * dt; damageTank(f.tid, 9 * dt, 'plasma', f.x, tk.y - 10); confirmClose = true; }
         }
       } else if (f.t < f.life * 0.6) {
         tanks.forEach((tk, ti) => {
-          if (!tk.dead && Math.hypot(tk.x - f.x, (tk.y - 8 - f.y) * 0.7) < f.r) f.tid = ti;
+          if (canHurt(ti) && Math.hypot(tk.x - f.x, (tk.y - 8 - f.y) * 0.7) < f.r * 1.35) f.tid = ti;
         });
       }
       f.eatT += dt;
       if (f.eatT > 0.3) {
         f.eatT = 0;
-        craterMask(f.x, f.r * 0.45, 0.3, 'blast', 'star', 1);
+        craterMask(f.x, f.r * 0.45, 0.22, 'blast', 'star', 1);
         if (Math.random() < 0.5 && fx.length < 380) fx.push({ k: 'wisp', x: f.x + R(-8, 8), y: f.y - 4, vx: R(-6, 6), vy: -R(14, 30), ph: R(0, 6.28), t: 0, life: R(0.6, 1.2) });
         igniteAt(f.x, f.y + 10, 14);
       }
@@ -2197,11 +2357,24 @@
         else {
           f.y = surfaceAt(f.x) - 2;
           const ci = clamp(Math.round(f.x / cols.step), 0, cols.length - 1);
-          cols[ci].burn = Math.max(cols[ci].burn, 0.8);
+          const c = cols[ci];
+          c.burn = Math.max(c.burn, 0.8);
           f.burnT += dt;
-          if (f.burnT > 0.5) { f.burnT = 0; firePatches.push({ x: f.x, y: f.y, life: R(0.8, 1.6), volc: true }); }
+          if (f.burnT > 0.5) {
+            f.burnT = 0;
+            firePatches.push({ x: f.x, y: f.y, life: R(0.8, 1.6), volc: true });
+            // the flow LEAVES liquid lava behind: the trail becomes pools
+            c.lava = Math.min(24, c.lava + 1.2);
+            c.lavaT = Math.min(c.lavaT, 3);
+            dirtyA = Math.min(dirtyA, ci); dirtyB = Math.max(dirtyB, ci + 1);
+          }
           if (f.y > waterAt(f.x) - 1) { spawnWisps(f.x, waterAt(f.x), 3); f.t = f.life; }
-          if (Math.abs(f.vx) < 2.5 && Math.abs(sl) < 0.08 && f.t > 3) f.t = f.life;
+          // a stalled flow dumps the rest of its mass as a pool
+          if (Math.abs(f.vx) < 2.5 && Math.abs(sl) < 0.08 && f.t > 3) {
+            c.lava = Math.min(28, c.lava + f.s * 2);
+            c.lavaT = 0;
+            f.t = f.life;
+          }
         }
       }
       return f.t < f.life;
@@ -2284,14 +2457,14 @@
       }
       for (let i = 0; i < tanks.length; i++) {
         const tk = tanks[i];
-        if (!tk.dead && Math.abs(tk.x - fp.x) < 13 && Math.abs(tk.y - fy) < 16) { burnN[i]++; confirmClose = true; }
+        if (canHurt(i) && Math.abs(tk.x - fp.x) < 13 && Math.abs(tk.y - fy) < 16) { burnN[i]++; confirmClose = true; }
       }
       return fp.life > 0;
     });
     // burn damage counts at most two overlapping patches: calm-wind napalm
     // no longer stacks five fires into an instant kill
     for (let i = 0; i < tanks.length; i++) {
-      if (!tanks[i].dead && burnN[i]) damageTank(i, Math.min(burnN[i], 2) * 7 * dt, 'napalm', tanks[i].x, tanks[i].y - 10);
+      if (canHurt(i) && burnN[i]) damageTank(i, Math.min(burnN[i], 2) * 7 * dt, 'napalm', tanks[i].x, tanks[i].y - 10);
     }
   }
 
@@ -2327,7 +2500,6 @@
     if (wreckBits.length > 46) wreckBits.splice(0, wreckBits.length - 46);
   }
 
-
   // ================= PROJECTILES =================
   function integrate(pos, vel, w, dt) {
     vel.vy += GRAV * dt;
@@ -2340,7 +2512,7 @@
   function setCurrentCur(v) { if (turn === 0) cur = v; else if (GMODE === 2) cur2 = v; }
 
   function fire() {
-    if (state !== 'aim' || turn !== 0 || turnIntro > 0) return;
+    if (state !== 'aim' || turn !== 0 || turnIntro > 0 || !canAct(0)) return;
     syncSeatAim();
     const w = ARSENAL[cur];
     if (ammoInv[w.key] <= 0 && w.ammo !== Infinity) {
@@ -2354,7 +2526,7 @@
     shots++;
   }
   function fire2() {
-    if (state !== 'aim' || turn !== 1 || GMODE !== 2 || turnIntro > 0) return;
+    if (state !== 'aim' || turn !== 1 || GMODE !== 2 || turnIntro > 0 || !canAct(1)) return;
     syncSeatAim();
     const w = ARSENAL[cur2];
     if (aiAmmo[w.key] <= 0 && w.ammo !== Infinity) {
@@ -2371,6 +2543,9 @@
     const rad = ang * Math.PI / 180;
     shotOwner = tanks.indexOf(t);
     t.recoil = 1;
+    // last stand: this is the dying fighter's ONE shot; the window snaps
+    // shut right after it resolves
+    if (t.dying) { t.lsShot = true; t.lsUntil = Math.min(t.lsUntil, gt + 1.5); }
     const tipX = t.x + Math.cos(rad) * 24 * dir;
     const tipY = t.y - 14 - Math.sin(rad) * 24;
     fx.push({ k: 'flash', x: tipX, y: tipY, r: 11, t: 0, life: 0.08 });
@@ -2399,7 +2574,7 @@
     return pool[(Math.random() * pool.length) | 0];
   }
   function aiTurn() {
-    if (state !== 'aim' || turn !== 1 || GMODE !== 1) return;
+    if (state !== 'aim' || turn !== 1 || GMODE !== 1 || !canAct(1)) return;
     turn = 3;
     const me = tanks[1], foe = tanks[0];
     const dir = foe.x > me.x ? 1 : -1;
@@ -2435,6 +2610,7 @@
       s++; aiAim = start + (ang - start) * (s / 14); draw();
       if (s < 14) schedule(anim, 0.03);
       else {
+        if (!canAct(1)) return; // died during the aiming animation
         if (w.ammo !== Infinity && aiAmmo[w.key] > 0) aiAmmo[w.key]--;
         else if (w.ammo !== Infinity) w = ARSENAL[0];
         launch(me, ang, p, dir, w, 2);
@@ -2460,8 +2636,9 @@
   // burn it. The bore keeps its entry heading (the aim line), so a tunnel can
   // be punched toward the enemy. Tunnels deeper than DIG_COLLAPSE_H collapse,
   // dropping all ground above; the drill grinds tanks it passes (rock pressure
-  // ticks), and its final burst hits like a missile. Drilling into a buried
-  // fuel pocket ignites it (mega seams detonate).
+  // ticks), and its final burst hits like a missile. NOTE: while DRILLING the
+  // digger does NOT ignite fuel pockets (its final burst does, via boomsAt);
+  // it never damaged them by rolling either — it does not roll
   function digEnter(p) {
     p.digging = true;
     p.sid = ++digSid;
@@ -2510,8 +2687,6 @@
     const ny = Math.min(p.y + p.vy * dt, Hc - 10);
     if (nx < 4 || nx > Wc - 4) { p.dead = true; p.dug = true; return; }
     carveLine(p.x, p.y, nx, ny, p.w.r * DIG_RADIUS_F, p.sid);
-    // the drill grinding through a fuel pocket sets it alight
-    igniteAt(p.x, p.y, 12);
     const mv = Math.hypot(nx - p.x, ny - p.y);
     p.dugLen += mv; p.charge -= mv;
     p.x = nx; p.y = ny;
@@ -2531,7 +2706,7 @@
     if (p.hitT <= 0) {
       for (let i = 0; i < tanks.length; i++) {
         const tk = tanks[i];
-        if (tk.dead) continue;
+        if (!canHurt(i)) continue;
         if (Math.abs(tk.x - p.x) < 15 && p.y > tk.y - 40 && p.y < tk.y + 10) {
           p.hitT = 0.45;
           damageTank(i, 14, 'digger', p.x, p.y);
@@ -2598,7 +2773,7 @@
     if (p.x >= 0 && p.x <= Wc) {
       if (!isTerr(p.w.type)) {
         tanks.forEach((tk, i) => {
-          if (tk.dead) return;
+          if (!canHurt(i)) return;
           if (i === p.owner && gt < (p.arm || 0)) return;
           if (Math.abs(p.x - tk.x) < 16 && p.y > tk.y - 34 && p.y < tk.y + 8) {
             p.dead = true;
@@ -2612,17 +2787,21 @@
       if (p.w.type === 'roller' && !p.rollDrop && p.y >= surf - 6 && p.y < surf + 16) {
         const c = colAt(p.x);
         if (c.h1 > 0 && c.h0 <= c.top + 2) { p.rollDrop = true; return; }
+        if (c.lava > 2) { p.dead = true; p.y = surf - 4; return; } // rolled into a lava pool: detonate
         if (surf > waterLevel + 4) { p.dead = true; p.wet = true; return; }
         const sl = slopeAt(p.x);
-        p.vx += sl * 900 * dt;
-        p.vx *= (1 - dt * 0.4);
+        // buffed roller: stronger slope acceleration, less friction, longer
+        // roll time — it genuinely outclasses the missile now, not just by
+        // damage but by reach
+        p.vx += sl * 1200 * dt;
+        p.vx *= (1 - dt * 0.25);
         p.vy = 0; p.y = surf - 4; p.rot += p.vx * dt * 0.4;
         p.rollT = (p.rollT || 0) + dt;
         if (Math.random() < dt * 8) craterMask(p.x, 6, 0.4, 'blast', 'circle');
         const slow = Math.abs(p.vx) < 7 && Math.abs(sl) < 0.12;
-        if (p.rollT > 4.5 || slow) p.dead = true;
+        if (p.rollT > 6 || slow) p.dead = true;
         tanks.forEach((tk, i) => {
-          if (!tk.dead && Math.abs(p.x - tk.x) < 13) {
+          if (canHurt(i) && Math.abs(p.x - tk.x) < 13) {
             p.dead = true;
             if (tk.shield > 0) { tk.shield = 0; fx.push({ k: 'shieldPop', x: tk.x, y: tk.y - 12, col: tk.col, t: 0, life: 0.45 }); }
             else { damageTank(i, p.w.dmg, 'roller', p.x, p.y); confirmClose = true; }
@@ -2663,8 +2842,6 @@
       } else if (shotBlocked(p.x, p.y)) p.dead = true;
     }
   }
-
-//scorch.js part05
   function updateLiquid(l, dt) {
     l.vy += GRAV * 0.3 * dt;
     l.vx += wind * 0.5 * WINDF * dt;
@@ -2714,15 +2891,18 @@
             const bx = x + R(-w.r * 1.4, w.r * 1.4);
             const by = y + R(-w.r * 0.8, w.r * 0.4);
             const br = w.r * R(0.35, 0.6);
-            fx.push({ k: 'flash', x: bx, y: by, r: br * 1.4, t: 0, life: 0.09, col: ['#a29bff', '#ffd23f', '#ff6b9d', '#7bffc4'][(Math.random() * 4) | 0] });
+            const fc = ['#a29bff', '#ffd23f', '#ff6b9d', '#7bffc4'][(Math.random() * 4) | 0];
+            fx.push({ k: 'flash', x: bx, y: by, r: br * 1.4, t: 0, life: 0.09, col: fc });
+            // each sub-blast carries its own mini star in the funky accent
+            fx.push({ k: 'star', x: bx, y: by, r: br, t: 0, life: 0.28, col: '185,165,255', spikes: 7, rot: R(0, 6.28) });
             craterMask(bx, br, 1, 'blast', 'circle');
             spawnChunks(bx, by, br, 6);
             collapseHoles(bx, br * 1.2);
             sfx(0.25);
-            tanks.forEach((tk, i) => {
-              if (!tk.dead && Math.hypot(tk.x - bx, tk.y - 6 - by) < br * 1.7) {
+            tanks.forEach((tk, ti) => {
+              if (canHurt(ti) && Math.hypot(tk.x - bx, tk.y - 6 - by) < br * 1.7) {
                 if (tk.shield > 0) { tk.shield = 0; fx.push({ k: 'shieldPop', x: tk.x, y: tk.y - 12, col: tk.col, t: 0, life: 0.45 }); }
-                else { damageTank(i, w.dmg, 'funky', bx, by); confirmClose = true; }
+                else { damageTank(ti, w.dmg, 'funky', bx, by); confirmClose = true; }
               }
             });
             const [fa, fb] = blastRange(bx, br);
@@ -2734,11 +2914,13 @@
       }
       case 'death': {
         hitFx(x, y, w.r, true);
-        fx.push({ k: 'flash', x, y, r: w.r * 2, t: 0, life: 0.16 });
+        pushBlastFx(x, y, w.r, 'death', true);
+        fx.push({ k: 'flash', x, y, r: w.r * 2, t: 0, life: 0.16, col: 'rgb(255,214,90)' });
         fx.push({ k: 'skyflash', t: 0, life: 0.5, col: 'rgba(255,236,200,', a: 0.3 });
         fx.push({ k: 'shock', x, y, r0: w.r * 0.5, r1: w.r * 3.4, t: 0, life: 0.55 });
         fx.push({ k: 'shock', x, y, r0: w.r * 0.2, r1: w.r * 2.2, t: 0, life: 0.35 });
-        fx.push({ k: 'fire', x, y, r: w.r, t: 0, life: 1.4, nuke: true });
+        fx.push({ k: 'fire', x, y, r: w.r, t: 0, life: 1.4, nuke: true, col: BLAST_COL.death });
+        igniteAt(x, y, w.r);
         schedule(() => craterMask(x, w.r, 1.45, 'blast', 'ellipse'), 0.12);
         schedule(() => spawnChunks(x, y, w.r, M().chunkN * 1.6), 0.15);
         schedule(() => spawnDust(x, y, w.r, M().dustN * 1.4), 0.2);
@@ -2755,7 +2937,7 @@
         }
         sfx(1.2);
         tanks.forEach((tk, i) => {
-          if (!tk.dead && Math.hypot(tk.x - x, tk.y - 6 - y) < w.r * 2.6) {
+          if (canHurt(i) && Math.hypot(tk.x - x, tk.y - 6 - y) < w.r * 2.6) {
             if (tk.shield > 0) { tk.shield = 0; fx.push({ k: 'shieldPop', x: tk.x, y: tk.y - 12, col: tk.col, t: 0, life: 0.45 }); }
             else { damageTank(i, w.dmg, 'death', x, y); confirmClose = true; }
           }
@@ -2768,11 +2950,13 @@
         break;
       }
       case 'plasma': {
-        // reworked: no blast, no pit to fall into first. The orb LANDS ON the
-        // tank (nearest in reach), sticks to it and chases it as it sinks,
-        // burning ~13 hp/s while the ground under both melts gradually —
-        // see stepPlasmaOrbs. A shallow scorch instead of a crater
+        // reworked + rebalanced: no blast, no pit to fall into first. The orb
+        // LANDS ON the tank (nearest in reach), sticks to it and chases it as
+        // it sinks, burning ~9 hp/s under a hard 46 hp budget while the
+        // ground under both melts gradually — see stepPlasmaOrbs. A shallow
+        // scorch instead of a crater
         hitFx(x, y, w.r * 0.45, false);
+        pushBlastFx(x, y, w.r * 0.8, 'plasma', false);
         const GW = 34;
         const grid = new Uint8Array(GW * GW);
         for (let gy = 0; gy < GW; gy++) {
@@ -2783,12 +2967,12 @@
           }
         }
         let ti = -1;
-        tanks.forEach((tk, i) => { if (ti < 0 && !tk.dead && Math.hypot(tk.x - x, (tk.y - 8 - y) * 0.7) < w.r * 1.7) ti = i; });
+        tanks.forEach((tk, i) => { if (ti < 0 && canHurt(i) && Math.hypot(tk.x - x, (tk.y - 8 - y) * 0.7) < w.r * 1.35) ti = i; });
         const ox = ti >= 0 ? tanks[ti].x : x;
         const oy = ti >= 0 ? tanks[ti].y - 10 : y;
-        fx.push({ k: 'plasmaOrb', x: ox, y: oy, r: w.r, t: 0, life: 3.6, gw: GW, grid, gen: 0, tid: ti, eatT: 0 });
+        fx.push({ k: 'plasmaOrb', x: ox, y: oy, r: w.r, t: 0, life: 3.0, gw: GW, grid, gen: 0, tid: ti, eatT: 0, dmgDone: 0 });
         fx.push({ k: 'skyflash', t: 0, life: 0.4, col: 'rgba(255,120,80,', a: 0.22 });
-        schedule(() => craterMask(x, w.r * 0.4, 0.3, 'blast', 'star', 1), 0.05);
+        schedule(() => craterMask(x, w.r * 0.4, 0.25, 'blast', 'star', 1), 0.05);
         igniteAt(x, y, w.r * 0.8);
         [0.25, 0.9].forEach(dl => {
           schedule(() => fx.push({ k: 'ring', x, y, t: 0, life: 0.8, r0: w.r * 0.3, r1: w.r * 2.2, col: '255,90,50' }), dl);
@@ -2799,9 +2983,12 @@
         break;
       }
       case 'napalm': {
+        pushBlastFx(x, y, w.r * 0.6, 'napalm', false);
         fx.push({ k: 'flash', x, y, r: w.r * 0.6, t: 0, life: 0.08, col: '#ffb84a' });
         for (let i = 0; i < 14; i++) liquids.push({ x: x + R(-w.r / 2, w.r / 2), y, vx: R(-45, 45), vy: R(-100, -25), t: 0, w });
         firePatches.push({ x, y, life: R(4, 7) });
+        // the impact itself ignites pockets too (the fires do as they burn)
+        igniteAt(x, y + 8, w.r * 0.5);
         schedule(() => craterMask(x, w.r * 0.5, 0.35, 'blast', 'ellipse'), 0.6);
         schedule(() => { for (let k = 0; k < 2; k++) liquids.push({ x: x + R(-w.r / 2, w.r / 2), y: y - 6, vx: R(-60, 60), vy: -R(80, 160), t: 0, w }); }, 0.9);
         volcAgitate(x, y, 0.18);
@@ -2817,6 +3004,7 @@
       case 'digger': {
         hitFx(x, y, w.r * 0.4, false);
         if (p.dug) {
+          // the final burst is a real explosion — it DOES ignite pockets
           boomsAt(x, y, 30, 'missile', 38);
           for (let k = 0; k < 10; k++) {
             const dx = x + R(-14, 14);
@@ -2862,6 +3050,7 @@
     if (p.bed) {
       if (w.water === 'bottom') {
         hitFx(x, y, w.r, true);
+        pushBlastFx(x, y, w.r, w.type, true);
         fx.push({ k: 'wcol', x, y: yw, r: w.r, t: 0, life: 1.1 });
         fx.push({ k: 'splash', x, y: yw, r: w.r * 0.45, t: 0, life: 0.6 });
         spawnDrops(x, yw, 16, w.r * 2);
@@ -2872,7 +3061,7 @@
         schedule(() => slump(sa, sb, 6), 0.75);
         sfx(1.1);
         tanks.forEach((tk, i) => {
-          if (!tk.dead && Math.hypot(tk.x - x, tk.y - 6 - y) < w.r * 2.4) { damageTank(i, w.dmg, 'death', x, y); confirmClose = true; }
+          if (canHurt(i) && Math.hypot(tk.x - x, tk.y - 6 - y) < w.r * 2.4) { damageTank(i, w.dmg, 'death', x, y); confirmClose = true; }
         });
       } else if (w.type === 'digger') {
         spawnSed(x, y - 2, 10);
@@ -2907,9 +3096,21 @@
     }
   }
 
+  // ============ DAMAGE / DEATH / LAST STAND ============
+  // the dying window: hp = 0, ONE last shot allowed, marked with a pulsing
+  // red ring; every damage path is gated by canHurt so nothing can add
+  // damage to a dying fighter — the ONLY exits are the window's end, his
+  // single shot, drowning or being crushed (non-weapon causes)
+  function enterLastStand(i) {
+    const t = tanks[i];
+    t.hp = 0; t.dying = true; t.lsUntil = gt + LAST_STAND; t.lsShot = false;
+    lastHitInfo = `${players[i].name}: ПОСЛЕДНИЙ ВЫСТРЕЛ!`;
+    fx.push({ k: 'flash', x: t.x, y: t.y - 14, r: 20, t: 0, life: 0.25, col: 'rgb(255,90,60)' });
+    beep(660, 0.15, 0.2);
+  }
   function damageTank(i, baseDmg, style, x, y) {
     const t = tanks[i];
-    if (t.dead || baseDmg <= 0) return;
+    if (!canHurt(i) || baseDmg <= 0) return;
     if (style === 'lava') {
       t.hp -= baseDmg;
       popDmg(t, baseDmg);
@@ -2930,10 +3131,15 @@
     else if (dmg >= 25) fx.push({ k: 'fire', x: t.x, y: t.y - 12, r: 16, t: 0, life: 0.3 });
   }
 
+  // killTank is the ONE death gate: a WEAPON kill landing while the victim
+  // is aiming on his own turn converts into the last-stand window; every
+  // other path (drown, crush, window expired, shot spent) is a straight
+  // death — the "zombie" can no longer happen anywhere else
   function killTank(i, cause, style, overkill) {
     const t = tanks[i];
     if (t.dead) return;
-    t.dead = true; killed = i; lastKillMethod = cause;
+    if (cause === 'weapon' && state === 'aim' && turn === i && !t.dying) { enterLastStand(i); return; }
+    t.dead = true; t.dying = false; killed = i; lastKillMethod = cause;
     if (cause === 'drown') {
       sinkers.push({ x: t.x, y: t.y, t: 0, col: t.col, hull: t.hull });
       fx.push({ k: 'splash', x: t.x, y: waterAt(t.x), r: 14, t: 0, life: 0.5 });
@@ -2951,7 +3157,8 @@
   }
   function obliterateTank(t) {
     hitFx(t.x, t.y - 12, 46, true);
-    fx.push({ k: 'flash', x: t.x, y: t.y - 12, r: 64, t: 0, life: 0.18 });
+    pushBlastFx(t.x, t.y - 12, 46, 'nuke', true);
+    fx.push({ k: 'flash', x: t.x, y: t.y - 12, r: 64, t: 0, life: 0.18, col: 'rgb(255,244,214)' });
     fx.push({ k: 'shock', x: t.x, y: t.y - 12, r0: 12, r1: 92, t: 0, life: 0.5 });
     fx.push({ k: 'fire', x: t.x, y: t.y - 12, r: 38, t: 0, life: 1.1, nuke: true });
     sfx(1.3);
@@ -3000,7 +3207,7 @@
       draw();
     }
   }
-
+//scorch.js part04
   function endRound() {
     state = 'wait';
     schedule(() => resolveRound(), 1.3);
@@ -3174,6 +3381,11 @@
     if (todT > 0.25) { todT = 0; updateTod(); }
     for (let i = events.length - 1; i >= 0; i--) if (gt >= events[i].at) { const fn = events[i].fn; events.splice(i, 1); fn(); }
 
+    // LAST STAND finalizer: the dying fighter dies for good once his window
+    // expires (launch shortens it after his one shot) — one central rule,
+    // no per-path exceptions left
+    tanks.forEach((t, i) => { if (t.dying && !t.dead && gt >= t.lsUntil) killTank(i, 'weapon'); });
+
     // turn clock runs only for a HUMAN seat, is frozen for the 3s hand-over
     // card and for the dialogs — the bottom slider panel is non-modal, the
     // clock keeps running while it is up
@@ -3245,7 +3457,7 @@
         volcScan();
         const v0 = volcano.craters[0];
         if (v0) for (let k = 0; k < 14; k++) emitLavaFrom(v0, true);
-        fx.push({ k: 'flash', x: bx, y: surfaceAt(bx) - 10, r: 34, t: 0, life: 0.18, col: '#ffb054' });
+        fx.push({ k: 'flash', x: bx, y: surfaceAt(bx) - 10, r: 34, t: 0, life: 0.18, col: `rgb(${lav().glow})` });
         sfx(1.0);
         shake = Math.min(10, shake + 5);
       }
@@ -3301,7 +3513,7 @@
       if (p.y < 20) p.y = Hc * 0.9; if (p.y > Hc) p.y = 20;
     });
 
-    if (state === 'aim' && turn === 1 && GMODE === 1 && !shot && subshots.length === 0 && turnReady()) schedule(aiTurn, 0.9);
+    if (state === 'aim' && turn === 1 && GMODE === 1 && !shot && subshots.length === 0 && canAct(1) && turnReady()) schedule(aiTurn, 0.9);
     if (boomsIdle() && !shot && subshots.length === 0 && killed !== null && state !== 'wait' && state !== 'over' && state !== 'closing') endRound();
     if (state === 'boom' && killed === null && !shot && subshots.length === 0 && turnReady()) endTurn();
     if (state !== 'closing' && state !== 'over') draw();
@@ -3309,10 +3521,9 @@
   // dead-hand pacing: control returns once the blast fades and the tanks
   // settle, while debris, embers and napalm keep working in the background;
   // a delayed kill still triggers endRound after the fires burn out
-  const turnReady = () => !fx.some(f => f.k === 'fire' || f.k === 'flash' || f.k === 'shock' || f.k === 'plasmaOrb') && terraJobs.length === 0 && events.length === 0 && tanks.every(t => t.dead || t.fallFrom === undefined);
+  const turnReady = () => !fx.some(f => f.k === 'fire' || f.k === 'flash' || f.k === 'shock' || f.k === 'star' || f.k === 'spark' || f.k === 'crackle' || f.k === 'plasmaOrb') && terraJobs.length === 0 && events.length === 0 && tanks.every(t => t.dead || t.fallFrom === undefined);
   const boomsIdle = () => turnReady() && liquids.length === 0 && !debris.some(d => !d.settled) && !firePatches.some(fp => !fp.volc);
 
-//scorch.js part06
   // ================= GROUND SNOW / SAND GRAINS =================
   // saltation terraforming: a grain rips real ground where the wind picks it
   // up and welds it back where it drops — flat ground sheds grains freely,
@@ -3322,7 +3533,7 @@
     const x = R(0, Wc);
     const ci = clamp(Math.round(x / cols.step), 0, cols.length - 1);
     const c = cols[ci];
-    if (c.h1 > 0 || c.burn > 0.2 || c.surf <= 0) return null;
+    if (c.h1 > 0 || c.burn > 0.2 || c.surf <= 0 || c.lava > 0) return null;
     const sy = c.top;
     if (sy < 12 || sy > waterAt(x) - 4) return null;
     const N = cols.length;
@@ -3637,7 +3848,7 @@
     ctx.fillStyle = hz;
     ctx.fillRect(-30, Hc * 0.45, Wc + 60, Hc * 0.3);
   }
-
+//scorch.js part05
   function drawTerrain() {
     const N = cols.length;
     const bk = biomeKey();
@@ -3710,9 +3921,10 @@
         ctx.fillRect(x, y0, 10 + nz * 12, 2);
         ctx.fillRect(x + 3, y0 + 5, 6 + nz * 6, 1.5);
       } else if (un.dec === 'magma' && nz > 0.5) {
-        // the hot vein breathes — part of the soil's pixel animation
+        // the hot vein breathes — part of the soil's pixel animation; on
+        // the alien worlds it breathes in that world's lava colour
         const pul = 0.3 + 0.45 * Math.max(0, Math.sin(gt * 1.4 + i * 0.7));
-        ctx.strokeStyle = `rgba(255,110,30,${pul.toFixed(3)})`;
+        ctx.strokeStyle = `rgba(${lav().hot},${pul.toFixed(3)})`;
         ctx.lineWidth = 1.6;
         ctx.beginPath();
         const y0 = st + 12 + nz2 * 42;
@@ -3837,6 +4049,7 @@
       }
     });
     ctx.restore();
+    // surface strip + burn + melt + LIQUID LAVA POOLS, per column
     for (let i = 0; i < N; i++) {
       const c = cols[i];
       const x = i * cols.step, w = cols.step + 0.5;
@@ -3861,13 +4074,35 @@
         ctx.globalAlpha = 1;
       }
       if (c.melt > 0) {
+        const L = lav();
         ctx.globalAlpha = c.melt * 0.8;
-        ctx.fillStyle = '#ff6a20';
+        ctx.fillStyle = `rgb(${L.hot})`;
         ctx.fillRect(x, c.top, w, 3 + c.melt * 6);
         ctx.globalAlpha = c.melt * 0.55;
-        ctx.fillStyle = '#ffd23f';
+        ctx.fillStyle = `rgb(${L.core})`;
         ctx.fillRect(x, c.top, w, 2);
         ctx.globalAlpha = 1;
+      }
+      // the pool: a liquid body ABOVE the column top. Molten = the live hot
+      // palette with a pulsing skin; cooling = the colour SLIDES from the
+      // lava palette to this world's own earth (mixTri), until the hardened
+      // layer is indistinguishable from ground — nothing vanishes, the mass
+      // simply becomes terrain
+      if (c.lava > 0.4) {
+        const L = lav();
+        const hot = c.lavaT < LAVA_MELT;
+        const cp = hot ? 0 : clamp((c.lavaT - LAVA_MELT) / (LAVA_COOL - LAVA_MELT), 0, 1);
+        const body = hot ? L.hot : mixTri(L.deep, hexTri(biome.sub[1]), cp);
+        const skin = hot ? L.core : mixTri(L.hot, hexTri(biome.surf), cp);
+        const top = c.top - c.lava;
+        ctx.fillStyle = hot
+          ? `rgba(${body},${(0.8 + Math.sin(gt * 8 + i) * 0.15).toFixed(2)})`
+          : `rgba(${body},${(0.92 - cp * 0.08).toFixed(2)})`;
+        ctx.fillRect(x, top, w, c.lava + 0.5);
+        ctx.fillStyle = hot
+          ? `rgba(${skin},0.9)`
+          : `rgba(${skin},${(0.7 * (1 - cp) + 0.28).toFixed(2)})`;
+        ctx.fillRect(x, top, w, Math.max(1, c.lava * 0.4));
       }
     }
     {
@@ -3994,18 +4229,18 @@
     if (volcano) {
       volcano.craters.forEach(cr => {
         if (cr.y > waterAt(cr.x)) return;
+        const L = lav();
         const gg = ctx.createRadialGradient(cr.x, cr.y, 1, cr.x, cr.y, 8);
-        gg.addColorStop(0, `rgba(255,150,50,${(0.25 + volcano.power * 0.2).toFixed(3)})`);
-        gg.addColorStop(1, 'rgba(255,150,50,0)');
+        gg.addColorStop(0, `rgba(${L.glow},${(0.25 + volcano.power * 0.2).toFixed(3)})`);
+        gg.addColorStop(1, `rgba(${L.glow},0)`);
         ctx.fillStyle = gg;
         ctx.beginPath(); ctx.arc(cr.x, cr.y, 8, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#ff9a30';
+        ctx.fillStyle = `rgb(${L.hot})`;
         ctx.fillRect(cr.x - 2, cr.y - 1, 4, 2);
       });
     }
   }
 
-//scorch.js part07
   function drawWater() {
     if (!waterH) return;
     ensureWaterFx();
@@ -4291,20 +4526,22 @@
     ctx.restore();
   }
 
+  // lava bombs ride the world's lava palette (teal on xeno, violet on ashen)
   function drawLavaBits() {
     if (!lavaBits.length) return;
+    const L = lav();
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    ctx.strokeStyle = 'rgba(255,130,40,0.4)';
+    ctx.strokeStyle = `rgba(${L.hot},0.4)`;
     ctx.lineWidth = 1.4;
     ctx.beginPath();
     lavaBits.forEach(lb => { ctx.moveTo(lb.x - lb.vx * 0.035, lb.y - lb.vy * 0.035); ctx.lineTo(lb.x, lb.y); });
     ctx.stroke();
-    ctx.fillStyle = 'rgba(255,100,20,0.85)';
+    ctx.fillStyle = `rgba(${L.hot},0.85)`;
     ctx.beginPath();
     lavaBits.forEach(lb => { ctx.moveTo(lb.x + lb.s, lb.y); ctx.arc(lb.x, lb.y, lb.s, 0, Math.PI * 2); });
     ctx.fill();
-    ctx.fillStyle = 'rgba(255,225,130,0.9)';
+    ctx.fillStyle = `rgba(${L.core},0.9)`;
     ctx.beginPath();
     lavaBits.forEach(lb => { ctx.moveTo(lb.x + lb.s * 0.45, lb.y); ctx.arc(lb.x, lb.y, lb.s * 0.45, 0, Math.PI * 2); });
     ctx.fill();
@@ -4314,13 +4551,75 @@
     fx.forEach(f => {
       const p = f.t / f.life;
       if (f.k === 'flash') {
-        ctx.globalAlpha = Math.max(0, 1 - p) * 0.95;
+        // ragged flash: the main disc + three offset lobes at per-fx random
+        // phases + a white-hot core — no longer a clean round gradient
+        const a0 = Math.max(0, 1 - p);
+        if (f.sd === undefined) f.sd = R(0, 100);
+        ctx.globalAlpha = a0 * 0.95;
         ctx.fillStyle = f.col || '#fff';
         ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (0.5 + p * 0.5), 0, Math.PI * 2); ctx.fill();
+        for (let b = 0; b < 3; b++) {
+          const an = f.sd + b * 2.1 + p * 2;
+          const rr = f.r * (0.28 + 0.25 * Math.abs(Math.sin(f.sd * 1.3 + b * 1.7)));
+          ctx.globalAlpha = a0 * (0.5 - b * 0.12);
+          ctx.beginPath();
+          ctx.arc(f.x + Math.cos(an) * f.r * 0.3, f.y + Math.sin(an) * f.r * 0.25, rr, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = a0 * 0.8;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(f.x, f.y, f.r * 0.3 * (0.6 + p * 0.6), 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
       } else if (f.k === 'skyflash') {
         ctx.fillStyle = f.col + (f.a * (1 - p) * (1 - p)).toFixed(3) + ')';
         ctx.fillRect(-40, -40, Wc + 80, Hc + 80);
+      } else if (f.k === 'star') {
+        // jagged expanding star polygon, weapon-tinted, additively lit; the
+        // spike lengths wobble via a per-k sin so the outline stays ragged
+        const rad = f.r * (0.35 + ease(p) * 1.2);
+        const a = 1 - p;
+        const n = f.spikes || 8, rot = f.rot || 0;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = `rgba(${f.col},${(a * 0.5).toFixed(3)})`;
+        ctx.beginPath();
+        for (let k = 0; k < n * 2; k++) {
+          const an = rot + k * Math.PI / n;
+          const rr = (k & 1) ? rad * 0.55 : rad * (0.8 + Math.sin(k * 3.7) * 0.2);
+          ctx.lineTo(f.x + Math.cos(an) * rr, f.y + Math.sin(an) * rr * 0.85);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = `rgba(255,255,255,${(a * 0.85).toFixed(3)})`;
+        ctx.beginPath(); ctx.arc(f.x, f.y, rad * 0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      } else if (f.k === 'spark') {
+        // radiating streak fan: each streak keeps its own angle, length,
+        // width and spin while the whole ring expands and fades
+        const a = 1 - p, rad = f.r * 0.3 + ease(p) * f.r * 1.1;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineCap = 'round';
+        (f.pts || []).forEach(q => {
+          const an = q.a + p * q.spin;
+          ctx.strokeStyle = `rgba(${f.col},${(a * 0.8).toFixed(3)})`;
+          ctx.lineWidth = q.w;
+          ctx.beginPath();
+          ctx.moveTo(f.x + Math.cos(an) * rad, f.y + Math.sin(an) * rad);
+          ctx.lineTo(f.x + Math.cos(an) * (rad + q.l * f.r), f.y + Math.sin(an) * (rad + q.l * f.r));
+          ctx.stroke();
+        });
+        ctx.restore();
+        ctx.lineWidth = 1; ctx.lineCap = 'butt';
+      } else if (f.k === 'crackle') {
+        // a ring of scattered glowing specks — reads as debris-hot embers
+        // flung along the blast front
+        const a = 1 - p, rad = f.r * (0.7 + ease(p) * 1.5);
+        ctx.fillStyle = `rgba(${f.col},${(a * 0.7).toFixed(3)})`;
+        for (let k = 0; k < 14; k++) {
+          const an = k / 14 * Math.PI * 2 + (k % 3) * 0.2;
+          const rr = rad * (0.9 + Math.sin(k * 5.3 + (f.rot || 0)) * 0.15);
+          ctx.fillRect(f.x + Math.cos(an) * rr - 1, f.y + Math.sin(an) * rr * 0.8 - 1, 2, 2);
+        }
       } else if (f.k === 'ring') {
         const r = f.r0 + (f.r1 - f.r0) * ease(p);
         ctx.strokeStyle = `rgba(${f.col},${(0.55 * (1 - p)).toFixed(3)})`;
@@ -4358,6 +4657,8 @@
         ctx.fillRect(f.x - f.w * 0.5 * flick, f.y - h, f.w * flick, h);
         ctx.restore();
       } else if (f.k === 'lflow') {
+        // the creeping flow — trail painted in the world's lava palette
+        const L = lav();
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         ctx.lineCap = 'round';
@@ -4365,7 +4666,7 @@
         const n = tr.length;
         for (let s = 1; s < n; s++) {
           const a = s / n;
-          ctx.strokeStyle = `rgba(255,${(80 + 120 * a) | 0},18,${(0.2 + 0.5 * a).toFixed(3)})`;
+          ctx.strokeStyle = `rgba(${a > 0.6 ? L.core : L.hot},${(0.2 + 0.5 * a).toFixed(3)})`;
           ctx.lineWidth = 1 + f.s * 1.7 * a;
           ctx.beginPath();
           ctx.moveTo(tr[s - 1].x, tr[s - 1].y);
@@ -4373,9 +4674,9 @@
           ctx.stroke();
         }
         const g = ctx.createRadialGradient(f.x, f.y, 1, f.x, f.y, f.s * 2.4);
-        g.addColorStop(0, 'rgba(255,235,150,0.95)');
-        g.addColorStop(0.45, 'rgba(255,90,10,0.75)');
-        g.addColorStop(1, 'rgba(200,40,0,0)');
+        g.addColorStop(0, `rgba(${L.core},0.95)`);
+        g.addColorStop(0.45, `rgba(${L.hot},0.75)`);
+        g.addColorStop(1, `rgba(${L.deep},0)`);
         ctx.fillStyle = g;
         ctx.beginPath(); ctx.ellipse(f.x, f.y, f.s * 1.6, f.s, 0, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
@@ -4385,10 +4686,12 @@
         ctx.fillStyle = col;
         ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r * 1.15, f.r * 0.85, 0, 0, Math.PI * 2); ctx.fill();
       } else if (f.k === 'shock') {
+        // blast wave: elliptical (not a circle) + a trailing inner ring —
+        // reads as a ground-hugging pressure front
         const r = f.r0 + (f.r1 - f.r0) * ease(p);
         ctx.strokeStyle = `rgba(255,255,255,${0.55 * (1 - p)})`;
         ctx.lineWidth = 2.5 - p;
-        ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(f.x, f.y, r, r * 0.88, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.strokeStyle = `rgba(255,255,255,${0.2 * (1 - p)})`;
         ctx.lineWidth = 1;
         ctx.beginPath(); ctx.arc(f.x, f.y, r * 0.8, 0, Math.PI * 2); ctx.stroke();
@@ -4456,18 +4759,49 @@
         ctx.restore();
         ctx.globalAlpha = 1;
       } else if (f.k === 'fire') {
+        // inhomogeneous fireball: THREE jittered sub-blobs ride different
+        // wobble phases (the fill breaks into cells like real flame, no
+        // smooth round gradient), and four flame TONGUES lick upward off
+        // the top with independent flicker, additively blended
         const r = f.r * (0.5 + ease(p) * 0.7);
         const flick = Math.sin(gt * 31 + f.x) * 0.12;
-        ctx.globalAlpha = Math.max(0, 1 - p * 1.15);
-        const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, r);
-        if (f.nuke) { g.addColorStop(0, '#fff8e0'); g.addColorStop(0.5, '#ffc23a'); g.addColorStop(1, '#b83a10'); }
-        else { g.addColorStop(0, '#ffe8b0'); g.addColorStop(0.55, '#e8802a'); g.addColorStop(1, 'rgba(120,40,10,0)'); }
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.ellipse(f.x, f.y, r * (1 + flick), r * (1 - flick * 0.6), 0, 0, Math.PI * 2); ctx.fill();
+        if (f.sd === undefined) f.sd = R(0, 100);
+        const sd = f.sd;
+        const baseA = Math.max(0, 1 - p * 1.15);
+        for (let b = 0; b < 3; b++) {
+          const bx = f.x + Math.sin(gt * (8.7 + b * 4.3) + sd + b * 2.7) * r * (0.2 + b * 0.04);
+          const by = f.y + Math.cos(gt * (6.9 + b * 3.7) + sd * 1.7 + b * 1.9) * r * 0.14 - b * r * 0.1;
+          const br = Math.max(4, r * (0.62 + 0.16 * Math.sin(sd + b * 2.2) - b * 0.1));
+          const g = ctx.createRadialGradient(bx, by, 0, bx, by, br);
+          if (f.nuke) { g.addColorStop(0, '#fff8e0'); g.addColorStop(0.5, '#ffc23a'); g.addColorStop(1, '#b83a10'); }
+          else { g.addColorStop(0, '#ffe8b0'); g.addColorStop(0.55, f.col ? `rgba(${f.col},0.8)` : '#e8802a'); g.addColorStop(1, 'rgba(120,40,10,0)'); }
+          ctx.globalAlpha = baseA * (b ? 0.75 : 1);
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.ellipse(bx, by, br * (1 + flick * 0.5), br * (1 - flick * 0.5), b * 0.7, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        for (let b = 0; b < 4; b++) {
+          const th = r * (0.4 + 0.22 * Math.abs(Math.sin(sd + b * 1.8))) * (0.5 + 0.5 * Math.sin(gt * 17 + b * 2.9 + sd));
+          if (th <= 2) continue;
+          const tx = f.x + Math.sin(sd * 1.3 + b * 2.4) * r * 0.34 + Math.sin(gt * 13 + b * 3.1 + sd) * r * 0.08;
+          ctx.globalAlpha = baseA * 0.5;
+          ctx.fillStyle = (b & 1) ? '#ffd23f' : `rgba(${f.col || '232,128,42'},0.9)`;
+          ctx.beginPath();
+          ctx.moveTo(tx - r * 0.1, f.y + r * 0.1);
+          ctx.quadraticCurveTo(tx - r * 0.06, f.y - th * 0.5, tx + Math.sin(gt * 9 + b) * r * 0.06, f.y - th);
+          ctx.quadraticCurveTo(tx + r * 0.08, f.y - th * 0.5, tx + r * 0.12, f.y + r * 0.1);
+          ctx.closePath(); ctx.fill();
+        }
+        ctx.restore();
         if (p < 0.55) {
           ctx.globalAlpha = (1 - p / 0.55) * 0.75;
           ctx.fillStyle = '#fff6dc';
-          ctx.beginPath(); ctx.arc(f.x, f.y, r * (0.28 + p * 0.2), 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath();
+          ctx.arc(f.x + Math.sin(gt * 11 + sd) * r * 0.05, f.y, r * (0.28 + p * 0.2), 0, Math.PI * 2);
+          ctx.fill();
         }
         ctx.globalAlpha = 1;
       } else if (f.k === 'smoke') {
@@ -4524,7 +4858,6 @@
     });
   }
 
-//scorch.js part08
   function drawDebris() {
     debris.forEach(d => {
       ctx.save();
@@ -4556,14 +4889,16 @@
     });
   }
 
+  // volcano fires carry the world's lava palette
   function drawFire() {
+    const L = lav();
     firePatches.forEach(fp => {
       const y = fp.volc && fp.y !== undefined ? fp.y : surfaceAt(fp.x);
       const k = clamp(fp.life / 2, 0, 1);
       const h = (6 + Math.abs(Math.sin(gt * 9 + fp.x)) * 6) * k;
-      ctx.fillStyle = 'rgba(255,110,20,0.75)';
+      ctx.fillStyle = fp.volc ? `rgba(${L.hot},0.75)` : 'rgba(255,110,20,0.75)';
       ctx.beginPath(); ctx.moveTo(fp.x - 4, y); ctx.lineTo(fp.x, y - h); ctx.lineTo(fp.x + 4, y); ctx.fill();
-      ctx.fillStyle = 'rgba(255,200,60,0.8)';
+      ctx.fillStyle = fp.volc ? `rgba(${L.core},0.8)` : 'rgba(255,200,60,0.8)';
       ctx.beginPath(); ctx.moveTo(fp.x - 2, y); ctx.lineTo(fp.x, y - h * 0.6); ctx.lineTo(fp.x + 2, y); ctx.fill();
     });
   }
@@ -4615,15 +4950,16 @@
   }
 
   function drawTanks() {
-    // live barrel angle: the aiming seat follows aim.ang, the computer (PvC)
-    // follows aiAim; the idle seat keeps its last angle
+    // live barrel angle: the aiming seat follows aim.ang across the whole
+    // barrel arc, the computer (PvC) follows aiAim; the idle seat keeps its
+    // last angle
     if (state === 'aim') {
       if (isHumanSeat(turn)) tanks[turn].dispAng = aim.ang;
       if (GMODE === 1 && turn >= 1) tanks[1].dispAng = aiAim;
     }
     tanks.forEach((t, i) => {
       if (t.dead) return;
-      const hpF = 1 - t.hp / TANK_HP;
+      const hpF = 1 - clamp(t.hp, 0, TANK_HP) / TANK_HP;
       const submerged = t.y > waterLevel + 2;
       ctx.save();
       if (submerged) ctx.globalAlpha = 0.65;
@@ -4633,14 +4969,22 @@
         hpF, recoil: t.recoil || 0, seed: i * 7 + 3, hull: t.hull
       });
       ctx.restore();
+      // LAST STAND marker: a pulsing warning ring around the dying fighter
+      if (t.dying) {
+        const pu = 0.5 + Math.sin(gt * 9) * 0.3;
+        ctx.strokeStyle = `rgba(255,80,50,${pu.toFixed(2)})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(t.x, t.y - 16, 22, 0, Math.PI * 2); ctx.stroke();
+        ctx.lineWidth = 1;
+      }
       if (t.shield > 0) drawShield(t);
-      if (t.hp < 50 && t.shield === 0) {
+      if (t.hp < 50 && t.shield === 0 && !t.dying) {
         ctx.globalAlpha = 0.28 + 0.2 * Math.sin(skyT * 3 + t.x);
         ctx.fillStyle = '#555';
         ctx.fillRect(t.x + R(-2, 2), t.y - 28 - Math.sin(skyT * 2) * 3, 3, 3);
         ctx.globalAlpha = 1;
       }
-      if (t.hp < 25 && t.shield === 0) {
+      if (t.hp < 25 && t.shield === 0 && !t.dying) {
         const fl = 3 + Math.abs(Math.sin(skyT * 9)) * 3;
         ctx.fillStyle = '#ff6a00';
         ctx.beginPath(); ctx.moveTo(t.x - 3, t.y - 24); ctx.lineTo(t.x, t.y - 24 - fl); ctx.lineTo(t.x + 3, t.y - 24); ctx.fill();
@@ -4839,7 +5183,10 @@
 
   // HUD is DECOUPLED from the sky: the floating strips carry their own
   // fixed bright palette plus the strong dark text-shadow, readable over
-  // day and night skies alike; nothing here switches with dayness anymore
+  // day and night skies alike. On narrow screens the LABELS collapse into
+  // ICONS (∠ ⚡ ⊙ ★ Σ), the weapon NAME collapses into its live ICON (the
+  // same shape the projectile / help cards use) — the numbers stay; tapping
+  // an icon shows a short explanation bubble (.sc-hint, wired in build)
   function drawHUD() {
     if (!hudRefs) return;
     const H = hudRefs;
@@ -4847,6 +5194,19 @@
     H.ang.textContent = Math.round(aim.ang);
     H.pow.textContent = Math.round(aim.pow);
     H.wname.textContent = w.name;
+    // live weapon icon: redrawn only when the seat or the weapon changes
+    const wk = turn + '|' + currentCur();
+    if (H.wiconCtx && H.wicon && H.wicon._k !== wk) {
+      H.wicon._k = wk;
+      const mc = H.wiconCtx;
+      mc.clearRect(0, 0, 22, 22);
+      mc.save();
+      mc.translate(11, 11);
+      mc.rotate(-Math.PI / 4);
+      mc.scale(1.25, 1.25);
+      drawProjectileShape(mc, w);
+      mc.restore();
+    }
     H.ammo.textContent = w.ammo === Infinity ? '∞' : currentInv()[w.key];
     H.ammo.className = 'sc-ammo' + (w.ammo === Infinity ? '' : currentInv()[w.key] <= 1 ? ' critical' : ' limited');
     H.round.textContent = `${round}/${ROUNDS_MAX}`;
@@ -4862,7 +5222,7 @@
     H.enemy.innerHTML = `<span style="color:${players[1].col}">${esc(players[1].name)}</span> <b style="color:${hpCol}">${Math.max(0, Math.round(t1 ? t1.hp : 0))}</b>${shd(t1)}`;
     H.lasthit.textContent = lastHitInfo || '';
     // wind indicator: fixed day/night palette chosen for contrast against
-    // the TERRAIN it floats over (its strip sits at the bottom of the field)
+    // the TERRAIN it floats over (pinned to the bottom edge at all widths)
     const strength = Math.round(Math.abs(wind));
     const ch = wind < 0 ? '‹' : '›';
     const daySky = isDayT();
@@ -4888,7 +5248,7 @@
       ctx.restore();
     }
   }
-
+//scorch.js part06
   // ================= UI =================
   function build() {
     if (overlay) return;
@@ -4907,9 +5267,16 @@
       .sc-hud .sc-aimctl { pointer-events: auto; cursor: pointer; border: 1px solid transparent; border-radius: 6px; padding: 3px 8px; }
       .sc-hud .sc-aimctl:hover { border-color: rgba(150,190,235,0.55); color: #fff; }
       .sc-hud .sc-aimctl:hover b { color: #ffd23f; }
+      .sc-hud .sc-stat { pointer-events: auto; cursor: help; }
+      .sc-hud .sc-ic2 { display: none; font-style: normal; font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', 'Noto Sans Symbols 2', 'DejaVu Sans', sans-serif; }
+      .sc-hud .sc-lab { font-style: normal; }
+      .sc-hint { position: absolute; left: 50%; top: 54px; transform: translateX(-50%); z-index: 6; background: rgba(8,12,20,0.92); border: 1px solid var(--border); color: #e8eef8; border-radius: 8px; padding: 6px 12px; font-size: 13px; font-family: 'Segoe UI', system-ui, sans-serif; max-width: 82%; display: none; pointer-events: none; }
+      .sc-hint.show { display: block; }
       .sc-wpn { pointer-events: auto; cursor: pointer; border: 1px solid var(--border); padding: 3px 10px; border-radius: 6px; color: rgba(232,240,250,0.95); background: rgba(5,7,10,0.7); display: flex; gap: 8px; align-items: center; }
       .sc-wpn:hover { border-color: rgba(150,190,235,0.55); }
       .sc-wpn .sc-ammo { color: #6ee7a0; } .sc-wpn .sc-ammo.limited { color: #ffd23f; } .sc-wpn .sc-ammo.critical { color: #ff7a8a; }
+      /* live weapon icon — shown INSTEAD of the name on narrow screens */
+      .sc-wpn .sc-wicon { display: none; flex-shrink: 0; }
       .sc-helpbtn { pointer-events: auto; cursor: pointer; color: rgba(222,232,246,0.92); border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; background: rgba(5,7,10,0.7); }
       .sc-helpbtn:hover { color: #7ecbff; border-color: rgba(126,203,255,0.6); }
       .sc-pvpbtn { pointer-events: auto; cursor: pointer; color: rgba(222,232,246,0.92); border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; background: rgba(5,7,10,0.7); }
@@ -4946,6 +5313,8 @@
       .sc-lives { position: absolute; left: 14px; bottom: 10px; z-index: 4; display: flex; gap: 22px; font-family: 'Orbitron', monospace; font-size: 22px; color: rgba(212,222,238,0.92); pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.7); }
       .sc-lives b { font-weight: 700; }
       .sc-lives .sc-shd { display: inline-block; width: 13px; height: 13px; border: 2px solid #4ac0ff; border-radius: 50%; vertical-align: -1px; opacity: 0.85; margin-left: 5px; }
+      /* the wind bar stays PINNED to the bottom edge at every width — the HP
+         row wraps above its zone, so no height lift is ever needed */
       .sc-windbar { position: absolute; right: 14px; bottom: 12px; z-index: 4; pointer-events: none; display: flex; align-items: center; gap: 10px; font-family: 'Orbitron', monospace; font-size: 28px; color: rgba(212,222,238,0.92); text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.7); }
       .sc-windarrow { font-size: 40px; letter-spacing: -4px; }
       /* bottom control panel — NON-MODAL angle+power sliders pinned just
@@ -4974,7 +5343,7 @@
       @keyframes sc-me { 0%, 100% { background: transparent; } 50% { background: rgba(241,196,15,0.15); } }
       .sc-over button { margin: 0 6px; padding: 8px 18px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text); cursor: pointer; font-size: 12px; }
       .sc-over button:hover { border-color: var(--accent); color: var(--accent); }
-      .sc-wmenu { position: absolute; z-index: 7; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; padding: 4px; display: none; }
+      .sc-wmenu { position: absolute; z-index: 7; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; padding: 4px; display: none; max-width: 92%; }
       .sc-wmenu.show { display: block; }
       .sc-wmenu .sc-witem { display: flex; gap: 8px; align-items: center; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 12px; color: var(--text); }
       .sc-wmenu .sc-witem:hover { background: var(--panel-light); }
@@ -4984,11 +5353,16 @@
       .sc-wmenu .sc-witem.sel .num { color: var(--bg); }
       .sc-wmenu .sc-witem .cnt { margin-left: auto; color: var(--text-dim); font-size: 10px; min-width: 18px; text-align: right; }
       .sc-wmenu .sc-witem.noammo { opacity: 0.35; cursor: not-allowed; }
-      .sc-setup { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 9; background: var(--panel); border: 2px solid var(--accent); border-radius: 12px; padding: 18px 22px; width: min(640px, 94%); max-height: 88vh; overflow-y: auto; display: none; font-size: 13px; }
-      .sc-setup.show { display: block; }
-      .sc-setup h3 { color: var(--accent); margin: 0 0 4px; font-size: 17px; letter-spacing: 2px; }
+      /* setup: fixed non-scrolling HEADER (title + the always-visible ✕,
+         exactly like help's) and a scrollable body — the close button never
+         scrolls away with the fighters list */
+      .sc-setup { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 9; background: var(--panel); border: 2px solid var(--accent); border-radius: 12px; padding: 0 22px 16px; width: min(640px, 94%); max-height: 88vh; display: none; flex-direction: column; font-size: 13px; }
+      .sc-setup.show { display: flex; }
+      .sc-setup-head { position: relative; flex-shrink: 0; padding: 16px 0 0; }
+      .sc-setup h3 { color: var(--accent); margin: 0 44px 4px 0; font-size: 17px; letter-spacing: 2px; }
       .sc-setup .sc-setup-sub { color: var(--text-dim); font-size: 11px; margin-bottom: 14px; font-family: 'Orbitron', monospace; letter-spacing: 1px; }
-      .sc-set-x { position: absolute; right: 12px; top: 10px; z-index: 2; width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+      .sc-setup-body { overflow-y: auto; min-height: 0; }
+      .sc-set-x { position: absolute; right: 0; top: 16px; z-index: 5; width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; }
       .sc-set-x:hover { border-color: var(--pink); color: var(--pink); }
       .sc-setup .sc-mode-row { display: flex; gap: 10px; margin-bottom: 14px; }
       .sc-setup .sc-mode-btn { flex: 1; padding: 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text); cursor: pointer; font-size: 15px; text-align: center; }
@@ -5058,8 +5432,52 @@
       .sc-light .sc-tctl .sc-tv { color: #b35a00; }
       .sc-light .sc-tb { background: #ffffff; border-color: rgba(22,32,48,0.22); color: #22304a; }
       .sc-light .sc-tb:active { background: #ffb020; color: #10131a; }
+      /* ===== NARROW-SCREEN adaptation =====
+         1) HUD labels shrink to ICONS (∠ ⚡ ⊙ ★ Σ) — the numbers stay; the
+            weapon NAME swaps for its live ICON; tap an icon → .sc-hint
+         2) the wind bar stays pinned to the bottom edge — the HP row wraps
+            above its zone, so no lift is needed at any width
+         3) setup: the name row breaks into THREE lines (label / input / ▾
+            button) so the input is never squeezed by "ИГРОК 1" /
+            "КОМПЬЮТЕР" or covered by the picker; the fixed header keeps the
+            ✕ always visible
+         4) help: the controls table rows wrap — the explanation drops UNDER
+            its key; weapon cards wrap their text under the icon; the records
+            table stacks with inline column labels */
+      @media (max-width: 760px) {
+        .sc-hud { font-size: 17px; gap: 6px 12px; padding: 6px 48px 6px 10px; }
+        .sc-hud .sc-lab { display: none; }
+        .sc-hud .sc-ic2 { display: inline; }
+        .sc-hud .sc-lasthit { font-size: 14px; max-width: 70vw; }
+        .sc-wpn .sc-wname { display: none; }
+        .sc-wpn .sc-wicon { display: block; }
+        .sc-lives { font-size: 16px; gap: 14px; flex-wrap: wrap; row-gap: 4px; max-width: calc(100% - 130px); }
+        .sc-windbar { font-size: 20px; gap: 6px; }
+        .sc-windarrow { font-size: 28px; letter-spacing: -3px; }
+      }
+      @media (max-width: 600px) {
+        .sc-setup .sc-cols { flex-direction: column; }
+        .sc-setup .sc-pl-head { flex-wrap: wrap; }
+        .sc-setup .sc-pl-head label { width: 100%; margin-bottom: 3px; }
+        .sc-setup .sc-pl-head input { flex: 1 1 calc(100% - 40px); padding-right: 10px; }
+        .sc-setup .sc-pl-tools { position: static; transform: none; margin-left: auto; }
+        .sc-help { width: 94%; font-size: 17px; padding: 12px 14px 14px; }
+        .sc-help h4 { font-size: 21px; }
+        .sc-help h5 { font-size: 17px; margin: 12px 0 5px; }
+        .sc-help table { font-size: 16px; }
+        .sc-help tbody, .sc-help tr, .sc-help td { display: block; width: 100%; box-sizing: border-box; }
+        .sc-help td { padding: 2px 0 6px; border: none; }
+        .sc-help td:first-child { padding-top: 8px; white-space: normal; }
+        .sc-wpnhelp .sc-wpnrow { flex-wrap: wrap; }
+        .sc-wpnhelp .sc-wt { flex-basis: calc(100% - 52px); }
+        .sc-wpnhelp .sc-ww { margin-left: 52px; }
+        .sc-help .sc-rectab th { display: none; }
+        .sc-help .sc-rectab tr, .sc-help .sc-rectab td { display: block; border: none; padding: 2px 0; }
+        .sc-help .sc-rectab td:nth-child(2)::before { content: 'Очки: '; color: var(--accent); }
+        .sc-help .sc-rectab td:nth-child(3)::before { content: 'Побед: '; color: var(--accent); }
+        .sc-help .sc-rectab td:nth-child(5)::before { content: 'Дата: '; color: var(--accent); }
+      }
     `;
-//scorch.js part09
     document.head.appendChild(css);
     overlay = document.createElement('div');
     overlay.className = 'sc-overlay';
@@ -5067,25 +5485,26 @@
       <div class="sc-wrap">
         <button class="sc-close" title="Ядерный выход">☢</button>
         <div class="sc-hud">
-          <span class="sc-aimctl" title="Показать/скрыть панель настройки">Угол <b class="sc-ang"></b>°</span>
-          <span class="sc-aimctl" title="Показать/скрыть панель настройки">Сила <b class="sc-pow"></b></span>
-          <span class="sc-wpn"><span class="sc-wname"></span><span class="sc-ammo"></span></span>
+          <span class="sc-aimctl" data-hint="Угол наклона ствола (−20…200°, включая вниз и за спину): ←→ или свайп прицела"><i class="sc-ic2">∠</i><i class="sc-lab">Угол</i> <b class="sc-ang"></b>°</span>
+          <span class="sc-aimctl" data-hint="Сила выстрела (5–100): ↑↓, колесо мыши или расстояние прицела"><i class="sc-ic2">⚡</i><i class="sc-lab">Сила</i> <b class="sc-pow"></b></span>
+          <span class="sc-wpn"><canvas class="sc-wicon" width="22" height="22"></canvas><span class="sc-wname"></span><span class="sc-ammo"></span></span>
           <span class="sc-helpbtn" title="Справка">?</span>
           <span class="sc-pvpbtn sc-sym" title="Игроки и режим">&#x2699;&#xFE0E;</span>
-          <span>Раунд <b class="sc-round"></b></span>
-          <span>Побед <b class="sc-wins"></b></span>
-          <span>Счёт <b class="sc-score"></b></span>
+          <span class="sc-stat" data-hint="Раунд: всего 5, открывающий чередуется"><i class="sc-ic2">⊙</i><i class="sc-lab">Раунд</i> <b class="sc-round"></b></span>
+          <span class="sc-stat" data-hint="Победы: игрок 1 : игрок 2 (до 3 из 5)"><i class="sc-ic2">★</i><i class="sc-lab">Побед</i> <b class="sc-wins"></b></span>
+          <span class="sc-stat" data-hint="Счёт: очки обоих бойцов за раунды"><i class="sc-ic2">Σ</i><i class="sc-lab">Счёт</i> <b class="sc-score"></b></span>
           <span class="sc-lasthit"></span>
         </div>
         <div class="sc-windbar"><span class="sc-windarrow"></span><span class="sc-windval"></span><span style="font-size:14px">ветер</span></div>
         <div class="sc-wmenu"></div>
         <div class="sc-offmark"></div>
+        <div class="sc-hint"></div>
         <canvas class="sc-cv"></canvas>
         <div class="sc-tctl">
           <div class="sc-trow" data-k="ang">
             <span class="sc-tl">УГОЛ</span>
             <button class="sc-tb" data-d="-1" title="−1">&minus;</button>
-            <input type="range" min="0" max="90" step="1">
+            <input type="range" min="-20" max="200" step="1">
             <button class="sc-tb" data-d="1" title="+1">+</button>
             <b class="sc-tv"></b>
           </div>
@@ -5101,13 +5520,15 @@
         <div class="sc-help">
           <div class="sc-help-top">
             <button class="sc-helpx" title="Закрыть справку">✕</button>
-            <h4>Scorched Earth</h4>
+            <h4>Scorch</h4>
           </div>
           <div class="sc-help-body">
             <table>
               <tr><td>Drag / свайп</td><td>прицел: направление от турели - угол, расстояние - сила (ближе - слабее)</td></tr>
               <tr><td>Клик «Угол» / «Сила»</td><td>панель ползунков внизу экрана (не модальная — траектория видна); Esc - закрыть</td></tr>
               <tr><td>Панель внизу (тач)</td><td>угол и сила сразу оба, кнопки −/+ шаг по 1 для точной настройки</td></tr>
+              <tr><td>Дуга ствола</td><td>от −20° (вниз вперёд) до 200° (вниз за спину) — ствол не пересекает корпус турели</td></tr>
+              <tr><td>Иконки HUD (∠ ⚡ ⊙ ★ Σ)</td><td>на узком экране метки сжимаются в иконки, а название оружия — в его значок; тап по иконке — подсказка</td></tr>
               <tr><td>Колесо / ↑↓ / ←→</td><td>сила / угол ствола — свои у каждого игрока; выстрел — только в свой ход</td></tr>
               <tr><td>Space / клик / тап</td><td>огонь (после отсчёта 3-2-1)</td></tr>
               <tr><td>1–9, 0 / W / клик по оружию</td><td>выбор оружия</td></tr>
@@ -5123,21 +5544,26 @@
               ход даётся 60 секунд (таймер стоит, пока открыто окно): на 10,
               5 и 1 секунде - тихий сигнал, по истечении ход пропускается.
               Обычные ракеты в воде просто тонут. Напалм выжигает в земле
-              ямы. Смерть с перевесом урона разваливает танк на куски. Лава
-              вулкана жалит на 1-3 hp за шарик, у склона турель прикрывает
-              вал с рвом. В песке, снегу и ржавых дюнах ветер переносит
-              частицы грунта: рельеф мигрирует по ветру. Тройной клик по
-              таблице рекордов сбрасывает её и записывает текущий результат
-              (нули не пишутся; рекорды пишутся обоим бойцам, включая
-              компьютер).
+              ямы. Смерть с перевесом урона разваливает танк на куски.
+              ПОСЛЕДНИЙ ШАНС: если бойца добивают огнём (напалм, лава) во
+              время ЕГО хода прицеливания - турель с 0 hp получает ~2.6
+              секунды и один последний выстрел, после чего гибнет; умирающий
+              обведён пульсирующим красным кольцом и урона больше не
+              получает. Лава вулкана жалит на 1-3 hp за шарик и ~8 hp/с в
+              луже, поджигая накрытую турель. У склона турель прикрывает вал
+              с рвом. В песке, снегу и ржавых дюнах ветер переносит частицы
+              грунта: рельеф мигрирует по ветру. Тройной клик по таблице
+              рекордов сбрасывает её и записывает текущий результат (нули не
+              пишутся; рекорды пишутся обоим бойцам, включая компьютер).
             </div>
             <h5>Дуэль на одном устройстве</h5>
             <div style="color:var(--text-dim);font-size:19px">
               Кнопка «⚙» — режим: против компьютера или двое за одним экраном.
               Угол и сила у каждого игрока свои и восстанавливаются при
-              передаче хода. Игроки с именами, цветом и видом турели
-              сохраняются отдельно для каждого режима; цвет и вид компьютера
-              тоже настраиваются, имя менять нельзя. В дуэли между ходами
+              передаче хода. Боец с одним именем - ОДИН И ТОТ ЖЕ боец в обоих
+              режимах: цвет и корпус хранятся в общем профиле по имени и не
+              расходятся между PvC и PvP. Цвет и вид компьютера тоже
+              настраиваются, имя менять нельзя. В дуэли между ходами
               карточка «ХОД ПЕРЕДАН» с отсчётом 3-2-1 даёт время передать
               клавиатуру; как только она исчезла — сразу можно стрелять. Выход
               из начатой дуэли — только через подтверждение (Esc, клик мимо, ☢).
@@ -5148,26 +5574,43 @@
               пурпурная кора с биолюминесцентными спорами под двойной звездой;
               Ржавые дюны - железный песок луны газового гиганта с кольцом
               (приливный ветер гонит дюны); Пепел - серый шлак кратеров,
-              сосед-гигант висит в небе. В глубине у всех миров залежи и жилы:
-              у вулкана дышат магматические трещины, в арктике мерцают ледяные
-              иглы. У холмов и ксено под землёй горючие пласты — их теперь
-              больше (2-4 на карту), любой огневое оружие поджигает; изредка
-              в большой глубине сидят ГИГАНТСКИЕ залежи — их детонация
-              перекраивает полкарты. На восходе и закате небо горит одинаково,
-              но в обратном порядке.
+              сосед-гигант висит в небе. ВУЛКАН есть на трёх мирах: Вулкан -
+              классическая оранжевая лава, Ксено - бирюзовая, Пепел -
+              фиолетовый шлак; поведение одинаковое, палитра своя. Лава -
+              ЖИДКОСТЬ: скопившись в низине, лужа выравнивается как жидкость
+              и понемногу прожигает дно, а остывая ПРЕВРАЩАЕТСЯ В СЛОЙ
+              ЗЕМЛИ (прирост всегда больше выжига — яма заполняется, и лава
+              течёт дальше по новой земле, накрывая и поджигая турель; цвет
+              при этом плавно уходит в цвет почвы). Стекая в воду, лава
+              каменеет много быстрее и наращивает дно, не успевая его жечь.
+              В глубине у всех миров залежи и жилы: у вулкана дышат
+              магматические трещины, в арктике мерцают ледяные иглы. У холмов
+              и ксено под землёй горючие пласты (2-4 на карту): поджигает
+              почти любое огневое оружие (кроме бура Digger на этапе
+              бурения, дирта и роллера на этапе качения — их ВЗРЫВЫ
+              поджигают); изредка сидят ГИГАНТСКИЕ залежи — их детонация
+              перекраивает полкарты. На восходе и закате небо горит
+              одинаково, но в обратном порядке.
             </div>
             <h5>Как читать мир</h5>
             <div style="color:var(--text-dim);font-size:19px">
-              День и ночь по кругу. Плазма больше не взрывает: она прилипает к
-              турели и жжёт её постепенно, плавит землю под жертвой и
-              проваливается вместе с ней в яму. Digger вгрызается в склон и
-              сверляет по расписанию (счётчик БУР % над буром): заряд на 0.42
-              экрана суммарного бурения, полёт в воздухе бесплатный. Сквозь
-              туннели пролетают снаряды, вода затекает и колышется, две трубы
-              в стопку - обвал. Редкое оружие бьет в несколько стадий.
-              Движение грунта не убивает - максимум 30 hp за раунд. У
-              туррелей щит. Вода живёт от музыки: дорожка бликов под
-              светилом — цвет и яркость светила, с учётом облачности.
+              День и ночь по кругу. Плазма не взрывает: она прилипает к
+              турели и жжёт её постепенно (~9 hp/с, суммарно не больше ~46
+              hp), плавит землю под жертвой и проваливается вместе с ней в
+              яму. Роллер усилен: 56 hp, катится дольше и разгоняется на
+              склонах — на расстоянии он сильнее ракеты, при 3 патронах
+              против бесконечных ракет. Digger вгрызается в склон и
+              сверляет по расписанию (счётчик БУР % над буром): заряд на
+              0.42 экрана суммарного бурения, полёт в воздухе бесплатный.
+              Сквозь туннели пролетают снаряды, вода затекает и колышется,
+              две трубы в стопку - обвал. Взрывы многослойные: рваная звезда
+              лучей, веер искровых трассеров, кольцо треска, эллиптическая
+              ударная волна и неоднородное, разбитое на дрожащие ячейки
+              пламя — цвет каждого оружия свой. Редкое оружие бьет в
+              несколько стадий. Движение грунта не убивает - максимум
+              30 hp за раунд. У туррелей щит. Вода живёт от музыки: дорожка
+              бликов под светилом — цвет и яркость светила, с учётом
+              облачности.
             </div>
             <h5>Оружие</h5>
             <div class="sc-wpnhelp"></div>
@@ -5178,19 +5621,23 @@
           </div>
         </div>
         <div class="sc-setup">
-          <button class="sc-set-x" title="Отмена">✕</button>
-          <h3>SCORCH ARENA</h3>
-          <div class="sc-setup-sub">SELECT YOUR FIGHTER</div>
-          <div class="sc-mode-row">
-            <button class="sc-mode-btn" data-m="1" title="1 игрок против компьютера"><span class="sc-mm"></span><small>ПРОТИВ КОМПЬЮТЕРА</small></button>
-            <button class="sc-mode-btn" data-m="2" title="Дуэль на одном устройстве"><span class="sc-mm"></span><small>ДУЭЛЬ НА ОДНОМ ЭКРАНЕ</small></button>
+          <div class="sc-setup-head">
+            <button class="sc-set-x" title="Отмена">✕</button>
+            <h3>SCORCH ARENA</h3>
+            <div class="sc-setup-sub">SELECT YOUR FIGHTER</div>
           </div>
-          <div class="sc-cols">
-            <div class="sc-pl-block" data-p="0"></div>
-            <div class="sc-pl-block" data-p="1"></div>
-          </div>
-          <div class="sc-setup-btns">
-            <button class="sc-go sc-sym" title="В бой!">&#x25B6;</button>
+          <div class="sc-setup-body">
+            <div class="sc-mode-row">
+              <button class="sc-mode-btn" data-m="1" title="1 игрок против компьютера"><span class="sc-mm"></span><small>ПРОТИВ КОМПЬЮТЕРА</small></button>
+              <button class="sc-mode-btn" data-m="2" title="Дуэль на одном устройстве"><span class="sc-mm"></span><small>ДУЭЛЬ НА ОДНОМ ЭКРАНЕ</small></button>
+            </div>
+            <div class="sc-cols">
+              <div class="sc-pl-block" data-p="0"></div>
+              <div class="sc-pl-block" data-p="1"></div>
+            </div>
+            <div class="sc-setup-btns">
+              <button class="sc-go sc-sym" title="В бой!">&#x25B6;</button>
+            </div>
           </div>
         </div>
         <div class="sc-confirm">
@@ -5218,7 +5665,7 @@
     } catch (e) {}
     cv = overlay.querySelector('canvas.sc-cv');
     ctx = cv.getContext('2d');
-    // bottom control panel: non-modal angle+power sliders
+    // bottom control panel: non-modal angle+power sliders over the full arc
     tctlEl = overlay.querySelector('.sc-tctl');
     const angRow = tctlEl.querySelector('[data-k="ang"]');
     const powRow = tctlEl.querySelector('[data-k="pow"]');
@@ -5227,7 +5674,7 @@
     angVal = angRow.querySelector('.sc-tv');
     powVal = powRow.querySelector('.sc-tv');
     tctlEl.addEventListener('pointerdown', (e) => e.stopPropagation());
-    angRange.addEventListener('input', () => { aim.ang = clamp(+angRange.value, 0, 90); draw(); });
+    angRange.addEventListener('input', () => { aim.ang = clamp(+angRange.value, AIM_MIN, AIM_MAX); draw(); });
     powRange.addEventListener('input', () => { aim.pow = clamp(+powRange.value, 5, 100); draw(); });
     [angRow, powRow].forEach(row => {
       const isAng = row.dataset.k === 'ang';
@@ -5236,19 +5683,33 @@
         b.addEventListener('click', (e) => {
           e.stopPropagation();
           if (state === 'over' || state === 'closing') return;
-          if (isAng) aim.ang = clamp(aim.ang + (+b.dataset.d), 0, 90);
+          if (isAng) aim.ang = clamp(aim.ang + (+b.dataset.d), AIM_MIN, AIM_MAX);
           else aim.pow = clamp(aim.pow + (+b.dataset.d), 5, 100);
           draw();
         });
       });
     });
+    const wiconCv = overlay.querySelector('.sc-wpn .sc-wicon');
     hudRefs = {
       ang: $('.sc-ang'), pow: $('.sc-pow'), wname: $('.sc-wname'), ammo: $('.sc-ammo'),
       round: $('.sc-round'), wins: $('.sc-wins'), score: $('.sc-score'),
       you: $('.sc-you'), enemy: $('.sc-enemy'), lasthit: $('.sc-lasthit'),
-      windarrow: $('.sc-windarrow'), windval: $('.sc-windval')
+      windarrow: $('.sc-windarrow'), windval: $('.sc-windval'),
+      wicon: wiconCv, wiconCtx: wiconCv ? wiconCv.getContext('2d') : null
     };
     touchUI = !!(window.matchMedia && (window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window));
+    // HUD icon hints: tap an icon/label → short explanation bubble
+    let hintT = null;
+    const showHint = (txt) => {
+      const h = overlay.querySelector('.sc-hint');
+      h.textContent = txt;
+      h.classList.add('show');
+      clearTimeout(hintT);
+      hintT = setTimeout(() => h.classList.remove('show'), 1800);
+    };
+    overlay.querySelectorAll('[data-hint]').forEach(el => {
+      el.addEventListener('pointerdown', (e) => { e.stopPropagation(); showHint(el.dataset.hint); });
+    });
     // hull gallery in help
     const gal = overlay.querySelector('.sc-hullgal');
     HULLS.forEach(h => {
@@ -5270,10 +5731,10 @@
       FUNKY: 'каскад: 8×24 hp + финал 24 hp',
       DEATH: 'урон 80 hp + ударная волна',
       NUKE: 'урон 105 hp + кольцо пожаров',
-      PLASMA: 'прилипает: 50 hp + ~13 hp/с ожог и плавка грунта',
+      PLASMA: 'прилипает: 32 hp + ~9 hp/с (потолок ~46 hp) и плавка грунта',
       NAPALM: '10 hp + огонь ~7 hp/с (до 2 очагов)',
-      ROLLER: 'урон 42 hp, катится по склону',
-      DIGGER: 'бур 14 hp/такт + финал 38 hp',
+      ROLLER: 'урон 56 hp, катится по склону дольше и быстрее',
+      DIGGER: 'бур 14 hp/такт + финал 38 hp (бур не поджигает залежи)',
       DIRT: 'без урона — насыпь грунта',
       MIRV: 'залп: 5×30 hp'
     };
@@ -5348,15 +5809,18 @@
     // the delete button deletes exactly THAT fighter, never a namesake or
     // the other column's pick
     const setup = { mode: GMODE, blocks: [null, null], draft: [null, null], sug: [null, null], picked: [null, null] };
-    // per-mode drafts: the LAST SAVED pair for that exact mode — switching
-    // PvP↔PvC loads each side's own config, the PC's look never leaks from
-    // PvP player 2; with nothing saved yet, sensible first-launch defaults
+    // per-mode drafts: the last saved pair for that exact mode; a HUMAN
+    // fighter's look is then re-merged from his PROFILE by name — the same
+    // fighter is the same fighter in every mode, the PC's GLM look never
+    // leaks from PvP player 2 and vice versa
     const draftForMode = (mode) => {
       const c = lastCfg()[mode];
       const d0 = c && c.p0 ? { name: c.p0.name, col: c.p0.col, hull: c.p0.hull } : { name: 'Player1', col: '#2ecc71', hull: 'classic' };
       let d1;
       if (mode === 1) d1 = { name: 'GLM', col: c && c.p1 ? c.p1.col : '#ff4757', hull: c && c.p1 ? c.p1.hull : 'classic' };
       else d1 = c && c.p1 ? { name: c.p1.name, col: c.p1.col, hull: c.p1.hull } : { name: 'Player2', col: '#3498db', hull: 'classic' };
+      if (mode === 2) Object.assign(d1, profLook(d1.name, d1));
+      Object.assign(d0, profLook(d0.name, d0));
       return [d0, d1];
     };
     // mode icons: plain-text glyphs (☺ U+263A player, ⚙ U+2699+FE0E computer)
@@ -5395,8 +5859,9 @@
       renderSetupBlocks();
       if (reopen) renderSuggest(pi, true); else closeSuggest(pi);
     };
-    // full fighter deletion: if he has record rows, ask first and wipe the
-    // profile AND the records together via the shared confirmation dialog
+    // full fighter deletion: if he has record rows, ask first (cancel =
+    // «Отменить», confirm = «Удалить») and wipe the profile AND the records
+    // together via the shared confirmation dialog
     const deleteFighter = (pi, name) => {
       const nm = (name || '').trim();
       if (!nm) return;
@@ -5405,7 +5870,7 @@
       askConfirm(`У бойца «${nm}» есть записи в таблице рекордов. Удалить бойца вместе с его рекордами?`, () => {
         try { localStorage.setItem(LS_KEY, JSON.stringify(records().filter(r => (r.pname || '').toLowerCase() !== nm.toLowerCase()))); } catch (e2) {}
         removeProfile(pi, nm, false);
-      });
+      }, { no: 'Отменить', yes: 'Удалить' });
     };
     const renderSuggest = (pi, showAll) => {
       const blk = setup.blocks[pi];
@@ -5605,7 +6070,8 @@
       b.onclick = (e) => {
         e.stopPropagation();
         setup.mode = +b.dataset.m;
-        // load THAT mode's own saved pair — no look leaks between modes
+        // load THAT mode's own saved pair, then re-merge human looks from
+        // the profile store — no look leaks between modes
         setup.draft = draftForMode(setup.mode);
         setup.picked = [null, null];
         buildBlock(0);
@@ -5725,7 +6191,7 @@
     const chip = overlay.querySelector('.sc-wpn');
     const wrap = overlay.querySelector('.sc-wrap');
     const cr = chip.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
-    wmenu.style.left = Math.max(4, cr.left - wr.left) + 'px';
+    wmenu.style.left = Math.max(4, Math.min(cr.left - wr.left, wr.width - 230)) + 'px';
     wmenu.style.top = (cr.bottom - wr.top + 4) + 'px';
     wmenu.innerHTML = '';
     const inv = currentInv();
@@ -5766,7 +6232,8 @@
       const c = cols[oi];
       nc.push({
         top: c.top * ky, surf: c.surf, burn: c.burn, melt: c.melt,
-        h0: c.h1 > 0 ? c.h0 * ky : 0, h1: c.h1 > 0 ? c.h1 * ky : 0, sid: c.sid
+        h0: c.h1 > 0 ? c.h0 * ky : 0, h1: c.h1 > 0 ? c.h1 * ky : 0, sid: c.sid,
+        lava: c.lava * ky, lavaT: c.lavaT
       });
     }
     nc.step = step;
@@ -5837,10 +6304,12 @@
     if (state !== 'aim' || !isHumanSeat(turn)) return;
     // aiming is always live; firing and the trajectory are own-turn only.
     // Left arrow = counterclockwise on screen regardless of barrel side:
-    // with the barrel to the right raising elevation is CCW, to the left it is CW
+    // with the barrel to the right raising elevation is CCW, to the left it
+    // is CW. The clamps span the FULL barrel arc (AIM_MIN..AIM_MAX), so the
+    // tube can dip below the horizon and swing past vertical behind the back
     const ccw = activeDir();
-    if (e.key === 'ArrowLeft') aim.ang = clamp(aim.ang + ccw, 5, 85);
-    if (e.key === 'ArrowRight') aim.ang = clamp(aim.ang - ccw, 5, 85);
+    if (e.key === 'ArrowLeft') aim.ang = clamp(aim.ang + ccw, AIM_MIN, AIM_MAX);
+    if (e.key === 'ArrowRight') aim.ang = clamp(aim.ang - ccw, AIM_MIN, AIM_MAX);
     if (e.key === 'ArrowUp') aim.pow = clamp(aim.pow + 1, 10, 100);
     if (e.key === 'ArrowDown') aim.pow = clamp(aim.pow - 1, 10, 100);
     if (e.key === ' ') {
@@ -5859,7 +6328,10 @@
     }
     setCurrentCur(0); draw();
   }
-
+//scorch.js part07
+  // boot: the game opens on dblclick / double-tap / long-press on the host
+  // page's trigger zone (hoverTrigger / bgBandit); a single touch first
+  // lights the host bandit hover state
   function boot() {
     const zone = document.getElementById('hoverTrigger') || document.getElementById('bgBandit');
     if (!zone) return;
