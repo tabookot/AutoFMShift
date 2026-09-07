@@ -1163,6 +1163,177 @@
           "reason": "glitch_protect"
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-07T08:06:33.858Z",
+      "status": "success",
+      "requiresAttention": false,
+      "attentionReasons": [],
+      "changes": {
+        "cities": {
+          "new": [],
+          "deleted": [],
+          "renamed": []
+        },
+        "stations": {
+          "new": [
+            {
+              "city": "Краснодар",
+              "name": "? (Вещало на 104,1)"
+            },
+            {
+              "city": "Мурманск",
+              "name": "&#160;"
+            },
+            {
+              "city": "Салехард",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Ханты-Мансийск",
+              "name": "Радио Радио"
+            }
+          ],
+          "deleted": [
+            {
+              "city": "Краснодар",
+              "name": "? (Вещало на 104,1)"
+            },
+            {
+              "city": "Мурманск",
+              "name": "&#160;"
+            },
+            {
+              "city": "Салехард",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Ханты-Мансийск",
+              "name": "Радио Радио"
+            }
+          ],
+          "renamed": [],
+          "frequency_migrated": []
+        }
+      },
+      "radioBrowser": {
+        "new": 0,
+        "changed": 12,
+        "deleted": 0,
+        "streamsAdded": 3,
+        "streamsRemoved": 6,
+        "changedStations": [
+          {
+            "name": "Маруся ФМ",
+            "changes": [
+              "homepage",
+              "tags"
+            ]
+          },
+          {
+            "name": "Маруся FM",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags"
+            ]
+          },
+          {
+            "name": "Радио 10",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (-2)"
+            ]
+          },
+          {
+            "name": "Радио Прибой",
+            "changes": [
+              "homepage"
+            ]
+          },
+          {
+            "name": "Радио Родных Дорог",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Радио России",
+            "changes": [
+              "homepage",
+              "tags"
+            ]
+          },
+          {
+            "name": "Радио Русский Хит",
+            "changes": [
+              "homepage"
+            ]
+          },
+          {
+            "name": "Радио Сибирь",
+            "changes": [
+              "favicon",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Ульяновск FM",
+            "changes": [
+              "homepage"
+            ]
+          },
+          {
+            "name": "Юность",
+            "changes": [
+              "homepage",
+              "tags"
+            ]
+          },
+          {
+            "name": "Radio Record",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Rock FM",
+            "changes": [
+              "streams (+1/-2)"
+            ]
+          }
+        ]
+      },
+      "restored": [
+        {
+          "type": "station",
+          "city": "Владимир",
+          "name": "план Регион-Медиа",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Мурманск",
+          "name": "&#160;",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио 1-й Канал",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио КП",
+          "reason": "glitch_protect"
+        }
+      ]
     }
   ]
 }
