@@ -1,5 +1,4 @@
-// scorch.js — modern Scorch successor; split build
-//scorch.core.js part01 — данные, состояние, утилиты, спрайты, аудио, хранилище, boot
+//scorch.core.js
 // ВНИМАНИЕ: файл НЕ завёрнут в IIFE — три classic-скрипта делят общий
 // верхний уровень; порядок подключения строго core → world → ui
 const LS_KEY = 'scorch_records';
@@ -140,7 +139,7 @@ let dirtyA = 0, dirtyB = 0;
 let raf = null, last = 0, gt = 0, skyT = 0, cloudOff = 0;
 let aim = { ang: 45, pow: 55 }, aiAim = 55;
 let seatAim = [{ ang: 45, pow: 55 }, { ang: 45, pow: 55 }];
-let score = 0, shots = 0, roundStart = 0, round = 1;
+let score = 0, shots = 0, shots2 = 0, roundStart = 0, round = 1;
 let wins = 0, wins2 = 0, score2 = 0;
 let drag = null, killed = null, helpOpen = false, lastHitInfo = null;
 let tctlOpen = false;

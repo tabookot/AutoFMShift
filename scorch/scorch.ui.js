@@ -1,4 +1,4 @@
-//scorch.ui.js part04 — рендер: небо / ПЕЩЕРА / земля / вода / fx
+//scorch.ui.js part01
 function rrectPath(c, x, y, w, h, r) {
     c.beginPath();
     if (c.roundRect) { c.roundRect(x, y, w, h, r); return; }
@@ -782,10 +782,10 @@ function drawCaveShade() {
       if (pk.state === 2 || !fuel) return;
       const wP = pk.x1 - pk.x0, hP = pk.y1 - pk.y0;
       const ccx = (pk.x0 + pk.x1) / 2, ccy = (pk.y0 + pk.y1) / 2;
-      const blobXY = (b) => [ccx + b[0] * wP, ccy + b[1] * hP, Math.max(5, b[2] * wP)];
+      const blobXY = (b) => [ccx + b[0] * wP, ccy + b[1] * hP, Math.max(4, b[2] * wP), Math.max(2.5, b[3] * hP)];
       const blobPath = () => {
         ctx.beginPath();
-        pk.bl.forEach(b => { const [bx, by, br] = blobXY(b); ctx.moveTo(bx + br, by); ctx.arc(bx, by, br, 0, Math.PI * 2); });
+        pk.bl.forEach(b => { const [bx, by, brx, bry] = blobXY(b); ctx.moveTo(bx + brx, by); ctx.ellipse(bx, by, brx, bry, 0, 0, Math.PI * 2); });
       };
       const pr = pk.state === 1 ? clamp(pk.t / pk.dur, 0, 1) : 0;
       const fy = pk.y0 + hP * pr;
@@ -793,9 +793,9 @@ function drawCaveShade() {
       blobPath();
       ctx.clip();
       pk.bl.forEach(b => {
-        const [bx, by, br] = blobXY(b);
+        const [bx, by, brx, bry] = blobXY(b);
         ctx.fillStyle = `rgba(${fuel.col},0.42)`;
-        ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(bx, by, brx, bry, 0, 0, Math.PI * 2); ctx.fill();
       });
       if (pk.state === 1) {
         ctx.fillStyle = 'rgba(8,6,4,0.6)';
@@ -997,6 +997,7 @@ function drawCaveShade() {
       ctx.moveTo(0, cols[0].top);
       for (let i = 1; i < N; i++) ctx.lineTo(i * cols.step, cols[i].top);
     };
+//scorch.ui.js part02
     ctx.strokeStyle = UNDER ? 'rgba(255,255,255,0.1)' : (isDayT() ? 'rgba(80,160,60,0.55)' : 'rgba(46,204,113,0.4)');
     ctx.lineWidth = 1.6;
     edgePath(); ctx.stroke();
@@ -1411,7 +1412,6 @@ function drawCaveShade() {
     ctx.fill();
     ctx.restore();
   }
-  //scorch.ui.js part05 — fx, танки, прицел, HUD
   function drawFx() {
     fx.forEach(f => {
       const p = f.t / f.life;
@@ -1976,7 +1976,7 @@ function drawCaveShade() {
     ctx.fillStyle = biome.surf;
     grains.forEach(g => ctx.fillRect(g.x, g.y, g.s, g.s));
   }
-  
+  //scorch.ui.js part03
   function drawAim() {
     const t = activeTank();
     const dir = activeDir();
@@ -2190,7 +2190,6 @@ function drawCaveShade() {
     scSel('.sc-over').classList.add('show');
     state = 'over';
   }
-  //scorch.ui.js part06 — DOM: build, меню оружия, resize, клавиатура
   // ================= UI BUILD =================
   function build() {
     if (overlay) return;
@@ -2610,6 +2609,7 @@ function drawCaveShade() {
         });
       });
     });
+  //scorch.ui.js part04
     const wiconCv = overlay.querySelector('.sc-wpn .sc-wicon');
     hudRefs = {
       ang: scSel('.sc-ang'), pow: scSel('.sc-pow'), wname: scSel('.sc-wname'), ammo: scSel('.sc-ammo'),

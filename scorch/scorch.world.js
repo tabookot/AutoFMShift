@@ -1,4 +1,4 @@
-//scorch.world.js part02 — генерация мира (включая ПЕЩЕРЫ), деформации,
+//scorch.world.js part01
 // вулкан, лава, вода, снаряды, взрывы, урон/смерть, цикл симуляции
 const ARCH = ['hills', 'mountain', 'craterValley', 'mesa', 'island', 'badlands'];
 const gauss = (u, c, w, a) => a * Math.exp(-((u - c) / w) * ((u - c) / w));
@@ -102,116 +102,125 @@ function buildGroundTex() {
 }
 
 function genTerrain() {
-    seed = (Math.random() * 1e9) | 0;
-    S = mulberry32(seed);
-    noise = makeNoise(S);
-    archetype = ARCH[Math.floor(S() * ARCH.length)];
-    biome = BIOMES[BIOME_POOL[Math.floor(S() * BIOME_POOL.length)]];
-    // underground levels: only vegetation-free worlds; the cave-capable
-    // biomes are 70% of the pool, so a 43% roll there ≈ 30% of ALL rounds
-    UNDER = CAVE_BIOMES.includes(biomeKey()) && S() < 0.43 ? 1 : 0;
-    if (UNDER) WATER_MODE = 1;
-    else WATER_MODE = Math.random() < 0.5 ? 1 : 2;
-    genSky();
-    volcano = null;
-    lavaBits = [];
-    driftT = 0;
-    buildGroundTex();
-  
-    const N = NCOL();
-    const sf = clamp(Wc / 900, 0.45, 1);
-    const feats = [];
-    const addG = (c, w, a, cap) => feats.push([c, w, a, cap]);
-    let base = 0.32;
-    if (archetype === 'hills') { base = 0.3; for (let k = 0; k < 4; k++) addG(0.1 + S() * 0.8, 0.1 + S() * 0.16, 0.12 + S() * 0.18); }
-    if (archetype === 'mountain') { base = 0.16; addG(0.25 + S() * 0.5, 0.08 + S() * 0.06, 0.55 + S() * 0.25); addG(0.2 + S() * 0.6, 0.07 + S() * 0.05, 0.35 + S() * 0.2); for (let k = 0; k < 2; k++) addG(S(), 0.14, 0.12); }
-    if (archetype === 'craterValley') { base = 0.55; for (let k = 0; k < 2; k++) { const c = 0.2 + S() * 0.6; addG(c, 0.07 + S() * 0.03, -0.3); addG(c - 0.1, 0.05, 0.16); addG(c + 0.1, 0.05, 0.16); } addG(S(), 0.2, 0.2); }
-    if (archetype === 'mesa') { base = 0.24; for (let k = 0; k < 3; k++) { const c = 0.15 + S() * 0.7, w = 0.06 + S() * 0.05, a = 0.35 + S() * 0.3; addG(c, w * 2.2, a, 'cap'); } }
-    if (archetype === 'island') { base = 0.08; addG(0.3 + S() * 0.15, 0.09, 0.55); addG(0.6 + S() * 0.15, 0.08, 0.5); }
-    if (archetype === 'badlands') { base = 0.34; for (let k = 0; k < 5; k++) addG(S(), 0.07 + S() * 0.05, 0.2 + S() * 0.25); }
-  
-    const detail = (archetype === 'badlands' ? 0.1 : archetype === 'mesa' ? 0.03 : 0.05) * (0.55 + 0.45 * sf);
-    cols = [];
+  seed = (Math.random() * 1e9) | 0;
+  S = mulberry32(seed);
+  noise = makeNoise(S);
+  archetype = ARCH[Math.floor(S() * ARCH.length)];
+  biome = BIOMES[BIOME_POOL[Math.floor(S() * BIOME_POOL.length)]];
+  // underground levels: only vegetation-free worlds; the cave-capable
+  // biomes are 70% of the pool, so a 43% roll there ≈ 30% of ALL rounds
+  UNDER = CAVE_BIOMES.includes(biomeKey()) && S() < 0.43 ? 1 : 0;
+  if (UNDER) WATER_MODE = 1;
+  else WATER_MODE = Math.random() < 0.5 ? 1 : 2;
+  genSky();
+  volcano = null;
+  lavaBits = [];
+  driftT = 0;
+  buildGroundTex();
+
+  const N = NCOL();
+  const sf = clamp(Wc / 900, 0.45, 1);
+  const feats = [];
+  const addG = (c, w, a, cap) => feats.push([c, w, a, cap]);
+  let base = 0.32;
+  if (archetype === 'hills') { base = 0.3; for (let k = 0; k < 4; k++) addG(0.1 + S() * 0.8, 0.1 + S() * 0.16, 0.12 + S() * 0.18); }
+  if (archetype === 'mountain') { base = 0.16; addG(0.25 + S() * 0.5, 0.08 + S() * 0.06, 0.55 + S() * 0.25); addG(0.2 + S() * 0.6, 0.07 + S() * 0.05, 0.35 + S() * 0.2); for (let k = 0; k < 2; k++) addG(S(), 0.14, 0.12); }
+  if (archetype === 'craterValley') { base = 0.55; for (let k = 0; k < 2; k++) { const c = 0.2 + S() * 0.6; addG(c, 0.07 + S() * 0.03, -0.3); addG(c - 0.1, 0.05, 0.16); addG(c + 0.1, 0.05, 0.16); } addG(S(), 0.2, 0.2); }
+  if (archetype === 'mesa') { base = 0.24; for (let k = 0; k < 3; k++) { const c = 0.15 + S() * 0.7, w = 0.06 + S() * 0.05, a = 0.35 + S() * 0.3; addG(c, w * 2.2, a, 'cap'); } }
+  if (archetype === 'island') { base = 0.08; addG(0.3 + S() * 0.15, 0.09, 0.55); addG(0.6 + S() * 0.15, 0.08, 0.5); }
+  if (archetype === 'badlands') { base = 0.34; for (let k = 0; k < 5; k++) addG(S(), 0.07 + S() * 0.05, 0.2 + S() * 0.25); }
+
+  const detail = (archetype === 'badlands' ? 0.1 : archetype === 'mesa' ? 0.03 : 0.05) * (0.55 + 0.45 * sf);
+  cols = [];
+  for (let i = 0; i < N; i++) {
+    const u = i / N;
+    let h = base;
+    feats.forEach(f => { h += gauss(u, f[0], f[1], f[2]); });
+    if (archetype === 'mesa') feats.forEach(f => { if (f[3] === 'cap' && Math.abs(u - f[0]) < f[1]) h = Math.min(h, base + f[2] * 0.92 + 0.04); });
+    h += (fbm(u * 6 * sf + 50, 4) - 0.5) * 2 * detail;
+    if (archetype === 'badlands') h += (1 - Math.abs(2 * fbm(u * 11 * sf + 90, 3) - 1)) * 0.14;
+    h = clamp(h, 0.03, 0.95);
+    cols.push({ top: Math.round(Hc * 0.9 - h * Hc * 0.68), surf: 5 + Math.round(noise(u * 40) * 5), burn: 0, melt: 0, h0: 0, h1: 0, sid: 0, lava: 0, lavaT: 0 });
+  }
+  cols.step = Wc / N;
+
+  if (sf < 0.95) {
+    const k = clamp(Math.round((1 - sf) * 34 / cols.step), 2, 16);
+    for (let pass = 0; pass < 2; pass++) {
+      const src = cols.map(c => c.top);
+      let s = 0;
+      for (let j = -k; j <= k; j++) s += src[clamp(j, 0, N - 1)];
+      for (let i = 0; i < N; i++) {
+        cols[i].top = s / (2 * k + 1);
+        s += src[clamp(i + k + 1, 0, N - 1)] - src[clamp(i - k, 0, N - 1)];
+      }
+    }
+  }
+
+  if (WATER_MODE === 2) {
+    const tops = [];
+    for (let i = 4; i < N - 4; i++) tops.push(cols[i].top);
+    tops.sort((a, b) => a - b);
+    // 78th percentile: the sea keeps its full-width presence but floods
+    // only the lowest fifth of the map (the 55th drowned almost half)
+    waterLevel = tops[Math.floor(tops.length * 0.78)] + R(0, 8);
+  } else if (archetype === 'island') {
+    // more island above the waterline — a stock of dry land instead of
+    // a ring of barely-poking atoll tips, the sea still rings the shore
+    waterLevel = Hc * 0.63;
+  } else {
+    // lakes sit lower on the screen: fewer flooded valleys, water stays
+    // clearly visible in the deepest ones (plus the carved basins below)
+    waterLevel = Hc * (0.84 + S() * 0.04);
+    const nb = S() < 0.7 ? 1 + (S() < 0.4 ? 1 : 0) : 0;
+    for (let b = 0; b < nb; b++) {
+      const c = 0.15 + S() * 0.7, w = 0.05 + S() * 0.06;
+      for (let i = 0; i < N; i++) {
+        const d = Math.abs(i / N - c) / w;
+        if (d < 1) cols[i].top = Math.max(cols[i].top, waterLevel + 8 + (1 - d * d) * 38);
+      }
+    }
+  }
+  let hi = Hc;
+  for (let i = 4; i < N - 4; i++) hi = Math.min(hi, cols[i].top);
+  if (waterLevel < hi + 26) waterLevel = hi + 26;
+  windDir = S() < 0.5 ? -1 : 1;
+  dirtyA = 0; dirtyB = N - 1;
+  waterReset();
+
+  // ============ UNDERGROUND: build the cave ============
+  if (UNDER) {
+    // the floor relief is RE-CENTRED into a mid-screen band instead of
+    // being dumped onto the bottom: the cave ground sits higher, mounds
+    // and pits survive as real relief (no flat bottom plane), and the
+    // dark water shrinks to the deepest basins
+    let fMin = Hc, fMax = 0;
+    cols.forEach(c => { if (c.top < fMin) fMin = c.top; if (c.top > fMax) fMax = c.top; });
+    const fShift = (Hc * 0.55 - (fMin + fMax) / 2) * 0.7;
+    cols.forEach(c => { c.top = clamp(c.top + fShift, Hc * 0.46, Hc - 80); });
+    // local dark lakes: the waterline chases the 78th percentile and is
+    // pinned ~20px above the deepest pit only — visible water, no floods
+    const tops2 = cols.map(c => c.top).sort((a, b) => a - b);
+    waterLevel = clamp(tops2[Math.floor(tops2.length * 0.78)] + 8, Hc * 0.5, Math.max(Hc * 0.52, tops2[tops2.length - 1] - 20));
+    // the CEILING: a low inverted landscape spanning the full width,
+    // with occasional stalactite spikes; no volcanoes live up there
+    ceil = [];
     for (let i = 0; i < N; i++) {
       const u = i / N;
-      let h = base;
-      feats.forEach(f => { h += gauss(u, f[0], f[1], f[2]); });
-      if (archetype === 'mesa') feats.forEach(f => { if (f[3] === 'cap' && Math.abs(u - f[0]) < f[1]) h = Math.min(h, base + f[2] * 0.92 + 0.04); });
-      h += (fbm(u * 6 * sf + 50, 4) - 0.5) * 2 * detail;
-      if (archetype === 'badlands') h += (1 - Math.abs(2 * fbm(u * 11 * sf + 90, 3) - 1)) * 0.14;
-      h = clamp(h, 0.03, 0.95);
-      cols.push({ top: Math.round(Hc * 0.9 - h * Hc * 0.68), surf: 5 + Math.round(noise(u * 40) * 5), burn: 0, melt: 0, h0: 0, h1: 0, sid: 0, lava: 0, lavaT: 0 });
+      let h = 44 + fbm(u * 5 + 200, 4) * 58;
+      const spike = noise(u * 26 + 33);
+      if (spike > 0.78) h += (spike - 0.78) * 190 * noise(u * 60 + 7);
+      ceil.push(clamp(Math.round(h), 30, Math.min(190, Hc * 0.42)));
     }
-    cols.step = Wc / N;
-  
-    if (sf < 0.95) {
-      const k = clamp(Math.round((1 - sf) * 34 / cols.step), 2, 16);
-      for (let pass = 0; pass < 2; pass++) {
-        const src = cols.map(c => c.top);
-        let s = 0;
-        for (let j = -k; j <= k; j++) s += src[clamp(j, 0, N - 1)];
-        for (let i = 0; i < N; i++) {
-          cols[i].top = s / (2 * k + 1);
-          s += src[clamp(i + k + 1, 0, N - 1)] - src[clamp(i - k, 0, N - 1)];
-        }
-      }
+    // fossil vents in the ceiling: a blast near one pours fire and earth
+    // DOWN (see hitVents / eruptVent)
+    caveVents = [];
+    const nv = 2 + (S() < 0.6 ? 1 : 0);
+    for (let k = 0; k < nv; k++) {
+      const ci = clamp(Math.round(R(0.1, 0.9) * N), 12, N - 13);
+      const w = R(24, 54);
+      caveVents.push({ x0: ci * cols.step - w / 2, x1: ci * cols.step + w / 2, cix: ci, state: 0, waves: 0 });
     }
-  
-    if (WATER_MODE === 2) {
-      const tops = [];
-      for (let i = 4; i < N - 4; i++) tops.push(cols[i].top);
-      tops.sort((a, b) => a - b);
-      waterLevel = tops[Math.floor(tops.length * 0.55)] + R(0, 8);
-    } else if (archetype === 'island') {
-      waterLevel = Hc * 0.55;
-    } else {
-      waterLevel = Hc * (0.78 + S() * 0.06);
-      const nb = S() < 0.7 ? 1 + (S() < 0.4 ? 1 : 0) : 0;
-      for (let b = 0; b < nb; b++) {
-        const c = 0.15 + S() * 0.7, w = 0.05 + S() * 0.06;
-        for (let i = 0; i < N; i++) {
-          const d = Math.abs(i / N - c) / w;
-          if (d < 1) cols[i].top = Math.max(cols[i].top, waterLevel + 8 + (1 - d * d) * 38);
-        }
-      }
-    }
-    let hi = Hc;
-    for (let i = 4; i < N - 4; i++) hi = Math.min(hi, cols[i].top);
-    if (waterLevel < hi + 26) waterLevel = hi + 26;
-    windDir = S() < 0.5 ? -1 : 1;
-    dirtyA = 0; dirtyB = N - 1;
-    waterReset();
-  
-    // ============ UNDERGROUND: build the cave ============
-    if (UNDER) {
-      // squeeze the floor relief up into the middle of the screen — the
-      // basins below the waterline get real room for the dark lakes
-      const shift = Hc * 0.38;
-      cols.forEach(c => { c.top = clamp(c.top + shift, Hc * 0.46, Hc - 34); });
-      // local dark lakes: the waterline follows the 62nd percentile but is
-      // always pinned at least 26px above the deepest pit, so the basins
-      // always hold actual water
-      const tops2 = cols.map(c => c.top).sort((a, b) => a - b);
-      waterLevel = clamp(tops2[Math.floor(tops2.length * 0.62)] + 8, Hc * 0.5, Math.max(Hc * 0.52, tops2[tops2.length - 1] - 26));
-      // the CEILING: a low inverted landscape spanning the full width,
-      // with occasional stalactite spikes; no volcanoes live up there
-      ceil = [];
-      for (let i = 0; i < N; i++) {
-        const u = i / N;
-        let h = 44 + fbm(u * 5 + 200, 4) * 58;
-        const spike = noise(u * 26 + 33);
-        if (spike > 0.78) h += (spike - 0.78) * 190 * noise(u * 60 + 7);
-        ceil.push(clamp(Math.round(h), 30, Math.min(190, Hc * 0.42)));
-      }
-      // fossil vents in the ceiling: a blast near one pours fire and earth
-      // DOWN (see hitVents / eruptVent)
-      caveVents = [];
-      const nv = 2 + (S() < 0.6 ? 1 : 0);
-      for (let k = 0; k < nv; k++) {
-        const ci = clamp(Math.round(R(0.1, 0.9) * N), 12, N - 13);
-        const w = R(24, 54);
-        caveVents.push({ x0: ci * cols.step - w / 2, x1: ci * cols.step + w / 2, cix: ci, state: 0, waves: 0 });
-      }
     // STATIC LIGHTING: crystals on the walls + SWEEPING spot beams on the
     // ceiling. Crystal radii are BAKED at placement (clipped to the rock
     // faces); the beams tilt ±sw around the vertical at their own speed
@@ -245,61 +254,98 @@ function genTerrain() {
         const bcol = `255,${Math.round(178 + 62 * kt)},${Math.round(96 + 130 * kt)}`;
         caveLights.push({ x, y: ceil[i] - 2, fy: cols[i].top, k: 'beam', w: R(14, 24), col: bcol, ph: R(0, 6.28), sw: R(0.62, 1.15), spd: R(0.09, 0.18) });
       }
-    } else {
-      ceil = null; caveVents = []; caveLights = [];
+  } else {
+    ceil = null; caveVents = []; caveLights = [];
+  }
+
+  // the volcano: on volcanic + the two alien rock worlds, on the FLOOR —
+  // in a cave it sits on the cave bottom (the ceiling never gets one)
+  if (VOLC_BIOMES.includes(biomeKey())) {
+    let hiI = 8;
+    for (let i = 10; i < N - 10; i++) if (cols[i].top < cols[hiI].top) hiI = i;
+    const vr = clamp(Wc * 0.075, 36, 66);
+    const vx = hiI * cols.step;
+    const i0 = clamp(Math.round((vx - vr) / cols.step), 0, N - 1);
+    const i1 = clamp(Math.round((vx + vr) / cols.step), 0, N - 1);
+    for (let i = i0; i <= i1; i++) {
+      const dx = Math.abs(i * cols.step - vx) / vr;
+      if (dx < 1) cols[i].top += (1 - dx * dx) * vr * 0.3;
     }
-  
-    // the volcano: on volcanic + the two alien rock worlds, on the FLOOR —
-    // in a cave it sits on the cave bottom (the ceiling never gets one)
-    if (VOLC_BIOMES.includes(biomeKey())) {
-      let hiI = 8;
-      for (let i = 10; i < N - 10; i++) if (cols[i].top < cols[hiI].top) hiI = i;
-      const vr = clamp(Wc * 0.075, 36, 66);
-      const vx = hiI * cols.step;
-      const i0 = clamp(Math.round((vx - vr) / cols.step), 0, N - 1);
-      const i1 = clamp(Math.round((vx + vr) / cols.step), 0, N - 1);
-      for (let i = i0; i <= i1; i++) {
-        const dx = Math.abs(i * cols.step - vx) / vr;
-        if (dx < 1) cols[i].top += (1 - dx * dx) * vr * 0.3;
-      }
-      const vy = surfaceAt(vx);
-      volcano = { x: vx, y: vy, r: vr, coneBot: vy + Hc * 0.17, power: 0.35, doused: 0, craters: [] };
-      // in a cave the cone must never punch through the ceiling
-      if (UNDER && ceil) {
-        const ci = clamp(Math.round(vx / cols.step), 0, N - 1);
-        const room = ceil[ci] - volcano.coneBot;
-        if (room < 30) volcano.coneBot = Math.min(volcano.y + vr, ceil[ci] - 30);
-      }
+    const vy = surfaceAt(vx);
+    volcano = { x: vx, y: vy, r: vr, coneBot: vy + Hc * 0.17, power: 0.35, doused: 0, craters: [] };
+    // in a cave the cone must never punch through the ceiling
+    if (UNDER && ceil) {
+      const ci = clamp(Math.round(vx / cols.step), 0, N - 1);
+      const room = ceil[ci] - volcano.coneBot;
+      if (room < 30) volcano.coneBot = Math.min(volcano.y + vr, ceil[ci] - 30);
     }
-  
-    // combustible / explosive deposits — the biome's own seams on the
-    // surface, plus the shared FOSSIL seams in the caves (CAVE_FUEL look)
-    pockets = [];
-    if (UNDER || biome.fuel) {
-      const npk = 2 + (S() < 0.7 ? 1 : 0) + (S() < 0.45 ? 1 : 0);
-      for (let k = 0; k < npk; k++) {
-        for (let a = 0; a < 10; a++) {
-          const cx = R(Wc * 0.10, Wc * 0.90);
-          if (volcano && Math.abs(cx - volcano.x) < volcano.r + 40) continue;
-          const cy0 = surfaceAt(cx);
-          if (cy0 > waterLevel - 30) continue;
-          if (pockets.some(pk => cx > pk.x0 - 30 && cx < pk.x1 + 30)) continue;
-          const mega = S() < 0.1;
-          const w = mega ? R(85, 130) : R(26, 62);
-          const depth = R(8, 22) + (w - 26) * (mega ? 1.15 : 0.85);
-          const y0 = cy0 + depth;
-          const y1 = Math.min(y0 + (mega ? R(34, 60) : R(12, 30)), Hc - 8);
-          if (y1 - y0 < 10) continue;
-          const bl = [];
-          const nb = 5 + ((w / 16) | 0);
-          for (let q = 0; q < nb; q++) bl.push([R(-0.3, 0.3), R(-0.3, 0.32), R(0.3, 0.5)]);
-          bl.push([0, R(-0.1, 0.1), R(0.5, 0.62)]);
-          pockets.push({ x0: cx - w / 2, x1: cx + w / 2, y0, y1, bl, mega, t: 0, state: 0, dur: (y1 - y0 + w) / 16 });
-          break;
+  }
+
+  // combustible / explosive deposits — the biome's own seams on the
+  // surface, plus the shared FOSSIL seams in the caves (CAVE_FUEL look).
+  // Elongated RAGGED lenses (~3-6:1) built as a chain of stretched
+  // jittered ellipses that pinch out toward the tips; buried DEEP enough
+  // to need 2-3 missile digs (placeTanks sinks the seams under a turret
+  // deeper still); rare GIANT seams sit at great depth and go up
+  // catastrophically. The oval body (cx/cy/ra/rb/vol/dep) is the ONE
+  // hit-test shape every heat source uses (heatHits / igniteAt)
+  pockets = [];
+  if (UNDER || biome.fuel) {
+    const npk = 2 + (S() < 0.7 ? 1 : 0) + (S() < 0.45 ? 1 : 0);
+    for (let k = 0; k < npk; k++) {
+      for (let a = 0; a < 10; a++) {
+        const cx = R(Wc * 0.10, Wc * 0.90);
+        if (volcano && Math.abs(cx - volcano.x) < volcano.r + 40) continue;
+        const cy0 = surfaceAt(cx);
+        if (cy0 > waterLevel - 30) continue;
+        if (pockets.some(pk => cx > pk.x0 - 30 && cx < pk.x1 + 30)) continue;
+        const giant = S() < 0.035;
+        const mega = giant || S() < 0.1;
+        const w = giant ? Math.min(R(170, 240), Wc * 0.38) : mega ? R(95, 140) : R(44, 84);
+        const h = clamp(w * R(0.17, 0.35), 14, giant ? 55 : mega ? 46 : 30);
+        const depth = giant ? R(95, 135) : mega ? R(55, 85) : R(34, 58);
+        let y0 = cy0 + depth;
+        let y1 = Math.min(y0 + h, Hc - 8);
+        if (y1 - y0 < (giant ? 40 : 12)) continue;
+        let hh = y1 - y0;
+        // flank cover on slopes: the seam must hide behind the hillside
+        // rock, not only under the topsoil — measure the thinnest rock
+        // between the lens and the surface across its whole span and
+        // sink the seam until the flank cover too is ~20px
+        let sink = 0;
+        const cyc = y0 + hh / 2;
+        for (let sx = cx - w / 2; sx <= cx + w / 2; sx += cols.step) {
+          const t = clamp((sx - cx) / (w / 2), -1, 1);
+          const edge = cyc - (hh / 2) * Math.sqrt(Math.max(0, 1 - t * t));
+          sink = Math.max(sink, 20 + surfaceAt(sx) - edge);
         }
+        if (sink > 0) {
+          y0 += sink;
+          y1 = Math.min(y0 + hh, Hc - 8);
+          if (y1 - y0 < (giant ? 40 : 12)) continue;
+          hh = y1 - y0;
+        }
+        // visual blobs: a chain of stretched, jittered ellipses along the
+        // seam's own wavy axis, tapering (pinching out) toward the tips
+        const bl = [];
+        const nb = 5 + ((w / 20) | 0);
+        const wav = R(-0.07, 0.07);
+        for (let q = 0; q < nb; q++) {
+          const t = (q + 0.5) / nb * 2 - 1;
+          const taper = Math.sqrt(Math.max(0, 1 - t * t));
+          bl.push([
+            t * 0.44 + R(-0.05, 0.05),
+            wav * t + R(-0.14, 0.14),
+            (0.13 + R(0, 0.11)) * (0.45 + taper * 0.75),
+            (0.34 + R(0, 0.4)) * (0.3 + taper * 0.8)
+          ]);
+        }
+        pockets.push({ x0: cx - w / 2, x1: cx + w / 2, y0, y1, cx, cy: y0 + hh / 2, ra: w / 2, rb: hh / 2, vol: w * hh, dep: depth + sink, bl, mega, t: 0, state: 0, mode: 0, dur: clamp(w * hh / 170, 2.5, 9) });
+        break;
       }
     }
   }
+}
 
 // ================= SURFACE QUERIES =================
 const colAt = (x) => cols[clamp(Math.round(x / cols.step), 0, cols.length - 1)];
@@ -470,7 +516,7 @@ function volcBreach(x, y, w) {
     volcano.burst = null;
   }
 }
-// lava LANDING feeds the column's liquid pool
+// lava LANDING feeds the column's liquid pool — and heats the seam below
 function landLava(lb) {
   const ci = clamp(Math.round(lb.x / cols.step), 0, cols.length - 1);
   const c = cols[ci];
@@ -478,6 +524,7 @@ function landLava(lb) {
   c.lavaT = 0;
   c.burn = Math.max(c.burn, 0.85);
   dirtyA = Math.min(dirtyA, ci); dirtyB = Math.max(dirtyB, ci + 1);
+  igniteAt(lb.x, lb.y, 9, 'lava');
   if (Math.random() < 0.35) firePatches.push({ x: lb.x, y: c.top - c.lava, life: R(0.8, 1.6), volc: true });
   if (Math.random() < 0.3) fx.push({ k: 'wisp', x: lb.x, y: c.top - c.lava - 2, vx: R(-5, 5), vy: -R(14, 26), ph: R(0, 6.28), t: 0, life: R(0.7, 1.4) });
 }
@@ -702,187 +749,222 @@ function waterAt(x) {
 
 // ================= PLACEMENT =================
 function placeTanks() {
-    const N = cols.length;
-    const standable = (i, dryGap, slMax, win) => {
-      if (cols[i].top > waterLevel - dryGap) return false;
-      if (volcano && Math.abs(i * cols.step - volcano.x) < volcano.r + 60) return false;
-      let s = 0;
-      for (let k = -win; k <= win; k++) s = Math.max(s, Math.abs(cols[clamp(i + k, 0, N - 1)].top - cols[i].top));
-      return s < slMax;
+  const N = cols.length;
+  // water headroom budget: ~2-3 missile craters of rock between a fighter
+  // and the waterline (scaled by the world's blast depth) — the first
+  // shot can no longer flood anyone, the third one can; this mirrors the
+  // digging budget the seams got
+  const head = clamp(Math.round(95 * M().depthF), 72, 108);
+  const standable = (i, dryGap, slMax, win) => {
+    if (cols[i].top > waterLevel - dryGap) return false;
+    if (volcano && Math.abs(i * cols.step - volcano.x) < volcano.r + 60) return false;
+    let s = 0;
+    for (let k = -win; k <= win; k++) s = Math.max(s, Math.abs(cols[clamp(i + k, 0, N - 1)].top - cols[i].top));
+    return s < slMax;
+  };
+  let spots = [];
+  for (let i = 4; i < N - 4; i++) if (standable(i, 30, 14, 3)) spots.push(i);
+  if (spots.length < 2) {
+    spots = [];
+    for (let i = 4; i < N - 4; i++) if (standable(i, 4, 26, 1)) spots.push(i);
+  }
+  if (spots.length < 2) {
+    const dryIdx = [];
+    for (let i = 4; i < N - 4; i++) if (cols[i].top <= waterLevel - 2) dryIdx.push(i);
+    const pick = (from) => {
+      const c = clamp(from, 4, N - 5);
+      let best = c, bh = -1;
+      for (let k = -6; k <= 6; k++) {
+        const j = clamp(c + k, 0, N - 1);
+        if (volcano && Math.abs(j * cols.step - volcano.x) < volcano.r + 50) continue;
+        const h = waterLevel - cols[j].top;
+        if (h > bh) { bh = h; best = j; }
+      }
+      return best;
     };
-    let spots = [];
-    for (let i = 4; i < N - 4; i++) if (standable(i, 24, 14, 3)) spots.push(i);
-    if (spots.length < 2) {
-      spots = [];
-      for (let i = 4; i < N - 4; i++) if (standable(i, 4, 26, 1)) spots.push(i);
-    }
-    if (spots.length < 2) {
-      const dryIdx = [];
-      for (let i = 4; i < N - 4; i++) if (cols[i].top <= waterLevel - 2) dryIdx.push(i);
-      const pick = (from) => {
-        const c = clamp(from, 4, N - 5);
-        let best = c, bh = -1;
-        for (let k = -6; k <= 6; k++) {
-          const j = clamp(c + k, 0, N - 1);
-          if (volcano && Math.abs(j * cols.step - volcano.x) < volcano.r + 50) continue;
-          const h = waterLevel - cols[j].top;
-          if (h > bh) { bh = h; best = j; }
-        }
-        return best;
-      };
-      const p1 = pick(dryIdx.length ? dryIdx[Math.floor(dryIdx.length * 0.25)] : Math.floor(N * 0.22));
-      const p2 = pick(dryIdx.length ? dryIdx[Math.floor(dryIdx.length * 0.75)] : Math.floor(N * 0.78));
-      [p1, p2].forEach(c => {
-        const target = waterLevel - 26;
-        for (let k = -5; k <= 5; k++) {
-          const j = clamp(c + k, 0, N - 1);
-          const fall = 1 - Math.abs(k) / 7;
-          cols[j].top = Math.min(cols[j].top, target + (1 - fall) * 16);
-        }
-        spots.push(c);
-      });
-    }
-    // ============ SAFE-PAIR SELECTION ============
-    // the placement must ALWAYS leave both fighters a real platform: high
-    // enough above the waterline that neither the rising pools nor the
-    // creeping dunes reach it in seconds, out of the volcano's lava reach,
-    // and ideally separated by a ridge — no instant direct kill. Danger
-    // that needs MINUTES to arrive (a slow lava tongue, drifting sand) is
-    // legitimate: the exposed fighter still has time to act
-    const safety = (i) => {
-      const x = i * cols.step;
-      let s = clamp((waterLevel - cols[i].top - 10) / 55, 0, 1) * 45;
-      if (volcano) s += clamp((Math.abs(x - volcano.x) - volcano.r * 2.2) / (Wc * 0.3), 0, 1) * 25;
-      if (biome.mat.drift) {
-        // the drifting worlds migrate the relief downwind: a spot whose
-        // downwind run meets water within ~120px slides into it in minutes
-        const sgn = Math.sign(wind) || 1;
-        let run = 0;
-        for (let k = 1; k <= 8 && !run; k++) {
-          const j = clamp(i + sgn * k * 5, 0, N - 1);
-          if (cols[j].top > waterLevel - 6) run = k;
-        }
-        s -= clamp(run * 1.6, 0, 12);
+    const p1 = pick(dryIdx.length ? dryIdx[Math.floor(dryIdx.length * 0.25)] : Math.floor(N * 0.22));
+    const p2 = pick(dryIdx.length ? dryIdx[Math.floor(dryIdx.length * 0.75)] : Math.floor(N * 0.78));
+    [p1, p2].forEach(c => {
+      const target = waterLevel - head;
+      for (let k = -5; k <= 5; k++) {
+        const j = clamp(c + k, 0, N - 1);
+        const fall = 1 - Math.abs(k) / 7;
+        cols[j].top = Math.min(cols[j].top, target + (1 - fall) * 16);
       }
-      s -= clamp(Math.abs(slopeAt(x)) * 6, 0, 12);
-      return s;
-    };
-    // a ridge between the platforms blocks the instant direct kill
-    const occluded = (a, b) => {
-      const ax = a * cols.step, ay = cols[a].top - 22;
-      const bx = b * cols.step, by = cols[b].top - 22;
-      for (let t = 0.08; t < 0.93; t += 0.07) {
-        if (ay + (by - ay) * t >= surfaceAt(ax + (bx - ax) * t) - 1) return true;
-      }
-      return false;
-    };
-    const pool = spots.length > 260 ? spots.filter((_, q) => q % Math.ceil(spots.length / 260) === 0) : spots;
-    const sf = pool.map(safety);
-    const gapMin = Math.max(110, Wc * 0.22);
-    let bestPair = null, bestSc = -1e9;
-    for (let a = 0; a < pool.length; a++) {
-      for (let b = a + 1; b < pool.length; b++) {
-        const gap = Math.abs(pool[a] - pool[b]) * cols.step;
-        if (gap < gapMin) continue;
-        const sc = sf[a] + sf[b] + clamp(gap / Wc, 0, 1) * 20 + (occluded(pool[a], pool[b]) ? 18 : 0);
-        if (sc > bestSc) { bestSc = sc; bestPair = [pool[a], pool[b]]; }
-      }
-    }
-    if (!bestPair) {
-      const ss = spots.slice().sort((x, y) => x - y);
-      bestPair = [ss[0], ss[ss.length - 1]];
-    }
-    const greenFirst = Math.random() < 0.5;
-    const pi = greenFirst ? bestPair[0] : bestPair[1];
-    const ei = greenFirst ? bestPair[1] : bestPair[0];
-    // dry-headroom guarantee: a chosen platform sitting low is lifted into a
-    // flat mesa at least 34px above the water — the slow floods then need
-    // minutes, not seconds
-    [pi, ei].forEach(c => {
-      const need = waterLevel - 34;
-      if (cols[c].top > need) {
-        for (let k = -6; k <= 6; k++) {
-          const j = clamp(c + k, 0, N - 1);
-          const fall = 1 - Math.abs(k) / 8;
-          cols[j].top = Math.min(cols[j].top, need + (1 - fall) * 20);
-        }
-        dirtyA = Math.min(dirtyA, c - 7); dirtyB = Math.max(dirtyB, c + 7);
-      }
+      spots.push(c);
     });
-    tanks = [
-      { x: pi * cols.step, hp: TANK_HP, col: players[0].col, hull: players[0].hull, dispAng: 45, dead: false, dying: false, lsUntil: 0, lsShot: false, fallFrom: undefined, wreck: 0, shield: 1, recoil: 0, terrDmg: 0, riseAcc: 0, dmgAcc: 0 },
-      { x: ei * cols.step, hp: TANK_HP, col: players[1].col, hull: players[1].hull, dispAng: 45, dead: false, dying: false, lsUntil: 0, lsShot: false, fallFrom: undefined, wreck: 0, shield: 1, recoil: 0, terrDmg: 0, riseAcc: 0, dmgAcc: 0 }
-    ];
-    tanks.forEach(t => { t.x = clamp(t.x, 20, Wc - 20); t.y = surfaceAt(t.x); });
-  
-    // min-gap enforcement: the floor scales with the screen; the direction
-    // FLIPS if the screen edge clamps the first pick back into the gap zone
-    const minGap = Math.max(110, Wc * 0.22);
-    if (Math.abs(tanks[0].x - tanks[1].x) < minGap) {
-      const px = tanks[0].x;
-      const want = px < Wc / 2 ? 1 : -1;
-      let bestI = -1, bestScore = -1;
-      for (let i = 6; i < N - 6; i++) {
-        const cx = i * cols.step;
-        if (volcano && Math.abs(cx - volcano.x) < volcano.r + 60) continue;
-        const gap = (cx - px) * want;
-        if (gap < minGap) continue;
-        if (cols[i].top > waterLevel - 14) continue;
-        let flat = 0;
-        for (let k = -3; k <= 3; k++) flat = Math.max(flat, Math.abs(cols[clamp(i + k, 0, N - 1)].top - cols[i].top));
-        if (flat >= 12) continue;
-        const score = Math.min(gap, Wc * 0.6) - flat * 3;
-        if (score > bestScore) { bestScore = score; bestI = i; }
+  }
+  // ============ SAFE-PAIR SELECTION ============
+  // the placement must ALWAYS leave both fighters a real platform: high
+  // enough above the waterline that neither the rising pools nor the
+  // creeping dunes reach it in seconds, out of the volcano's lava reach,
+  // and ideally separated by a ridge — no instant direct kill. Danger
+  // that needs MINUTES to arrive (a slow lava tongue, drifting sand) is
+  // legitimate: the exposed fighter still has time to act
+  const safety = (i) => {
+    const x = i * cols.step;
+    let s = clamp((waterLevel - cols[i].top - 10) / 55, 0, 1) * 45;
+    if (volcano) s += clamp((Math.abs(x - volcano.x) - volcano.r * 2.2) / (Wc * 0.3), 0, 1) * 25;
+    if (biome.mat.drift) {
+      // the drifting worlds migrate the relief downwind: a spot whose
+      // downwind run meets water within ~120px slides into it in minutes
+      const sgn = Math.sign(wind) || 1;
+      let run = 0;
+      for (let k = 1; k <= 8 && !run; k++) {
+        const j = clamp(i + sgn * k * 5, 0, N - 1);
+        if (cols[j].top > waterLevel - 6) run = k;
       }
-      if (bestI < 0) {
-        const need = Math.max(minGap * 1.4, Wc * 0.3);
-        let ex = clamp(px + want * need, 30, Wc - 30);
-        if (Math.abs(ex - px) < minGap) ex = clamp(px - want * need, 30, Wc - 30);
-        if (Math.abs(ex - px) < minGap) ex = clamp(px < Wc / 2 ? Wc - 34 : 34, 30, Wc - 30);
-        if (volcano && Math.abs(ex - volcano.x) < volcano.r + 70) {
-          const side = ex < volcano.x ? -1 : 1;
-          ex = clamp(volcano.x + side * (volcano.r + 100), 30, Wc - 30);
-          if (Math.abs(ex - px) < minGap) ex = clamp(px - want * need, 30, Wc - 30);
-        }
-        const ci = clamp(Math.round(ex / cols.step), 4, N - 5);
-        const target = waterLevel - 26;
-        for (let k = -6; k <= 6; k++) {
-          const j = clamp(ci + k, 0, N - 1);
-          const fall = 1 - Math.abs(k) / 8;
-          cols[j].top = Math.min(cols[j].top, target + (1 - fall) * 22);
-        }
-        bestI = ci;
-      }
-      tanks[1].x = bestI * cols.step;
-      tanks[1].y = surfaceAt(tanks[1].x);
+      s -= clamp(run * 1.6, 0, 12);
     }
-  
-    // lava defence: moat + rampart between the volcano and each turret
-    if (volcano) {
-      const NP = cols.length;
-      tanks.forEach(t => {
-        const away = t.x >= volcano.x ? 1 : -1;
-        const dist = Math.abs(t.x - volcano.x);
-        if (dist > volcano.r + 500) return;
-        const s = clamp(1 - (dist - volcano.r) / 700, 0.4, 1);
-        const appr = surfaceAt(clamp(t.x - away * 90, 8, Wc - 8));
-        const crest = clamp(Math.min(t.y - 10 - 46 * s, appr - 8), t.y - 150, t.y - 34);
-        const mi = clamp(Math.round((t.x - away * 104) / cols.step), 18, NP - 19);
-        for (let k = -15; k <= 15; k++) {
-          const j = clamp(mi + k, 0, NP - 1);
-          if (tanks.some(o => o !== t && Math.abs(o.x - j * cols.step) < 34)) continue;
-          cols[j].top = Math.max(cols[j].top, t.y + 4 + 14 * (1 - Math.abs(k) / 16));
-        }
-        const ci = clamp(Math.round((t.x - away * 46) / cols.step), 26, NP - 27);
-        for (let k = -24; k <= 24; k++) {
-          const j = clamp(ci + k, 0, NP - 1);
-          const fall = 1 - Math.abs(k) / 25;
-          cols[j].top = Math.min(cols[j].top, crest + 36 * (1 - fall));
-        }
-        dirtyA = Math.min(dirtyA, mi - 16); dirtyB = Math.max(dirtyB, ci + 25);
-      });
+    s -= clamp(Math.abs(slopeAt(x)) * 6, 0, 12);
+    return s;
+  };
+  // a ridge between the platforms blocks the instant direct kill
+  const occluded = (a, b) => {
+    const ax = a * cols.step, ay = cols[a].top - 22;
+    const bx = b * cols.step, by = cols[b].top - 22;
+    for (let t = 0.08; t < 0.93; t += 0.07) {
+      if (ay + (by - ay) * t >= surfaceAt(ax + (bx - ax) * t) - 1) return true;
+    }
+    return false;
+  };
+  const pool = spots.length > 260 ? spots.filter((_, q) => q % Math.ceil(spots.length / 260) === 0) : spots;
+  const sf = pool.map(safety);
+  const gapMin = Math.max(110, Wc * 0.22);
+  let bestPair = null, bestSc = -1e9;
+  for (let a = 0; a < pool.length; a++) {
+    for (let b = a + 1; b < pool.length; b++) {
+      const gap = Math.abs(pool[a] - pool[b]) * cols.step;
+      if (gap < gapMin) continue;
+      const sc = sf[a] + sf[b] + clamp(gap / Wc, 0, 1) * 20 + (occluded(pool[a], pool[b]) ? 18 : 0);
+      if (sc > bestSc) { bestSc = sc; bestPair = [pool[a], pool[b]]; }
     }
   }
+  if (!bestPair) {
+    const ss = spots.slice().sort((x, y) => x - y);
+    bestPair = [ss[0], ss[ss.length - 1]];
+  }
+  const greenFirst = Math.random() < 0.5;
+  const pi = greenFirst ? bestPair[0] : bestPair[1];
+  const ei = greenFirst ? bestPair[1] : bestPair[0];
+  // dry-headroom guarantee: a chosen platform sitting low is lifted into
+  // a flat mesa a full head budget above the water — 2-3 missile craters
+  // of rock; the slow floods still need minutes
+  [pi, ei].forEach(c => {
+    const need = waterLevel - head;
+    if (cols[c].top > need) {
+      for (let k = -6; k <= 6; k++) {
+        const j = clamp(c + k, 0, N - 1);
+        const fall = 1 - Math.abs(k) / 8;
+        cols[j].top = Math.min(cols[j].top, need + (1 - fall) * 20);
+      }
+      dirtyA = Math.min(dirtyA, c - 7); dirtyB = Math.max(dirtyB, c + 7);
+    }
+  });
+  tanks = [
+    { x: pi * cols.step, hp: TANK_HP, col: players[0].col, hull: players[0].hull, dispAng: 45, dead: false, dying: false, lsUntil: 0, lsShot: false, fallFrom: undefined, wreck: 0, shield: 1, recoil: 0, terrDmg: 0, riseAcc: 0, dmgAcc: 0 },
+    { x: ei * cols.step, hp: TANK_HP, col: players[1].col, hull: players[1].hull, dispAng: 45, dead: false, dying: false, lsUntil: 0, lsShot: false, fallFrom: undefined, wreck: 0, shield: 1, recoil: 0, terrDmg: 0, riseAcc: 0, dmgAcc: 0 }
+  ];
+  tanks.forEach(t => { t.x = clamp(t.x, 20, Wc - 20); t.y = surfaceAt(t.x); });
+
+  // min-gap enforcement: the floor scales with the screen; the direction
+  // FLIPS if the screen edge clamps the first pick back into the gap zone
+  const minGap = Math.max(110, Wc * 0.22);
+  if (Math.abs(tanks[0].x - tanks[1].x) < minGap) {
+    const px = tanks[0].x;
+    const want = px < Wc / 2 ? 1 : -1;
+    let bestI = -1, bestScore = -1;
+    for (let i = 6; i < N - 6; i++) {
+      const cx = i * cols.step;
+      if (volcano && Math.abs(cx - volcano.x) < volcano.r + 60) continue;
+      const gap = (cx - px) * want;
+      if (gap < minGap) continue;
+      if (cols[i].top > waterLevel - head) continue;
+      let flat = 0;
+      for (let k = -3; k <= 3; k++) flat = Math.max(flat, Math.abs(cols[clamp(i + k, 0, N - 1)].top - cols[i].top));
+      if (flat >= 12) continue;
+      const score = Math.min(gap, Wc * 0.6) - flat * 3;
+      if (score > bestScore) { bestScore = score; bestI = i; }
+    }
+    if (bestI < 0) {
+      const need = Math.max(minGap * 1.4, Wc * 0.3);
+      let ex = clamp(px + want * need, 30, Wc - 30);
+      if (Math.abs(ex - px) < minGap) ex = clamp(px - want * need, 30, Wc - 30);
+      if (Math.abs(ex - px) < minGap) ex = clamp(px < Wc / 2 ? Wc - 34 : 34, 30, Wc - 30);
+      if (volcano && Math.abs(ex - volcano.x) < volcano.r + 70) {
+        const side = ex < volcano.x ? -1 : 1;
+        ex = clamp(volcano.x + side * (volcano.r + 100), 30, Wc - 30);
+        if (Math.abs(ex - px) < minGap) ex = clamp(px - want * need, 30, Wc - 30);
+      }
+      const ci = clamp(Math.round(ex / cols.step), 4, N - 5);
+      const target = waterLevel - head;
+      for (let k = -6; k <= 6; k++) {
+        const j = clamp(ci + k, 0, N - 1);
+        const fall = 1 - Math.abs(k) / 8;
+        cols[j].top = Math.min(cols[j].top, target + (1 - fall) * 22);
+      }
+      bestI = ci;
+    }
+    tanks[1].x = bestI * cols.step;
+    tanks[1].y = surfaceAt(tanks[1].x);
+  }
+
+  // lava defence: moat + rampart between the volcano and each turret
+  if (volcano) {
+    const NP = cols.length;
+    tanks.forEach(t => {
+      const away = t.x >= volcano.x ? 1 : -1;
+      const dist = Math.abs(t.x - volcano.x);
+      if (dist > volcano.r + 500) return;
+      const s = clamp(1 - (dist - volcano.r) / 700, 0.4, 1);
+      const appr = surfaceAt(clamp(t.x - away * 90, 8, Wc - 8));
+      const crest = clamp(Math.min(t.y - 10 - 46 * s, appr - 8), t.y - 150, t.y - 34);
+      const mi = clamp(Math.round((t.x - away * 104) / cols.step), 18, NP - 19);
+      for (let k = -15; k <= 15; k++) {
+        const j = clamp(mi + k, 0, NP - 1);
+        if (tanks.some(o => o !== t && Math.abs(o.x - j * cols.step) < 34)) continue;
+        cols[j].top = Math.max(cols[j].top, t.y + 4 + 14 * (1 - Math.abs(k) / 16));
+      }
+      const ci = clamp(Math.round((t.x - away * 46) / cols.step), 26, NP - 27);
+      for (let k = -24; k <= 24; k++) {
+        const j = clamp(ci + k, 0, NP - 1);
+        const fall = 1 - Math.abs(k) / 25;
+        cols[j].top = Math.min(cols[j].top, crest + 36 * (1 - fall));
+      }
+      dirtyA = Math.min(dirtyA, mi - 16); dirtyB = Math.max(dirtyB, ci + 25);
+    });
+  }
+
+  // a fighter standing on a slope gets a built-out LEDGE: flat ground
+  // under the tracks, then a shoulder at a stable scree angle running
+  // downhill until it MERGES into the hillside — no hanging base, no
+  // first-frame slide, and the ledge survives the ground relaxation
+  tanks.forEach(t => {
+    const rs = 2.2 / cols.step;
+    for (const sgn of [-1, 1]) {
+      for (let d = 0; d <= 66; d += cols.step) {
+        const x = t.x + sgn * d;
+        if (x < 4 || x > Wc - 4) break;
+        const i = clamp(Math.round(x / cols.step), 0, N - 1);
+        const bench = d < 14 ? t.y + 0.4 : t.y + 0.4 + (d - 14) * rs;
+        if (cols[i].top > bench) {
+          cols[i].top = bench;
+          dirtyA = Math.min(dirtyA, i); dirtyB = Math.max(dirtyB, i + 1);
+        } else if (d >= 14) break;
+      }
+    }
+  });
+
+  // seams beneath a fighter sit deeper still: digging one out from under
+  // a turret must take a few deliberate hits, not one lucky missile
+  tanks.forEach(t => {
+    pockets.forEach(pk => {
+      if (t.x <= pk.x0 - 16 || t.x >= pk.x1 + 16) return;
+      const add = R(14, 26);
+      if (pk.y1 + add < Hc - 6) { pk.y0 += add; pk.y1 += add; pk.cy += add; pk.dep += add; }
+    });
+  });
+}
 
 function newRound(first) {
   genTerrain();
@@ -990,7 +1072,7 @@ function subsideColumn(i, quiet) {
   dirtyA = Math.min(dirtyA, i); dirtyB = Math.max(dirtyB, i + 1);
   return drop;
 }
-
+//scorch.world.js part02
 // the void TRACKS the drill: floor extends to it, ceiling rises with it
 function carve(x, y, rad, sid) {
   const N = cols.length;
@@ -1050,7 +1132,8 @@ function collapseHoles(cx, r) {
       const cc = cols[clamp(Math.round(tk.x / cols.step), 0, N - 1)];
       if (cc.h1 <= 0 && tk.y > cc.top + 8) addTerrDmg(i, 14, 'обвал');
     });
-    slump(i0, i1, 5);
+    // the per-column drops leave a staircase — relax it into a slope
+    smoothGround(i0 - 3, i1 + 3);
   }
 }
 
@@ -1079,6 +1162,35 @@ function slump(i0, i1, rounds) {
   for (let i = i0; i <= i1; i += 3) {
     if (Math.random() < 0.4 && fx.length < 380) fx.push({ k: 'dust', x: i * cols.step, y: surfaceAt(i * cols.step) - 2, vx: R(-8, 8), vy: -R(6, 20), r: R(2, 4), t: 0, life: R(0.5, 1), col: M().dustCol });
   }
+}
+
+// relaxation pass over a damaged stretch: material flows down steps
+// steeper than the material's rest angle, then a light low-pass files
+// off single-column spikes — blast staircases, rim teeth and collapse
+// combs settle into natural-looking slopes
+function smoothGround(i0, i1, rounds) {
+  const N = cols.length;
+  i0 = clamp(i0, 1, N - 2);
+  i1 = clamp(i1, 1, N - 2);
+  if (i1 <= i0 + 1) return;
+  const stable = Math.max(1.5, M().slope * 0.55);
+  for (let it = 0; it < (rounds || 10); it++) {
+    let moved = false;
+    for (let i = i0; i < i1; i++) {
+      const diff = cols[i + 1].top - cols[i].top;
+      if (diff > stable) { const q = (diff - stable) * 0.5; cols[i].top += q; cols[i + 1].top -= q; moved = true; }
+      else if (diff < -stable) { const q = (-diff - stable) * 0.5; cols[i].top -= q; cols[i + 1].top += q; moved = true; }
+    }
+    if (!moved) break;
+  }
+  for (let pass = 0; pass < 2; pass++) {
+    const src = [];
+    for (let i = i0; i <= i1; i++) src.push(cols[i].top);
+    for (let k = 1; k < src.length - 1; k++) {
+      cols[i0 + k].top = src[k] * 0.52 + (src[k - 1] + src[k + 1]) * 0.24;
+    }
+  }
+  dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1 + 1);
 }
 
 function digTrench(x, y, ang, len, rad) {
@@ -1177,7 +1289,15 @@ function stepTerra(dt) {
       if (c.isRim) cols[c.i].surf *= 0.985;
       if (c.fill && k > 0.15) { cols[c.i].h1 = 0; cols[c.i].h0 = 0; cols[c.i].sid = 0; }
     });
-    return j.cols.some(c => j.t < c.delay + c.dur);
+    const live = j.cols.some(c => j.t < c.delay + c.dur);
+    // a finished deformation SETTLES: jagged blast edges, rim spikes and
+    // staircases relax into natural slopes (smoothGround)
+    if (!live) {
+      let ja = 1e9, jb = -1;
+      j.cols.forEach(c => { if (c.i < ja) ja = c.i; if (c.i > jb) jb = c.i; });
+      smoothGround(ja - 2, jb + 2);
+    }
+    return live;
   });
   const ms = M().slope * 1.6;
   const K = 3 * dt;
@@ -1237,7 +1357,7 @@ function stepTerra(dt) {
     if (c.lavaT < LAVA_MELT) {
       c.top = Math.min(Hc - 6, c.top + dt * (LAVA_BURN + c.lava * 0.05));
       c.burn = Math.max(c.burn, 0.9); c.surf *= 0.92; c.melt = Math.max(c.melt || 0, 0.85);
-      if (Math.random() < dt * 1.5) igniteAt(x, c.top + 6, 10);
+      if (Math.random() < dt * 1.5) igniteAt(x, c.top + 6, 8 + c.lava * 0.4, 'lava');
       tanks.forEach((tk, ti) => {
         if (!canHurt(ti) || Math.abs(tk.x - x) > cols.step + 6) return;
         if (tk.y > c.top - c.lava - 8 && tk.y < c.top + 10) {
@@ -1265,26 +1385,69 @@ function stepTerra(dt) {
     } else c.lava = 0;
     dirtyA = Math.min(dirtyA, i); dirtyB = Math.max(dirtyB, i + 1);
   }
-  // burning fuel pockets (surface worlds only)
+  // burning fuel seams — mode 1 FLAME (fire source) spits fire/embers/
+  // smoke, mode 2 LAVA GEYSER (lava source) fountains lava bombs; the
+  // burn time was set by VOLUME at ignition, and both end in a carved
+  // void + collapse that visibly reshapes the relief
   pockets.forEach(pk => {
     if (pk.state !== 1) return;
     pk.t += dt;
     const pr = clamp(pk.t / pk.dur, 0, 1);
-    if (Math.random() < dt * 5) {
-      const fxp = R(pk.x0 + 3, pk.x1 - 3);
-      firePatches.push({ x: fxp, y: surfaceAt(fxp) - R(0, 4), life: R(0.6, 1.4) });
-      if (Math.random() < 0.4) fx.push({ k: 'ember', x: fxp, y: surfaceAt(fxp) - 2, vx: R(-20, 20), vy: -R(60, 140), t: 0, life: R(0.6, 1.2), s: R(1, 2) });
+    const wP = pk.x1 - pk.x0;
+    if (pk.mode === 2) {
+      if (Math.random() < dt * 2.2) {
+        const gx = R(pk.x0 + 4, pk.x1 - 4);
+        const gy = surfaceAt(gx) - 2;
+        fx.push({ k: 'flash', x: gx, y: gy, r: 9, t: 0, life: 0.1, col: `rgb(${lav().glow})` });
+        const nq = 2 + (pk.vol > 900 ? 2 : 0);
+        for (let q = 0; q < nq && lavaBits.length < 55; q++) {
+          lavaBits.push({ x: gx + R(-4, 4), y: gy, vx: R(-30, 30), vy: -R(140, 260), t: 0, life: R(1.1, 2), s: R(1.4, 2.4) });
+        }
+        if (Math.random() < 0.3) sfx(0.3);
+      }
+      if (Math.random() < dt * 3) {
+        const fxp = R(pk.x0 + 3, pk.x1 - 3);
+        firePatches.push({ x: fxp, y: surfaceAt(fxp) - R(0, 3), life: R(0.5, 1.2), volc: true });
+      }
+      if (Math.random() < dt * 1.2) fx.push({ k: 'wisp', x: R(pk.x0, pk.x1), y: surfaceAt(R(pk.x0, pk.x1)) - 4, vx: R(-4, 4), vy: -R(18, 34), ph: R(0, 6.28), t: 0, life: R(0.8, 1.6) });
+    } else {
+      if (Math.random() < dt * (3 + pk.vol / 700)) {
+        const fxp = R(pk.x0 + 3, pk.x1 - 3);
+        firePatches.push({ x: fxp, y: surfaceAt(fxp) - R(0, 4), life: R(0.6, 1.4) });
+        if (Math.random() < 0.4) fx.push({ k: 'ember', x: fxp, y: surfaceAt(fxp) - 2, vx: R(-20, 20), vy: -R(60, 140), t: 0, life: R(0.6, 1.2), s: R(1, 2) });
+      }
+      if (Math.random() < dt * 2) fx.push({ k: 'smoke', x: R(pk.x0, pk.x1), y: surfaceAt(R(pk.x0, pk.x1)) - 6, r: R(3, 6), t: 0, life: R(1, 2) });
     }
-    if (Math.random() < dt * 2) fx.push({ k: 'smoke', x: R(pk.x0, pk.x1), y: surfaceAt(R(pk.x0, pk.x1)) - 6, r: R(3, 6), t: 0, life: R(1, 2) });
     if (pr >= 1) {
       pk.state = 2;
       const cy = (pk.y0 + pk.y1) / 2;
       const sid = ++digSid;
       for (let k = 0; k < 3; k++) {
-        const fxp = pk.x0 + 8 + (pk.x1 - pk.x0 - 16) * (k / 2);
+        const fxp = pk.x0 + 8 + (wP - 16) * (k / 2);
         carve(fxp, cy, Math.max(6, (pk.y1 - pk.y0) / 2), sid);
       }
-      collapseHoles((pk.x0 + pk.x1) / 2, (pk.x1 - pk.x0) * 0.6);
+      // deep seams still cave the surface in: the collapse reach grows
+      // with the burial depth, not just the seam width
+      collapseHoles((pk.x0 + pk.x1) / 2, wP * 0.6 + pk.dep * 0.55);
+      if (pk.mode === 2) {
+        // the geyser's finale: a small lava pool settles into the crater
+        const [ga, gb] = blastRange((pk.x0 + pk.x1) / 2, wP * 0.3);
+        for (let i = ga; i <= gb; i++) {
+          cols[i].lava = Math.min(12, cols[i].lava + R(3, 7));
+          cols[i].lavaT = Math.min(cols[i].lavaT, 2);
+          cols[i].burn = Math.max(cols[i].burn, 0.6);
+        }
+        for (let k = 0; k < 4 && lavaBits.length < 55; k++) {
+          const gx = R(pk.x0, pk.x1);
+          lavaBits.push({ x: gx, y: surfaceAt(gx) - 2, vx: R(-40, 40), vy: -R(120, 220), t: 0, life: R(1, 1.8), s: R(1.4, 2.2) });
+        }
+        dirtyA = Math.min(dirtyA, ga); dirtyB = Math.max(dirtyB, gb + 1);
+      } else {
+        for (let k = 0; k < 3; k++) {
+          const fxp = R(pk.x0, pk.x1);
+          firePatches.push({ x: fxp, y: surfaceAt(fxp) - 2, life: R(1.5, 3) });
+        }
+      }
       sfx(0.8);
       shake = Math.min(10, shake + 3);
     }
@@ -1319,57 +1482,83 @@ function stepTerra(dt) {
       t.riseAcc = 0;
       t.fallFrom = undefined;
     }
-    if (t.y - waterLevel > 12) killTank(i, 'drown');
+    // a turret drowns only once fully submerged — a single crater can
+    // no longer kill through the waterline
+    if (t.y - waterLevel > 26) killTank(i, 'drown');
   });
 }
-//scorch.world.js part03 — взрывы, снаряды, урон/смерть, цикл симуляции
 // ================= EXPLOSIONS =================
 function hitFx(x, y, r, nuke) { shake = Math.min(10, shake + r * 0.08 + (nuke ? 3 : 0)); }
 
 // pocket ignition, shared by EVERY heat source EXCEPT the exceptions the
-// spec lists (the digger WHILE DRILLING, dirt, the roller while rolling)
-function igniteAt(x, y, r) {
+// spec lists (the digger WHILE DRILLING, dirt, the roller while rolling).
+// heatHits: the source point (x,y) with radius r against the seam's
+// flattened oval body — an inflated-ellipse test with the FULL heat radius
+// (the old half-r AABB is why direct hits often did nothing)
+function heatHits(pk, x, y, r) {
+  const dx = x - pk.cx, dy = y - pk.cy;
+  const ax = pk.ra + r, ay = pk.rb + r;
+  return (dx * dx) / (ax * ax) + (dy * dy) / (ay * ay) <= 1;
+}
+function igniteAt(x, y, r, kind) {
   pockets.forEach(pk => {
     if (pk.state !== 0) return;
-    if (x > pk.x0 - r * 0.5 && x < pk.x1 + r * 0.5 && y > pk.y0 - r * 0.5 && y < pk.y1 + r * 0.5) {
-      if (pk.mega) {
-        pk.state = 2;
-        schedule(() => pocketDetonate(pk), R(0.06, 0.25));
-      } else {
-        pk.state = 1; pk.t = 0;
-        fx.push({ k: 'flash', x, y, r: 12, t: 0, life: 0.12, col: '#ff9a3a' });
-      }
-    }
+    if (heatHits(pk, x, y, r)) ignitePocket(pk, r, kind || 'fire');
   });
 }
+// graded combustion: a SMALL source lights a timed burn — FLAME for a fire
+// source, a LAVA GEYSER for a lava one — lasting by the seam VOLUME; a
+// blast that tears most of the seam's PERIMETER at once (or a giant MEGA
+// seam) detonates the whole pocket instead
+function ignitePocket(pk, r, kind) {
+  if (pk.mega || r * 2 >= (pk.x1 - pk.x0) * 1.4) {
+    pk.state = 2;
+    schedule(() => pocketDetonate(pk), R(0.06, 0.25));
+    return;
+  }
+  pk.state = 1;
+  pk.mode = kind === 'lava' ? 2 : 1;
+  pk.t = 0;
+  pk.dur = clamp(pk.vol / 170, 2.5, 9);
+  fx.push({ k: 'flash', x: pk.cx, y: pk.cy, r: 12, t: 0, life: 0.12, col: '#ff9a3a' });
+  lastHitInfo = pk.mode === 2 ? 'лавовый гейзер из залежи!' : 'залежь воспламенилась!';
+  beep(pk.mode === 2 ? 300 : 520, 0.09, 0.13);
+}
 
-// a MEGA seam goes up all at once: staged blasts, a carved void, fires
+// a seam going up all at once: staged blasts scaled by its size, a carved
+// void, collapse, fires. The fire is weak (soft) — the real punch is the
+// DISPLACEMENT: a fighter over the span takes a medium heave, then the
+// fall damage of the caving ground
 function pocketDetonate(pk) {
   const cx = (pk.x0 + pk.x1) / 2;
   const wP = pk.x1 - pk.x0;
-  fx.push({ k: 'skyflash', t: 0, life: 0.9, col: 'rgba(255,214,150,', a: 0.4 });
-  const n = 4;
+  const big = pk.mega;
+  const n = big ? Math.max(4, Math.round(wP / 40)) : Math.max(2, Math.round(wP / 36));
+  fx.push({ k: 'skyflash', t: 0, life: 0.9, col: 'rgba(255,214,150,', a: big ? 0.4 : 0.25 });
   for (let k = 0; k < n; k++) {
     schedule(() => {
       const bx = cx + (k / (n - 1) - 0.5) * wP * 0.85;
-      boomsAt(bx, surfaceAt(bx) - 6, 30 + wP * 0.2, 'nuke', 26, false, true);
+      boomsAt(bx, surfaceAt(bx) - 6, (big ? 30 : 20) + wP * 0.2, 'nuke', big ? 3 : 2, false, true);
     }, 0.1 + k * 0.15);
   }
   schedule(() => {
     const cy = (pk.y0 + pk.y1) / 2;
     const sid = ++digSid;
-    for (let k = 0; k < 4; k++) carve(cx + (k - 1.5) * wP * 0.22, cy, wP * 0.33, sid);
-    collapseHoles(cx, wP * 0.8);
+    for (let k = 0; k < (big ? 4 : 3); k++) carve(cx + (k - (big ? 1.5 : 1)) * wP * 0.24, cy, Math.max(8, wP * 0.3), sid);
+    collapseHoles(cx, wP * 0.8 + pk.dep * 0.5);
+    tanks.forEach((tk, i) => {
+      if (canHurt(i) && tk.x > pk.x0 - 12 && tk.x < pk.x1 + 12) addTerrDmg(i, big ? 14 : 10, 'смещение');
+    });
     const [sa, sb] = blastRange(cx, wP * 0.9);
     slump(sa, sb, 10);
     spawnDirtFall(cx, Math.min(150, wP * 1.1));
-    spawnEmbers(cx, surfaceAt(cx) - 10, 24, wP * 0.5);
-    for (let k = 0; k < 5; k++) {
+    spawnEmbers(cx, surfaceAt(cx) - 10, big ? 24 : 14, wP * 0.5);
+    for (let k = 0; k < (big ? 5 : 3); k++) {
       const fxp = R(pk.x0, pk.x1);
-      firePatches.push({ x: fxp, y: surfaceAt(fxp) - 2, life: R(2.5, 5) });
+      firePatches.push({ x: fxp, y: surfaceAt(fxp) - 2, life: R(2.5, 5), soft: 1 });
     }
-    shake = Math.min(12, shake + 9);
-    sfx(1.4);
+    shake = Math.min(12, shake + (big ? 9 : 6));
+    sfx(big ? 1.4 : 1.0);
   }, 0.12);
 }
 
@@ -1406,7 +1595,8 @@ function boomsAt(x, y, r, style, dmg, noTerr, noDouble) {
       }
     }
     // a blast on a crystal: 50% chance it detonates like a volcano vent —
-    // a bigger boom, fire at the crater and a fan of sparks
+    // a bigger boom, fire at the crater and a fan of sparks; the DAMAGE
+    // is sparks-only now, a few percent of a missile hit
     for (let q = caveLights.length - 1; q >= 0; q--) {
       const L = caveLights[q];
       if (L.k !== 'cry') continue;
@@ -1415,9 +1605,9 @@ function boomsAt(x, y, r, style, dmg, noTerr, noDouble) {
         caveLights.splice(q, 1);
         fx.push({ k: 'flash', x: L.x, y: L.y, r: L.r * 0.8, t: 0, life: 0.2, col: `rgb(${L.col})` });
         fx.push({ k: 'skyflash', t: 0, life: 0.4, col: cc, a: 0.18 });
-        boomsAt(L.x, L.y, Math.max(34, L.r * 0.55), 'missile', 22, true, true);
+        boomsAt(L.x, L.y, Math.max(34, L.r * 0.55), 'missile', 1, true, true);
         spawnEmbers(L.x, L.y, 16, L.r * 0.6);
-        for (let w = 0; w < 3; w++) firePatches.push({ x: L.x + R(-16, 16), y: surfaceAt(L.x) - 2, life: R(1.5, 3.4), volc: true });
+        for (let w = 0; w < 3; w++) firePatches.push({ x: L.x + R(-16, 16), y: surfaceAt(L.x) - 2, life: R(1.5, 3.4), volc: true, soft: 1 });
         shake = Math.min(10, shake + 3);
         sfx(0.8);
       }
@@ -1595,7 +1785,7 @@ function stepFx(dt) {
       f.vy += GRAV * 0.55 * dt;
       f.vx += wind * 0.3 * dt;
       f.x += f.vx * dt; f.y += f.vy * dt;
-      if (f.y >= surfaceAt(f.x) - 1) f.t = f.life;
+      if (f.y >= surfaceAt(f.x) - 1) { f.t = f.life; igniteAt(f.x, f.y + 2, 8); }
       if (UNDER && f.y < ceilAt(f.x)) f.vy = Math.abs(f.vy) * 0.4;
     }
     if (f.k === 'jet') { f.h = Math.min(f.hMax, (f.h === undefined ? f.hMax * 0.25 : f.h) + f.hMax * dt * 1.8); }
@@ -1619,6 +1809,7 @@ function stepFx(dt) {
           c.lava = Math.min(24, c.lava + 1.2);
           c.lavaT = Math.min(c.lavaT, 3);
           dirtyA = Math.min(dirtyA, ci); dirtyB = Math.max(dirtyB, ci + 1);
+          igniteAt(f.x, f.y + 2, 10, 'lava');
         }
         if (f.y > waterAt(f.x) - 1) { spawnWisps(f.x, waterAt(f.x), 3); f.t = f.life; }
         if (Math.abs(f.vx) < 2.5 && Math.abs(sl) < 0.08 && f.t > 3) {
@@ -1691,12 +1882,11 @@ function stepFx(dt) {
   firePatches = firePatches.filter(fp => {
     fp.life -= dt;
     const fy = fp.volc && fp.y !== undefined ? fp.y : surfaceAt(fp.x);
-    if (!fp.volc && fp.life > 0.5) {
+    // ANY ground fire — napalm flames or lava fires alike — heats the seam
+    // beneath it; lava-kind fires light the geyser variant
+    if (fp.life > 0.5) {
       pockets.forEach(pk => {
-        if (pk.state === 0 && fp.x > pk.x0 && fp.x < pk.x1 && Math.abs(fy - pk.y0) < 40) {
-          if (pk.mega) { pk.state = 2; schedule(() => pocketDetonate(pk), 0.05); }
-          else { pk.state = 1; pk.t = 0; }
-        }
+        if (pk.state === 0 && heatHits(pk, fp.x, fy, 13)) ignitePocket(pk, 13, fp.volc ? 'lava' : 'fire');
       });
     }
     const ci = clamp(Math.round(fp.x / cols.step), 0, cols.length - 1);
@@ -1706,9 +1896,11 @@ function stepFx(dt) {
       c.top += 0.22;
       dirtyA = Math.min(dirtyA, ci); dirtyB = Math.max(dirtyB, ci + 1);
     }
+    // `soft` marks the fires of the seams and the cave crystals: they
+    // weigh a few percent of a napalm burn in the scald counter
     for (let i = 0; i < tanks.length; i++) {
       const tk = tanks[i];
-      if (canHurt(i) && Math.abs(tk.x - fp.x) < 13 && Math.abs(tk.y - fy) < 16) { burnN[i]++; confirmClose = true; }
+      if (canHurt(i) && Math.abs(tk.x - fp.x) < 13 && Math.abs(tk.y - fy) < 16) { burnN[i] += fp.soft ? 0.08 : 1; confirmClose = true; }
     }
     return fp.life > 0;
   });
@@ -1790,6 +1982,7 @@ function fire2() {
 function launch(t, ang, pow, dir, w, who) {
   const rad = ang * Math.PI / 180;
   shotOwner = tanks.indexOf(t);
+  if (shotOwner) shots2++;
   t.recoil = 1;
   // last stand: this is the dying fighter's ONE shot
   if (t.dying) { t.lsShot = true; t.lsUntil = Math.min(t.lsUntil, gt + 1.5); }
@@ -1875,7 +2068,7 @@ function simulateShot(x0, y0, ang, pow, dir, wa) {
   }
   return null;
 }
-
+//scorch.world.js part03
 // ============ DIGGER: charge-based bore ============
 function digEnter(p) {
   p.digging = true;
@@ -1905,6 +2098,9 @@ function digCollapse(p) {
     }
   }
   if (did) {
+    // per-column subsidence along the sloped tunnel leaves a comb —
+    // settle it into a natural slope right away
+    smoothGround(i0 - 4, i1 + 4);
     sfx(0.7);
     shake = Math.min(10, shake + 2.5);
   }
@@ -2133,6 +2329,7 @@ function resolveHit(p) {
           const fc = ['#a29bff', '#ffd23f', '#ff6b9d', '#7bffc4'][(Math.random() * 4) | 0];
           fx.push({ k: 'flash', x: bx, y: by, r: br * 1.4, t: 0, life: 0.09, col: fc });
           fx.push({ k: 'star', x: bx, y: by, r: br, t: 0, life: 0.28, col: '185,165,255', spikes: 7, rot: R(0, 6.28) });
+          igniteAt(bx, by, br);
           if (UNDER && (by - ceilAt(bx)) < (surfaceAt(bx) - by)) ceilingCrush(bx, br);
           else craterMask(bx, br, 1, 'blast', 'circle');
           spawnChunks(bx, by, br, 6);
@@ -2458,35 +2655,45 @@ function resolveRound() {
   else if (d1) res = 'win';
   else if (d0) res = 'lose';
   if (!res) { endTurn(); return; }
-  if (res === 'win') {
-    wins++;
+  // fair scoring: the SAME formula runs for whoever wins — time, weapon
+  // class, apex, kill method and the winner's OWN shot economy; the loser
+  // gets a small consolation by his own shots. The computer used to earn
+  // a flat 120 against the human's 200-600
+  if (res === 'draw') {
+    score += 30;
+    score2 += 30;
+  } else {
+    const winIdx = res === 'win' ? 0 : 1;
+    const loseIdx = 1 - winIdx;
+    const winShots = winIdx === 0 ? shots : shots2;
+    const loseShots = winIdx === 0 ? shots2 : shots;
     const dt = (Date.now() - roundStart) / 1000;
     let pts = 100;
     pts += Math.max(0, Math.round(300 - dt * 2));
     if (['MISSILE', 'ROLLER', 'DIGGER', 'DIRT'].includes(lastWeapon)) pts = Math.round(pts * 1.5);
-    if (lastShotApex < tanks[1].y - 120) pts += 120;
+    if (lastShotApex < tanks[loseIdx].y - 120) pts += 120;
     if (lastKillMethod === 'drown') pts += 150;
     if (lastKillMethod === 'crush') pts += 120;
-    pts += Math.max(0, 40 - shots * 8);
-    score += pts;
-    score2 += Math.max(0, Math.round(30 - shots));
-    aiSkill = Math.min(0.95, aiSkill + 0.08);
-  } else if (res === 'lose') {
-    wins2++;
-    score2 += 120;
-    score += Math.max(0, Math.round(30 - shots));
-    aiSkill = Math.max(0.2, aiSkill - 0.05);
-  } else {
-    score += 30;
-    score2 += 30;
+    pts += Math.max(0, 40 - winShots * 8);
+    if (winIdx === 0) {
+      wins++;
+      score += pts;
+      score2 += Math.max(0, Math.round(30 - loseShots));
+      aiSkill = Math.min(0.95, aiSkill + 0.08);
+    } else {
+      wins2++;
+      score2 += pts;
+      score += Math.max(0, Math.round(30 - loseShots));
+      aiSkill = Math.max(0.2, aiSkill - 0.05);
+    }
   }
   let kind = res, whoIdx = 0;
   if (res === 'draw') { kind = 'draw'; whoIdx = -1; }
   else if (GMODE === 2) {
-    const winIdx = res === 'win' ? 0 : 1;
+    const wi = res === 'win' ? 0 : 1;
     const useWin = Math.random() < 0.5;
     kind = useWin ? 'win' : 'lose';
-    whoIdx = useWin ? winIdx : 1 - winIdx;
+    whoIdx = useWin ? wi : 1 - wi;
   } else {
     kind = res;
     whoIdx = 0;
@@ -2566,7 +2773,7 @@ function stepGrains(dt) {
 
 // ================= LOOP =================
 function start() {
-  score = 0; wins = 0; shots = 0; aiSkill = 0.35;
+  score = 0; wins = 0; shots = 0; shots2 = 0; aiSkill = 0.35;
   score2 = 0; wins2 = 0;
   round = 1;
   ammoInv = {}; aiAmmo = {};
