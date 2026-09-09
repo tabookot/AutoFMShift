@@ -39,7 +39,10 @@ function rrectPath(c, x, y, w, h, r) {
     if (!tctlEl) return;
     const active = state === 'aim' && isHumanSeat(turn);
     const blocked = helpOpen || setupOpen || confirmOpen;
-    tctlEl.classList.toggle('show', active && !blocked && (touchUI || tctlOpen));
+    // touchUI: the panel starts visible; a click on the ∠/⚡ chips now
+    // TEMPORARILY hides it (landscape) — the same click that opens the
+    // panel on the desktop
+    tctlEl.classList.toggle('show', active && !blocked && (touchUI ? !tctlOpen : tctlOpen));
     if (active) {
       angRange.value = Math.round(aim.ang);
       powRange.value = Math.round(aim.pow);
@@ -88,6 +91,8 @@ function rrectPath(c, x, y, w, h, r) {
     drawFire();
     drawFx();
     drawLavaBits();
+    drawWorm();
+    drawJunks();
     drawWindParts();
     drawGrains();
     drawHpLate();
@@ -103,6 +108,28 @@ function rrectPath(c, x, y, w, h, r) {
   function drawSky() {
     // UNDERGROUND: no sky, no luminary, no reflections — rock backdrop
     if (UNDER) { drawCaveBG(); return; }
+    eclipseF = 0;
+    sunDim = 0;
+    // the star behind the HOME PLANET's disc (moon-biome scenes) is dim
+    // through the WHOLE passage: the exact transit feeds eclipseF (the
+    // planet block + the veil), and the halo bleed around the limb
+    // before and after it feeds sunDim — the sun renderer dims itself
+    if (VOLC_BIOMES.includes(biomeKey()) || biomeKey() === 'rust') {
+      const pkS = { volcanic: 0.21, xeno: 0.26, rust: 0.32, ashen: 0.42 }[biomeKey()] || 0.21;
+      const prS = clamp(Math.min(Hc * pkS, Wc * 0.34), 60, 620);
+      const spS = cycleT >= 0.95 ? (cycleT - 0.95) / 0.55 : (cycleT + 0.05) / 0.55;
+      const sxS = -60 + spS * (Wc + 120);
+      const syS = Hc * (0.30 - Math.sin(clamp(spS, 0, 1) * Math.PI) * 0.20);
+      const dsS = Math.hypot(sxS - Wc * 0.24, syS - Hc * 0.17);
+      if (dsS < prS + 56) sunDim = clamp((prS + 56 - dsS) / 80, 0, 1);
+    }
+    // the star field follows the live width: a scene stretched after
+    // creation re-spreads the stars across the whole sky
+    if (stars.w && stars.w !== Wc) {
+      const k = Wc / stars.w;
+      stars.forEach(st => { st.x *= k; });
+      stars.w = Wc;
+    }
     const p = cycleT;
     skyLight = { x: -999, col: '255,255,255', a: 0 };
     const pal = biome.pal;
@@ -141,7 +168,8 @@ function rrectPath(c, x, y, w, h, r) {
       }
       ctx.globalAlpha = 1;
     }
-    {
+    const moonSky = VOLC_BIOMES.includes(biomeKey()) || biomeKey() === 'rust';
+    if (!moonSky) {
       const inNight = p >= 0.51 && p <= 0.97;
       const mp = inNight ? (p - 0.53) / 0.44 : -0.35;
       const mx = -60 + mp * (Wc + 120);
@@ -178,6 +206,50 @@ function rrectPath(c, x, y, w, h, r) {
       ctx.globalAlpha = 1;
       if (mx > 20 && mx < Wc - 20) skyLight = { x: mx, col: '223,228,234', a: 0.45 * starA + 0.1 };
     }
+    if (!moonSky && moonSys) {
+      // THE FOUR MOONS on their 3D-precalc orbits (genMoonSys /
+      // stepMoonSys, world.js): the shadow bite is cut toward the star's
+      // live position, the phase deepens when the moon nears the star in
+      // the sky, and by day the moons fade to a faint trace
+      const sp2 = p >= 0.95 ? (p - 0.95) / 0.55 : (p + 0.05) / 0.55;
+      const sx2 = -60 + sp2 * (Wc + 120);
+      const sy2 = Hc * (0.30 - Math.sin(clamp(sp2, 0, 1) * Math.PI) * 0.20);
+      const mA = 0.08 + (1 - dayness) * 0.75;
+      moonSys.forEach(mo => {
+        const mx2 = Wc / 2 + Math.cos(mo.ang) * mo.a * Wc;
+        const my2 = mo.cy + Math.sin(mo.ang) * mo.ry;
+        const rr = mo.rr;
+        ctx.globalAlpha = mA;
+        const gr = ctx.createRadialGradient(mx2, my2, rr * 0.4, mx2, my2, rr * 2.2);
+        gr.addColorStop(0, hexA(mo.col, 0.35));
+        gr.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = gr;
+        ctx.beginPath(); ctx.arc(mx2, my2, rr * 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = mo.col;
+        ctx.beginPath(); ctx.arc(mx2, my2, rr, 0, Math.PI * 2); ctx.fill();
+        // baked craters
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        mo.crat.forEach(cr => {
+          ctx.beginPath(); ctx.arc(mx2 + cr[0] * rr, my2 + cr[1] * rr, cr[2] * rr, 0, Math.PI * 2); ctx.fill();
+        });
+        // the shadow bite: cut on the anti-star side, deeper when the
+        // moon is angularly close to the star (new), shallower when far
+        const shA = Math.atan2(my2 - sy2, mx2 - sx2);
+        const sep = clamp(1 - Math.hypot(mx2 - sx2, my2 - sy2) / (Wc * 0.75), 0, 1);
+        const bo = rr * (0.3 + sep * 0.75);
+        ctx.save();
+        ctx.beginPath(); ctx.arc(mx2, my2, rr + 0.5, 0, Math.PI * 2); ctx.clip();
+        ctx.fillStyle = 'rgba(8,10,18,0.85)';
+        ctx.beginPath(); ctx.arc(mx2 + Math.cos(shA) * bo, my2 + Math.sin(shA) * bo, rr, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        // TRANSIT: a moon crossing the star's disc — a big one covers it
+        // fully (fast night), a small one grazes (sunset); the veil at
+        // the end of drawSky does the darkening
+        const dtr = Math.hypot(mx2 - sx2, my2 - sy2);
+        if (dtr < rr + 26) eclipseF = Math.max(eclipseF, clamp((rr + 26 - dtr) / 34, 0, 1));
+      });
+      ctx.globalAlpha = 1;
+    }
     comets.forEach(c => {
       const cp = c.t / c.life;
       const sz = c.sz || 1.5;
@@ -201,11 +273,17 @@ function rrectPath(c, x, y, w, h, r) {
       const hot = mixColA(parseCol('#ff6a3a'), parseCol(sunC), alt);
       const halo = mixColA(parseCol('rgba(255,110,70,0.4)'), parseCol(haloC), alt);
       const shimmer = 1 + Math.sin(skyT * 1.1) * 0.05;
+      // the star behind the home planet's disc stays dim through the
+      // whole passage — not only the exact eclipse, but the halo bleed
+      // before and after it as well
+      const sunA = 1 - sunDim * 0.85;
+      ctx.globalAlpha = sunA;
       ctx.fillStyle = rgbaStr(halo);
       ctx.beginPath(); ctx.arc(sx, sy, 52 * shimmer, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = rgbaStr(hot);
       ctx.beginPath(); ctx.arc(sx, sy, 24 * shimmer, 0, Math.PI * 2); ctx.fill();
-      if (sx > 20 && sx < Wc - 20) skyLight = { x: sx, col: `${hot[0] | 0},${hot[1] | 0},${hot[2] | 0}`, a: 0.25 + alt * 0.6 };
+      ctx.globalAlpha = 1;
+      if (sx > 20 && sx < Wc - 20) skyLight = { x: sx, col: `${hot[0] | 0},${hot[1] | 0},${hot[2] | 0}`, a: (0.25 + alt * 0.6) * (1 - sunDim) };
     }
     if (biome.sky && biome.sky.twin) {
       const tp = (p + 0.58) % 1;
@@ -222,7 +300,197 @@ function rrectPath(c, x, y, w, h, r) {
       ctx.beginPath(); ctx.arc(tx2, ty2, 12, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
     }
-    if (biome.sky && biome.sky.giant) {
+    if (moonSky) {
+      // THE HOME PLANET seen from its moon — its apparent size depends on
+      // which moon you stand on (the near ones see it almost fill the
+      // sky): an OCEAN world — wide seas, scrap-iron continents of desert
+      // and heavy rust with a few green flecks, both poles CENTRED on the
+      // rotation axis (the ring's
+      // perpendicular): the north one high and well visible, the south one
+      // just a sliver past the far limb; the garbage ring passes behind
+      const pk = { volcanic: 0.21, xeno: 0.26, rust: 0.32, ashen: 0.42 }[biomeKey()] || 0.21;
+      const px2 = Wc * 0.24, py2 = Hc * 0.17;
+      const pr = clamp(Math.min(Hc * pk, Wc * 0.34), 60, 620);
+      // ECLIPSE: the star passing behind the disc — a full cover drops a
+      // fast night, a grazing pass reads as a sunset (the veil is applied
+      // at the end of drawSky; the disc itself already hides the sun,
+      // being drawn after it)
+      const spP = p >= 0.95 ? (p - 0.95) / 0.55 : (p + 0.05) / 0.55;
+      const sxP = -60 + spP * (Wc + 120);
+      const syP = Hc * (0.30 - Math.sin(clamp(spP, 0, 1) * Math.PI) * 0.20);
+      const dsE = Math.hypot(sxP - px2, syP - py2);
+      if (dsE < pr + 26) eclipseF = Math.max(eclipseF, clamp((pr + 26 - dsE) / 52, 0, 1));
+      // the ring's back half, hidden by the disc afterwards
+      ctx.save();
+      ctx.translate(px2, py2);
+      ctx.rotate(-0.3);
+      ctx.strokeStyle = 'rgba(180,120,80,0.5)';
+      ctx.lineWidth = Math.max(2, pr * 0.1);
+      ctx.beginPath(); ctx.ellipse(0, 0, pr * 1.5, pr * 0.32, 0, Math.PI, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+      const ag = ctx.createRadialGradient(px2 - pr * 0.4, py2 - pr * 0.35, pr * 0.2, px2, py2, pr);
+      ag.addColorStop(0, '#e0be74');
+      ag.addColorStop(0.7, '#c9a45e');
+      ag.addColorStop(1, '#7c5a2e');
+      ctx.fillStyle = ag;
+      ctx.beginPath(); ctx.arc(px2, py2, pr, 0, Math.PI * 2); ctx.fill();
+      ctx.save();
+      ctx.beginPath(); ctx.arc(px2, py2, pr, 0, Math.PI * 2); ctx.clip();
+      ctx.translate(px2, py2);
+      // the content frame shares the RING's tilt (-0.3): latitudes run
+      // parallel to the ring, the poles sit on its perpendicular axis
+      ctx.rotate(-0.3);
+      // sphere->screen latitude mapping with the ring-tilt built in: the
+      // mask's dy maps onto the tilted axis, so continents drawn from it
+      // sit correctly against the tilted poles
+      const cyOff = (dy) => dy;
+      // noise-perturbed closed outline, periodic in the angle (no seam);
+      // cx0 lets the continents drift off the axis, the poles stay at 0
+      const capPath = (cx0, cy0, rx, ry, sd, sc) => {
+        ctx.beginPath();
+        for (let v = 0; v <= 26; v++) {
+          const a4 = v / 26 * Math.PI * 2;
+          const rr = 1 + Math.sin(a4 * 3 + noise(sd) * 6.28) * 0.09
+                   + Math.sin(a4 * 5 + noise(sd + 9) * 6.28) * 0.06
+                   + Math.sin(a4 * 2 + noise(sd + 5) * 6.28) * 0.07;
+          const px3 = cx0 + Math.cos(a4) * rx * rr * sc;
+          const py3 = cy0 + Math.sin(a4) * ry * rr * sc;
+          if (v === 0) ctx.moveTo(px3, py3);
+          else ctx.lineTo(px3, py3);
+        }
+        ctx.closePath();
+      };
+      // OCEAN WORLD: a deep water base — the gradient is CENTERED so no
+      // stray light blob shows in the seas; lighter latitude wave bands
+      const og = ctx.createRadialGradient(0, 0, pr * 0.4, 0, 0, pr);
+      og.addColorStop(0, '#4b9db3');
+      og.addColorStop(0.65, '#2f7d95');
+      og.addColorStop(1, '#1c5a70');
+      ctx.fillStyle = og;
+      ctx.beginPath(); ctx.arc(0, 0, pr, 0, Math.PI * 2); ctx.fill();
+      for (let b = 0; b < 8; b++) {
+        const yy = -pr + (b + 0.5) / 8 * pr * 2;
+        ctx.fillStyle = `rgba(${b & 1 ? '70,150,170' : '130,200,215'},${(0.08 + noise(b * 5.1) * 0.08).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.ellipse(0, yy, pr * (0.98 - Math.abs(yy) / pr * 0.28), pr * 0.08, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // DRY CONTINENTS — from the PROCEDURAL SPHERICAL MASK (see
+      // genPlanetMask, world.js): the disc is a hemisphere in its own
+      // 2-D grid; each cell samples the mask via its (dx,dy,z), takes
+      // land if above sea level, colors by height (shore sand -> inner
+      // desert), rust blooms over dry land, green flecks on higher cells
+      // — bays, peninsulas, isthmuses and inner seas all come from the
+      // mask itself, nothing is drawn as a screen polygon
+      if (planetMask) {
+        const MN = planetMask.n, MM = planetMask.m, sea2 = planetMask.sea;
+        const cell = (pr * 2) / MN;
+        for (let j = 0; j < MN; j++) {
+          const dy = (j + 0.5) / MN * 2 - 1;
+          for (let i = 0; i < MN; i++) {
+            const dx = (i + 0.5) / MN * 2 - 1;
+            const rr = dx * dx + dy * dy;
+            if (rr >= 1) continue;
+            const h = MM[j * MN + i];
+            if (h <= sea2) continue;
+            const elev = clamp((h - sea2) / 0.55, 0, 1);
+            // shore sand at the coast, desert inside, dusty core
+            ctx.fillStyle = elev < 0.22 ? '#e0be74' : (elev > 0.62 ? '#d4ad62' : '#c9a45e');
+            const X = dx * pr, Y = cyOff(dy) * pr;
+            ctx.fillRect(X - cell / 2 - 0.6, Y - cell / 2 - 0.6, cell + 1.2, cell + 1.2);
+          }
+        }
+        // rust blooms + green flecks — from the OVERLAY grids built by
+        // the same spherical principle as the continents (mkOverlay in
+        // genPlanetMask: seed field, ragged noise rim, erosion) —
+        // painted as cells over the land, never as ellipses
+        const RU = planetMask.rust || null, GR = planetMask.grn || null;
+        for (let j = 0; j < MN; j++) {
+          const dy = (j + 0.5) / MN * 2 - 1;
+          for (let i = 0; i < MN; i++) {
+            const idx = j * MN + i;
+            if (MM[idx] <= sea2) continue;
+            const dx = (i + 0.5) / MN * 2 - 1;
+            if (dx * dx + dy * dy >= 1) continue;
+            const rv = RU ? RU[idx] : 0, gv = GR ? GR[idx] : 0;
+            if (rv < 0.06 && gv < 0.06) continue;
+            const X = dx * pr, Y = cyOff(dy) * pr;
+            if (rv >= 0.06) {
+              ctx.fillStyle = `rgba(${idx & 1 ? '138,69,48' : '160,90,55'},${Math.min(0.55, rv * 0.5).toFixed(3)})`;
+              ctx.fillRect(X - cell / 2 - 0.6, Y - cell / 2 - 0.6, cell + 1.2, cell + 1.2);
+            }
+            if (gv >= 0.06) {
+              ctx.fillStyle = `rgba(93,138,58,${Math.min(0.8, gv * 0.75).toFixed(3)})`;
+              ctx.fillRect(X - cell / 2 - 0.6, Y - cell / 2 - 0.6, cell + 1.2, cell + 1.2);
+            }
+          }
+        }
+      }
+      // polar caps, both CENTRED on the axis (local vertical of the ring
+      // frame): the north pole HIGH — the end tipped toward the viewer;
+      // the south one sits just past the limb, only its upper edge
+      // peeks out. Feathered by two extra outline passes
+      ctx.fillStyle = 'rgba(238,246,252,0.92)';
+      capPath(0, -pr * 0.6, pr * 0.44, pr * 0.3, 11, 1);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(238,246,252,0.35)';
+      capPath(0, -pr * 0.6, pr * 0.44, pr * 0.3, 11, 1.13);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(238,246,252,0.16)';
+      capPath(0, -pr * 0.6, pr * 0.44, pr * 0.3, 11, 1.28);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(238,246,252,0.8)';
+      capPath(0, pr * 0.97, pr * 0.24, pr * 0.09, 47, 1);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(238,246,252,0.25)';
+      capPath(0, pr * 0.97, pr * 0.24, pr * 0.09, 47, 1.18);
+      ctx.fill();
+      ctx.restore();
+      // no hard night side — the luminary crosses the sky IN FRONT of the
+      // disc in this scene; only a soft limb darkening for sphericity
+      const limb = ctx.createRadialGradient(px2, py2, pr * 0.55, px2, py2, pr);
+      limb.addColorStop(0, 'rgba(20,14,8,0)');
+      limb.addColorStop(1, 'rgba(20,14,8,0.25)');
+      ctx.fillStyle = limb;
+      ctx.beginPath(); ctx.arc(px2, py2, pr, 0, Math.PI * 2); ctx.fill();
+      // the ring's front half crosses in front of the planet
+      ctx.save();
+      ctx.translate(px2, py2);
+      ctx.rotate(-0.3);
+      ctx.strokeStyle = 'rgba(180,120,80,0.5)';
+      ctx.lineWidth = Math.max(2, pr * 0.1);
+      ctx.beginPath(); ctx.ellipse(0, 0, pr * 1.5, pr * 0.32, 0, 0, Math.PI); ctx.stroke();
+      ctx.globalAlpha = 0.35;
+      ctx.lineWidth = Math.max(1, pr * 0.04);
+      ctx.beginPath(); ctx.ellipse(0, 0, pr * 1.32, pr * 0.27, 0, 0, Math.PI); ctx.stroke();
+      ctx.restore();
+      const rim = ctx.createRadialGradient(px2, py2, pr * 0.92, px2, py2, pr * 1.14);
+      rim.addColorStop(0, 'rgba(180,220,240,0)');
+      rim.addColorStop(0.7, 'rgba(180,220,240,0.22)');
+      rim.addColorStop(1, 'rgba(180,220,240,0)');
+      ctx.fillStyle = rim;
+      ctx.beginPath(); ctx.arc(px2, py2, pr * 1.14, 0, Math.PI * 2); ctx.fill();
+      // CONTRAST lighting: by NIGHT the star-lit disc is the brightest
+      // thing in the dark sky (a cold glow around it); by DAY the bright
+      // sky washes it out (a pale veil over the disc)
+      if (dayness > 0.15) {
+        ctx.save();
+        ctx.beginPath(); ctx.arc(px2, py2, pr, 0, Math.PI * 2); ctx.clip();
+        ctx.fillStyle = `rgba(190,215,235,${(dayness * 0.22).toFixed(3)})`;
+        ctx.fillRect(px2 - pr, py2 - pr, pr * 2, pr * 2);
+        ctx.restore();
+      }
+      if (dayness < 0.85) {
+        const pgl = ctx.createRadialGradient(px2, py2, pr * 0.8, px2, py2, pr * 1.35);
+        pgl.addColorStop(0, 'rgba(225,235,250,0)');
+        pgl.addColorStop(0.4, `rgba(225,235,250,${((1 - dayness) * 0.22).toFixed(3)})`);
+        pgl.addColorStop(1, 'rgba(225,235,250,0)');
+        ctx.fillStyle = pgl;
+        ctx.beginPath(); ctx.arc(px2, py2, pr * 1.35, 0, Math.PI * 2); ctx.fill();
+      }
+      if (px2 > 40 && px2 < Wc - 40) skyLight = { x: px2, col: '220,200,150', a: 0.3 };
+    }
+    if (biome.sky && biome.sky.giant && !moonSky) {
       const gg = biome.sky.giant;
       const gx = Wc * 0.78, gy = Hc * 0.16, gr = clamp(Wc * 0.045, 20, 38);
       const gh = ctx.createRadialGradient(gx, gy, gr * 0.5, gx, gy, gr * 1.8);
@@ -301,6 +569,21 @@ function rrectPath(c, x, y, w, h, r) {
     hz.addColorStop(1, (pal && pal.haze) || tod.haze);
     ctx.fillStyle = hz;
     ctx.fillRect(-30, Hc * 0.45, Wc + 60, Hc * 0.3);
+    // ECLIPSE veil: a grazing cover tints the whole sky as a sunset, a
+    // full cover drops a fast night; the sun's road on the water dies
+    // with it. Only the sky is veiled — the terrain is drawn later
+    if (eclipseF > 0.04) {
+      if (eclipseF < 0.75) {
+        ctx.fillStyle = `rgba(255,130,50,${(0.16 * eclipseF).toFixed(3)})`;
+        ctx.fillRect(-30, -30, Wc + 60, Hc + 60);
+      }
+      const nightA = 0.55 * clamp((eclipseF - 0.45) / 0.55, 0, 1);
+      if (nightA > 0.01) {
+        ctx.fillStyle = `rgba(8,12,26,${nightA.toFixed(3)})`;
+        ctx.fillRect(-30, -30, Wc + 60, Hc + 60);
+      }
+      if (skyLight.x > 10) skyLight.a *= (1 - eclipseF);
+    }
   }
   
   // ============ CAVE BACKDROP: lighter earth behind the scene ============
@@ -350,6 +633,8 @@ function rrectPath(c, x, y, w, h, r) {
 // water columns lit by beams (consumed by the water pass)
 let tglow = [];
 let bwlights = [];
+let eclipseF = 0;
+let sunDim = 0;
 function drawCaveShade() {
     ctx.fillStyle = 'rgba(3,5,12,0.52)';
     ctx.fillRect(-30, -30, Wc + 60, Hc + 60);
@@ -1340,7 +1625,14 @@ function drawCaveShade() {
       const inT = clamp(f.t / 0.22, 0, 1);
       const outA = clamp((1 - p) * 3, 0, 1);
       const sc = 1 + (1 - ease(inT)) * 0.5;
-      const fs = clamp(Wc * 0.085, 36, 74) * sc;
+      // fit to width: step the font down until the phrase fits 92% of
+      // the screen (long round-end phrases on narrow screens)
+      let fs = clamp(Wc * 0.085, 36, 74) * sc;
+      ctx.font = `900 ${fs}px Orbitron, monospace`;
+      while (fs > 16 && ctx.measureText(f.txt).width > Wc * 0.92) {
+        fs = Math.round(fs * 0.88);
+        ctx.font = `900 ${fs}px Orbitron, monospace`;
+      }
       ctx.save();
       ctx.translate(Wc / 2, Hc * 0.34);
       ctx.globalAlpha = outA;
@@ -1363,6 +1655,13 @@ function drawCaveShade() {
     if (!turnCard || turnIntro <= 0) return;
     const outA = clamp(turnIntro * 2.5, 0, 1);
     const fs = clamp(Wc * 0.055, 26, 52);
+    // the hand-over NAME must fit the screen — step its size down
+    let nfs = fs;
+    ctx.font = `900 ${nfs}px Orbitron, monospace`;
+    while (nfs > 14 && ctx.measureText(turnCard.txt).width > Wc * 0.9) {
+      nfs = Math.round(nfs * 0.88);
+      ctx.font = `900 ${nfs}px Orbitron, monospace`;
+    }
     ctx.save();
     ctx.translate(Wc / 2, Hc * 0.42);
     ctx.globalAlpha = outA;
@@ -1370,7 +1669,7 @@ function drawCaveShade() {
     ctx.font = `700 ${fs * 0.38}px Orbitron, monospace`;
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
     ctx.fillText('ХОД ПЕРЕДАН', 0, -fs * 0.62);
-    ctx.font = `900 ${fs}px Orbitron, monospace`;
+    ctx.font = `900 ${nfs}px Orbitron, monospace`;
     ctx.strokeStyle = 'rgba(0,0,0,0.85)';
     ctx.lineWidth = Math.max(4, fs * 0.09);
     ctx.strokeText(turnCard.txt, 0, fs * 0.35);
@@ -1953,6 +2252,156 @@ function drawCaveShade() {
     if (box.innerHTML !== html) box.innerHTML = html;
   }
   
+  function drawWorm() {
+    if (!worm) return;
+    const w = worm;
+    const tr = w.tr;
+    if (tr.length > 1) {
+      // ONE continuous body: a round-capped thick stroke along the trail,
+      // then a lighter dorsal ridge and a dark gut line over it
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      // the spine is a quadratic spline through the trail midpoints —
+      // no angular joints even at sharp turns
+      ctx.beginPath();
+      ctx.moveTo(tr[0].x, tr[0].y);
+      for (let s = 1; s < tr.length - 1; s++) {
+        ctx.quadraticCurveTo(tr[s].x, tr[s].y, (tr[s].x + tr[s + 1].x) / 2, (tr[s].y + tr[s + 1].y) / 2);
+      }
+      ctx.lineTo(w.x, w.y);
+      ctx.strokeStyle = '#7d4e28';
+      ctx.lineWidth = w.bw;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(160,105,55,0.6)';
+      ctx.lineWidth = w.bw * 0.45;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(46,26,12,0.55)';
+      ctx.lineWidth = Math.max(1.5, w.bw * 0.1);
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+      // segmentation: straight tick strokes ACROSS the body, bowed
+      // alternate ways — a banded hide with NO circles anywhere
+      ctx.strokeStyle = 'rgba(40,22,10,0.38)';
+      ctx.lineWidth = 2.2;
+      for (let s = 2; s < tr.length; s += 3) {
+        const q = tr[s], q2 = tr[s - 1];
+        const a = Math.atan2(q.y - q2.y, q.x - q2.x) + Math.PI / 2;
+        const r = w.bw / 2 - 2;
+        const bow = (s % 2 ? 1 : -1) * w.bw * 0.09;
+        ctx.beginPath();
+        ctx.moveTo(q.x + Math.cos(a) * r - Math.sin(a) * bow, q.y + Math.sin(a) * r + Math.cos(a) * bow);
+        ctx.lineTo(q.x - Math.cos(a) * r - Math.sin(a) * bow, q.y - Math.sin(a) * r + Math.cos(a) * bow);
+        ctx.stroke();
+      }
+      // bristle streaks along the flanks — short forward slashes
+      ctx.strokeStyle = 'rgba(46,26,12,0.35)';
+      ctx.lineWidth = 1;
+      for (let s = 3; s < tr.length; s += 4) {
+        const q = tr[s], q2 = tr[s - 1];
+        const ad = Math.atan2(q.y - q2.y, q.x - q2.x);
+        const side = s % 8 < 4 ? 1 : -1;
+        const bx2 = q.x + Math.cos(ad + Math.PI / 2) * w.bw * 0.33 * side;
+        const by2 = q.y + Math.sin(ad + Math.PI / 2) * w.bw * 0.33 * side;
+        ctx.beginPath();
+        ctx.moveTo(bx2, by2);
+        ctx.lineTo(bx2 + Math.cos(ad) * 5, by2 + Math.sin(ad) * 5);
+        ctx.stroke();
+      }
+      ctx.lineWidth = 1;
+    }
+    // the head, rotated into the travel direction: an ANGULAR hood with a
+    // dark maw funnel; three rings of teeth spin inside on SQUARE tracks
+    // (pinwheels) — no ellipse, no arc, no circle anywhere in the head
+    ctx.save();
+    ctx.translate(w.x, w.y);
+    ctx.rotate(w.hang || 0);
+    const hb = w.bw / 2;
+    ctx.fillStyle = '#6a3e1c';
+    ctx.beginPath();
+    ctx.moveTo(-hb * 1.2, -hb * 0.98);
+    ctx.lineTo(hb * 0.5, -hb * 0.98);
+    ctx.lineTo(hb * 1.06, -hb * 0.52);
+    ctx.lineTo(hb * 1.06, hb * 0.52);
+    ctx.lineTo(hb * 0.5, hb * 0.98);
+    ctx.lineTo(-hb * 1.2, hb * 0.98);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#2a1408';
+    ctx.beginPath();
+    ctx.moveTo(hb * 0.52, -hb * 0.86);
+    ctx.lineTo(hb * 1.0, -hb * 0.44);
+    ctx.lineTo(hb * 1.0, hb * 0.44);
+    ctx.lineTo(hb * 0.52, hb * 0.86);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(230,200,150,0.85)';
+    for (let ring = 0; ring < 3; ring++) {
+      const tw = hb * 0.42 * (1 - ring * 0.27);
+      const mcx = hb * 0.76;
+      const nt = 5 + ring * 2;
+      const spin = w.t * (3 - ring * 0.75) * (ring & 1 ? -1 : 1);
+      for (let k = 0; k < nt; k++) {
+        const phT = (((spin / (Math.PI * 2)) + k / nt) % 1 + 1) % 1;
+        const edge = (phT * 4) | 0;
+        const v = (phT * 4 - edge) * 2 - 1;
+        const vv = v * tw;
+        let tx3, ty3;
+        if (edge === 0) { tx3 = mcx + vv; ty3 = -tw; }
+        else if (edge === 1) { tx3 = mcx + tw; ty3 = vv; }
+        else if (edge === 2) { tx3 = mcx - vv; ty3 = tw; }
+        else { tx3 = mcx - tw; ty3 = -vv; }
+        const dxT = mcx - tx3, dyT = -ty3;
+        const dl = Math.hypot(dxT, dyT) || 1;
+        const tl = hb * (0.16 + ring * 0.03);
+        const pxT = tx3 + dxT / dl * tl, pyT = ty3 + dyT / dl * tl;
+        const wxT = -dyT / dl * tl * 0.42, wyT = dxT / dl * tl * 0.42;
+        ctx.beginPath();
+        ctx.moveTo(tx3 + wxT, ty3 + wyT);
+        ctx.lineTo(tx3 - wxT, ty3 - wyT);
+        ctx.lineTo(pxT, pyT);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+  function drawJunks() {
+    junks.forEach(j => {
+      // pixel shards: short falling streaks, bright enough to read
+      if (j.s < 3) {
+        ctx.strokeStyle = Math.random() < 0.4 ? '#c97a4a' : '#a06040';
+        ctx.lineWidth = Math.max(1, j.s * 0.7);
+        ctx.beginPath();
+        ctx.moveTo(j.x, j.y - Math.max(5, j.vy * 0.03));
+        ctx.lineTo(j.x, j.y);
+        ctx.stroke();
+        return;
+      }
+      ctx.save();
+      ctx.translate(j.x, j.y);
+      ctx.rotate(j.t * 2.2);
+      // an angular shard: a jagged polygon baked per chunk
+      const pts = j.pts || [1, 1, 1, 1, 1];
+      ctx.fillStyle = '#6a3020';
+      ctx.beginPath();
+      pts.forEach((pv, k) => {
+        const a = k / pts.length * Math.PI * 2;
+        const r = pv * j.s;
+        if (k === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+        else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      });
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(200,120,80,0.5)';
+      ctx.beginPath();
+      ctx.moveTo(-j.s * 0.4, -j.s * 0.35);
+      ctx.lineTo(j.s * 0.45, -j.s * 0.3);
+      ctx.lineTo(0, j.s * 0.15);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    });
+  }
   function drawWindParts() {
     windParts.forEach(p => {
       const sw = Math.sin(p.ph);
@@ -2093,18 +2542,23 @@ function drawCaveShade() {
     H.windval.style.color = wc;
     H.windval.textContent = Math.abs(wind).toFixed(1);
     H.round.style.color = players[hudSeat()].col;
-    if (state === 'aim' && isHumanSeat(turn) && Wc > 420 && turnIntro <= 0) {
+    if (state === 'aim' && isHumanSeat(turn) && turnIntro <= 0) {
       const tleft = Math.ceil(Math.max(0, turnTimer));
       const warn = turnTimer < 10;
       const blink = warn && Math.sin(gt * (turnTimer < 5 ? 12 : 7) < 0);
+      // the timer lives UNDER the close button in the right rail on every
+      // screen — on narrow ones the fullscreen button stacks in between
+      const stack = Wc <= 700;
       ctx.save();
       ctx.font = `800 ${warn ? 16 : 13}px Orbitron, monospace`;
-      ctx.textAlign = 'right';
+      ctx.textAlign = 'center';
+      const tx = Wc - 27;
+      const ty = stack ? 100 : 58;
       ctx.strokeStyle = 'rgba(0,0,0,0.85)';
       ctx.lineWidth = 4;
-      ctx.strokeText(`${tleft}s`, Wc - 56, 28);
+      ctx.strokeText(`${tleft}s`, tx, ty);
       ctx.fillStyle = blink ? '#ff2a1a' : warn ? '#ff5a4a' : 'rgba(255,255,255,0.85)';
-      ctx.fillText(`${tleft}s`, Wc - 56, 28);
+      ctx.fillText(`${tleft}s`, tx, ty);
       ctx.restore();
     }
   }
@@ -2114,7 +2568,7 @@ function drawCaveShade() {
     if (!tab) return;
     tab.innerHTML = '';
     const hr = document.createElement('tr');
-    ['#', 'Очки', 'Побед', 'Игрок', 'Дата'].forEach(h => { const th = document.createElement('th'); th.textContent = h; hr.appendChild(th); });
+    ['#', 'Очки / побед', 'Игрок', 'Дата'].forEach(h => { const th = document.createElement('th'); th.textContent = h; hr.appendChild(th); });
     tab.appendChild(hr);
     const recs = records().slice(0, MAX_REC);
     if (!recs.length) {
@@ -2132,7 +2586,9 @@ function drawCaveShade() {
       const td0 = document.createElement('td');
       td0.textContent = i + 1;
       tr.appendChild(td0);
-      [r.score, r.wins || 0].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+      const tdv = document.createElement('td');
+      tdv.textContent = `${r.score} / ${r.wins || 0}`;
+      tr.appendChild(tdv);
       const tdp = document.createElement('td');
       tdp.className = 'sc-recpl';
       const chip = document.createElement('canvas');
@@ -2150,6 +2606,7 @@ function drawCaveShade() {
       tab.appendChild(tr);
     });
   }
+
   function renderRecords(hlIdx) { fillRecordsTable(scSel('.sc-over .sc-rectab'), hlIdx); }
   
   function showOver() {
@@ -2200,9 +2657,14 @@ function drawCaveShade() {
       .sc-wrap { position: relative; width: 92vw; height: 92vh; border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; background: #03050a; }
       .sc-close { position: absolute; right: 10px; top: 10px; z-index: 5; width: 34px; height: 34px; background: var(--panel-light); border: 1px solid var(--pink); color: var(--pink); border-radius: 6px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', 'DejaVu Sans', sans-serif; }
       .sc-close:hover { background: var(--pink); color: var(--bg); }
+      .sc-fs { position: absolute; right: 50px; top: 10px; z-index: 5; width: 34px; height: 34px; background: var(--panel-light); border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer; }
+      .sc-fs:hover { border-color: var(--accent); color: var(--accent); }
+      .sc-fs::before, .sc-fs::after { content: ''; position: absolute; width: 9px; height: 9px; pointer-events: none; }
+      .sc-fs::before { left: 8px; top: 8px; border-left: 2px solid currentColor; border-top: 2px solid currentColor; }
+      .sc-fs::after { right: 8px; bottom: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; }
       .sc-hud { position: absolute; left: 0; right: 0; top: 0; z-index: 4; display: flex; gap: 8px 20px; align-items: center; padding: 8px 56px 8px 14px; font-family: 'Orbitron', monospace; font-size: 22px; color: rgba(212,222,238,0.92); text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.7); pointer-events: none; flex-wrap: wrap; line-height: 1.3; }
       .sc-hud b { color: #f0f6ff; }
-      .sc-hud .sc-lasthit { color: #ffd23f; max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 18px; }
+      .sc-hud .sc-lasthit { color: #ffd23f; flex-basis: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 18px; }
       .sc-hud .sc-aimctl { pointer-events: auto; cursor: pointer; border: 1px solid transparent; border-radius: 6px; padding: 3px 8px; }
       .sc-hud .sc-aimctl:hover { border-color: rgba(150,190,235,0.55); color: #fff; }
       .sc-hud .sc-aimctl:hover b { color: #ffd23f; }
@@ -2246,6 +2708,7 @@ function drawCaveShade() {
       .sc-wpnhelp .sc-wt span { color: var(--text-dim); font-size: 15px; }
       .sc-wpnhelp .sc-ww { margin-left: auto; flex-shrink: 0; color: var(--text-dim); font-size: 14px; font-family: 'Orbitron', monospace; white-space: nowrap; }
       .sc-lives { position: absolute; left: 14px; bottom: 10px; z-index: 4; display: flex; gap: 22px; font-family: 'Orbitron', monospace; font-size: 22px; color: rgba(212,222,238,0.92); pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.7); }
+      .sc-lives .sc-you, .sc-lives .sc-enemy { pointer-events: auto; cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
       .sc-lives b { font-weight: 700; }
       .sc-lives .sc-shd { display: inline-block; width: 13px; height: 13px; border: 2px solid #4ac0ff; border-radius: 50%; vertical-align: -1px; opacity: 0.85; margin-left: 5px; }
       .sc-windbar { position: absolute; right: 14px; bottom: 12px; z-index: 4; pointer-events: none; display: flex; align-items: center; gap: 10px; font-family: 'Orbitron', monospace; font-size: 28px; color: rgba(212,222,238,0.92); text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.7); }
@@ -2334,6 +2797,9 @@ function drawCaveShade() {
       .sc-hullgal { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
       .sc-hullgal .sc-hg-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
       .sc-hullgal .sc-hg-item span { font-size: 15px; color: var(--text-dim); }
+      .sc-facrow { display: flex; align-items: center; gap: 10px; margin: 8px 0; color: var(--text-dim); font-size: 15px; line-height: 1.4; }
+      .sc-facrow b { color: var(--text); }
+      .sc-fac { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; font-style: normal; font-size: 14px; font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', 'DejaVu Sans', sans-serif; color: #0a0d12; flex-shrink: 0; }
       .sc-confirm { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 11; background: var(--panel); border: 2px solid var(--pink); border-radius: 10px; padding: 20px 24px; width: min(360px, 90%); display: none; text-align: center; }
       .sc-confirm.show { display: block; }
       .sc-confirm p { color: var(--text); font-size: 13px; margin: 0 0 16px; }
@@ -2355,10 +2821,11 @@ function drawCaveShade() {
       .sc-light .sc-tb:active { background: #ffb020; color: #10131a; }
       /* ===== NARROW-SCREEN adaptation ===== */
       @media (max-width: 760px) {
+        .sc-fs { right: 10px; top: 52px; }
         .sc-hud { font-size: 17px; gap: 6px 12px; padding: 6px 48px 6px 10px; }
         .sc-hud .sc-lab { display: none; }
         .sc-hud .sc-ic2 { display: inline; }
-        .sc-hud .sc-lasthit { font-size: 14px; max-width: 70vw; }
+        .sc-hud .sc-lasthit { font-size: 14px; }
         .sc-wpn .sc-wname { display: none; }
         .sc-wpn .sc-wicon { display: block; }
         .sc-lives { font-size: 16px; gap: 14px; flex-wrap: wrap; row-gap: 4px; max-width: calc(100% - 130px); }
@@ -2382,18 +2849,23 @@ function drawCaveShade() {
         .sc-wpnhelp .sc-wt { flex-basis: calc(100% - 52px); }
         .sc-wpnhelp .sc-ww { margin-left: 52px; }
         .sc-help .sc-rectab th { display: none; }
-        .sc-help .sc-rectab tr, .sc-help .sc-rectab td { display: block; border: none; padding: 2px 0; }
-        .sc-help .sc-rectab td:nth-child(2)::before { content: 'Очки: '; color: var(--accent); }
-        .sc-help .sc-rectab td:nth-child(3)::before { content: 'Побед: '; color: var(--accent); }
-        .sc-help .sc-rectab td:nth-child(5)::before { content: 'Дата: '; color: var(--accent); }
+        .sc-help .sc-rectab tr { display: block; border: none; padding: 4px 0; }
+        .sc-help .sc-rectab td { display: block; border: none; padding: 0; }
+        .sc-help .sc-rectab td:nth-child(1) { display: inline; }
+        .sc-help .sc-rectab td:nth-child(1)::after { content: '. '; }
+        .sc-help .sc-rectab td:nth-child(2) { display: inline; }
+        .sc-help .sc-rectab td.sc-recpl { display: flex; align-items: center; gap: 8px; }
+        .sc-help .sc-rectab td.sc-recpl canvas { width: 26px; height: 26px; }
+        .sc-help .sc-rectab td:nth-child(4) { color: var(--text-dim); font-size: 10px; }
       }
     `;
     document.head.appendChild(css);
     overlay = document.createElement('div');
     overlay.className = 'sc-overlay';
     overlay.innerHTML = `
-      <div class="sc-wrap">
-        <button class="sc-close" title="Ядерный выход">☢</button>
+    <div class="sc-wrap">
+    <button class="sc-fs" title="Полный экран"></button>
+    <button class="sc-close" title="Ядерный выход">☢</button>
         <div class="sc-hud">
           <span class="sc-aimctl" data-hint="Угол наклона ствола (−20…200°, включая вниз и за спину): ←→ или свайп прицела"><i class="sc-ic2">∠</i><i class="sc-lab">Угол</i> <b class="sc-ang"></b>°</span>
           <span class="sc-aimctl" data-hint="Сила выстрела (5–100): ↑↓, колесо мыши или расстояние прицела"><i class="sc-ic2">⚡</i><i class="sc-lab">Сила</i> <b class="sc-pow"></b></span>
@@ -2447,94 +2919,62 @@ function drawCaveShade() {
             </table>
             <h5>Правила</h5>
             <div style="color:var(--text-dim);font-size:19px">
-              5 раундов, боезапас на всю игру. Первый стрелок раунда 1 —
-              случайный, дальше раунды строго чередуются. Карта случая: либо
-              архипелаг - море на всю ширину окна и острова, либо материк с
-              озёрами, либо ПОДЗЕМНАЯ ПЕЩЕРА (только в мирах без
-              растительности). Утонувшее оседает на дно. На ход даётся 60
-              секунд (таймер стоит, пока открыто окно): на 10, 5 и 1 секунде -
-              тихий сигнал, по истечении ход пропускается. Обычные ракеты в
-              воде просто тонут. Напалм выжигает в земле ямы. Смерть с
-              перевесом урона разваливает танк на куски. ПОСЛЕДНИЙ ШАНС: если
-              бойца добивают огнём (напалм, лава) во время ЕГО хода
-              прицеливания - турель с 0 hp получает ~2.6 секунды и один
-              последний выстрел, после чего гибнет; умирающий обведён
-              пульсирующим красным кольцом и урона больше не получает. Лава
-              вулкана жалит на 1-3 hp за шарик и ~8 hp/с в луже, поджигая
-              накрытую турель. У склона турель прикрывает вал с рвом. В песке,
-              снегу и ржавых дюнах ветер переносит частицы грунта: рельеф
-              мигрирует по ветру. Тройной клик по таблице рекордов сбрасывает
-              её и записывает текущий результат (нули не пишутся; рекорды
-              пишутся обоим бойцам, включая компьютер).
+              5 раундов, боезапас на всю игру. Первый стрелок случайный,
+              дальше раунды чередуются. На ход — 60 секунд, бесконечны только
+              простые ракеты. Вода топит, лава жжёт, падение бьёт слабее
+              взрыва.
             </div>
             <h5>Дуэль на одном устройстве</h5>
             <div style="color:var(--text-dim);font-size:19px">
-              Кнопка «⚙» — режим: против компьютера или двое за одним экраном.
-              Угол и сила у каждого игрока свои и восстанавливаются при
-              передаче хода. Боец с одним именем - ОДИН И ТОТ ЖЕ боец в обоих
-              режимах: цвет и корпус хранятся в общем профиле по имени и не
-              расходятся между PvC и PvP. Цвет и вид компьютера тоже
-              настраиваются, имя менять нельзя. В дуэли между ходами карточка
-              «ХОД ПЕРЕДАН» с отсчётом 3-2-1 даёт время передать клавиатуру;
-              как только она исчезла — сразу можно стрелять. Выход из начатой
-              дуэли — только через подтверждение (Esc, клик мимо, ☢).
+              Кнопка «⚙»: против компьютера или двое за одним экраном. Между
+              ходами карточка «ХОД ПЕРЕДАН» с отсчётом 3-2-1 — успей передать
+              устройство. Выход из начатой дуэли — только через
+              подтверждение.
             </div>
-            <h5>Миры</h5>
+            <h5>Мир</h5>
             <div style="color:var(--text-dim);font-size:19px">
-              Земные: Холмы, Пустыня, Арктика, Вулкан. Инопланетные: Ксено -
-              пурпурная кора с биолюминесцентными спорами под двойной звездой;
-              Ржавые дюны - железный песок луны газового гиганта с кольцом
-              (приливный ветер гонит дюны); Пепел - серый шлак кратеров,
-              сосед-гигант висит в небе. ВУЛКАН есть на трёх мирах: Вулкан -
-              классическая оранжевая лава, Ксено - бирюзовая, Пепел -
-              фиолетовый шлак; поведение одинаковое, палитра своя. Лава -
-              ЖИДКОСТЬ: скопившись в низине, лужа выравнивается как жидкость и
-              понемногу прожигает дно, а остывая ПРЕВРАЩАЕТСЯ В СЛОЙ ЗЕМЛИ
-              (прирост всегда больше выжига — яма заполняется, и лава течёт
-              дальше по новой земле, накрывая и поджигая турель; цвет при этом
-              плавно уходит в цвет почвы). Стекая в воду, лава каменеет много
-              быстрее и наращивает дно, не успевая его жечь. У холмов и ксено
-              под землёй горючие пласты (2-4 на карту): поджигает почти любое
-              огневое оружие (кроме бура Digger на этапе бурения, дирта и
-              роллера на этапе качения — их ВЗРЫВЫ поджигают); изредка сидят
-              ГИГАНТСКИЕ залежи — их детонация перекраивает полкарты. На
-              восходе и закате небо горит одинаково, но в обратном порядке.
+              Система Вейл, планета-свалка на краю обжитого пояса. В эпоху
+              Великой Чистки человечество решило не сортировать мусор, а
+              закапывать: орбитальная фабрика «СКОРЧ» переплавляла целые
+              свалки и сбрасывала шлак сюда. Потом связь оборвалась, фабрика
+              рухнула с орбиты и раскрошилась на баронства — и каждое до сих
+              пор держит клочок её лицензии, гравирует его на заклёпках
+              турели и посылает соседей к чертям. Ни полиции, ни налогов:
+              у помойных баронов короны из вентилей, свита из переделанных
+              погрузчиков и своя правда на каждой куче.
             </div>
-            <h5>Пещеры</h5>
             <div style="color:var(--text-dim);font-size:19px">
-              ~каждый третий раунд в пустыне, арктике, на вулкане, в ржавых
-              дюнах или пепле проходит ПОД ЗЕМЛЁЙ: неба, светил и отражений в
-              воде нет. Сверху - СВОД: перевёрнутая невысокая земля на всю
-              ширину, с сталактитами; вулканов на своде нет, но в нём сидят
-              ИСКОПАЕМЫЕ гнёзда - взрыв рядом вскрывает их, и они изливают
-              ОГОНЬ И ЗЕМЛЮ ВНИЗ волнами. Выстрелы по своду отрывают от него
-              породу - она обрушивается вниз и насыпает холм на полу, как
-              Dirt Ball. Задник - светлая порода с дальними силуэтами; свет
-              дают мерцающие кристаллы и яркие прожекторы (освещение
-              просчитано при расстановке - радиусы обрезаны по породе).
-              Дно - обычное: тёмная вода в низинах и вулкан, если он есть в
-              биоме; лавовые бомбы отскакивают от свода вниз. Огонь и
-              снаряды видно в темноте сами по себе.
+              Споры о лицензиях решает ритуал честного огня: две
+              переговорные турели, один холм, один ветер; судей нет — счёт
+              ведёт сама земля, трофеи разбирают на месте до последней
+              заклёпки. Вести о великих дуэлях расходились по модемам
+              неделями сквозь треск пиратских частот, и каждая гаражная
+              мастерская клепала свою турель из рельсов и стиральных машин,
+              раздавая первые выстрелы бесплатно, — эпоху так и прозвали
+              войнами shareware. Из сотен корпусов дожили восемь: по два у
+              каждой из четырёх фракций, остальные сгнили в грязи.
             </div>
-            <h5>Как читать мир</h5>
             <div style="color:var(--text-dim);font-size:19px">
-              День и ночь по кругу. Плазма не взрывает: она прилипает к турели
-              и жжёт её постепенно (~9 hp/с, суммарно не больше ~46 hp), плавит
-              землю под жертвой и проваливается вместе с ней в яму. Роллер
-              усилен: 56 hp, катится дольше и разгоняется на склонах — на
-              расстоянии он сильнее ракеты, при 3 патронах против бесконечных
-              ракет. Digger вгрызается в склон и сверляет по расписанию
-              (счётчик БУР % над буром): заряд на 0.42 экрана суммарного
-              бурения, полёт в воздухе бесплатный. Сквозь туннели пролетают
-              снаряды, вода затекает и колышется, две трубы в стопку - обвал.
-              Взрывы многослойные: рваная звезда лучей, веер искровых
-              трассеров, кольцо треска, эллиптическая ударная волна и
-              неоднородное, разбитое на дрожащие ячейки пламя — цвет каждого
-              оружия свой. Редкое оружие бьет в несколько стадий. Движение
-              грунта не убивает - максимум 30 hp за раунд. У туррелей щит.
-              Вода живёт от музыки: дорожка бликов под светилом — цвет и
-              яркость светила, с учётом облачности.
+              Патроны бароны поднимают из собственных шахт: ископаемое
+              топливо лежит рваными пластами глубоко под холмами, вскрытая
+              гигантская линза перекраивает полкарты. Холмы и Пустыня —
+              старый шлак фабрики на самой Вейл; Арктика — её мёртвые зоны
+              охлаждения; Вулкан, Ксено, Ржавые дюны и Пепел — четыре луны
+              Вейл, куда бароны ушли, когда на планете стало тесно: лавовая
+              кузница, споровый сад под зрачком Вейл, железные дюны
+              приливного ветра и пепельные кратеры. Под ними светятся
+              кристаллы Строителей — цивилизации, которая, по легенде,
+              продала людям первые чертежи турельного оружия, а платой
+              взяла право оставить в системе свои маяки. Орбиту Вейл до сих
+              пор опоясывает ржавое кольцо мусора Великой Чистки: осколки
+              сыплются на все миры и тонут в грунте, а в песках Пустыни и
+              Ржавых дюн живёт червь, который это кольцо глотает.
             </div>
+            <h5>Фракции</h5>
+            <div class="sc-facrow"><i class="sc-fac" style="background:#7ecbff">↻</i><div><b>Кольцо СКОРЧ</b> — инженеры павшей фабрики. Корпуса: «Рельсотрон», «Стелс»</div></div>
+            <div class="sc-facrow"><i class="sc-fac" style="background:#ffd23f">⚑</i><div><b>Бароны Свалки</b> — наследники операторов. Корпуса: «Тяжёлый», «Ретро»</div></div>
+            <div class="sc-facrow"><i class="sc-fac" style="background:#b07cff">☽</i><div><b>Кочевники Пепла</b> — торговцы кристаллами Строителей. Корпуса: «Бункер», «Двустволка»</div></div>
+            <div class="sc-facrow"><i class="sc-fac" style="background:#ff7a4a">☄</i><div><b>Гильдия Огня</b> — хранители ритуала честного огня. Корпуса: «Гаубица», «Классика»</div></div>
             <h5>Оружие</h5>
             <div class="sc-wpnhelp"></div>
             <h5>Турели</h5>
@@ -2631,32 +3071,76 @@ function drawCaveShade() {
     overlay.querySelectorAll('[data-hint]').forEach(el => {
       el.addEventListener('pointerdown', (e) => { e.stopPropagation(); showHint(el.dataset.hint); });
     });
-    // hull gallery in help
+    // TEST summons: dblclick the OWN HP line (bottom left) calls the worm,
+    // dblclick the ENEMY HP line calls the orbital garbage strike
+    const summonWorm = () => {
+      if (state === 'over' || state === 'closing' || !cols) return;
+      if (biomeKey() !== 'desert' && biomeKey() !== 'rust') lastHitInfo = 'червь живёт только в пустыне и ржавых дюнах';
+      else if (worm) lastHitInfo = 'червь уже здесь';
+      else spawnWorm();
+    };
+    const summonJunk = () => {
+      if (state === 'over' || state === 'closing' || !cols) return;
+      if (UNDER) lastHitInfo = 'мусор не падает в пещерах';
+      else if (junks.length) lastHitInfo = 'дождь уже идёт';
+      else garbageStrike();
+    };
+    [['.sc-you', summonWorm], ['.sc-enemy', summonJunk]].forEach(pair => {
+      const el = overlay.querySelector(pair[0]);
+      if (!el) return;
+      // manual double-tap on pointerdown — the synthesized dblclick does
+      // not survive the per-frame innerHTML rewrite of these lines, and
+      // on touch it fires unreliably
+      let tapT = 0;
+      el.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const now = Date.now();
+        if (now - tapT < 400 && now - tapT > 30) { tapT = 0; pair[1](); }
+        else tapT = now;
+      });
+    });
+    // hull gallery in help: each chassis is bound to its lore faction —
+    // drawn in the faction's colour, with the faction sigil under it
+    const FACTIONS = {
+      'Кольцо': { name: 'Кольцо СКОРЧ', sym: '↻', col: '#7ecbff' },
+      'Бароны': { name: 'Бароны Свалки', sym: '⚑', col: '#ffd23f' },
+      'Кочевники': { name: 'Кочевники Пепла', sym: '☽', col: '#b07cff' },
+      'Гильдия': { name: 'Гильдия Огня', sym: '☄', col: '#ff7a4a' }
+    };
+    const HULL_FAC = { classic: 'Гильдия', double: 'Кочевники', heavy: 'Бароны', stealth: 'Кольцо', retro: 'Бароны', rail: 'Кольцо', howitzer: 'Гильдия', bunker: 'Кочевники' };
     const gal = overlay.querySelector('.sc-hullgal');
     HULLS.forEach(h => {
+      const fac = FACTIONS[HULL_FAC[h.key]];
       const it = document.createElement('div');
       it.className = 'sc-hg-item';
       const c3 = document.createElement('canvas');
       c3.width = 52; c3.height = 52;
-      drawMiniTurret(c3.getContext('2d'), 52, '#8fa6c4', h.key);
+      drawMiniTurret(c3.getContext('2d'), 52, fac.col, h.key);
       it.appendChild(c3);
       const lb = document.createElement('span');
       lb.textContent = h.name;
       it.appendChild(lb);
+      const fr = document.createElement('i');
+      fr.className = 'sc-fac';
+      fr.style.background = fac.col;
+      fr.textContent = fac.sym;
+      fr.title = fac.name;
+      it.appendChild(fr);
       gal.appendChild(it);
     });
     // weapon cards in help
     const wpnDesc = {
-      MISSILE: 'урон 36 hp',
-      FUNKY: 'каскад: 8×24 hp + финал 24 hp',
-      DEATH: 'урон 80 hp + ударная волна',
-      NUKE: 'урон 105 hp + кольцо пожаров',
-      PLASMA: 'прилипает: 32 hp + ~9 hp/с (потолок ~46 hp) и плавка грунта',
-      NAPALM: '10 hp + огонь ~7 hp/с (до 2 очагов)',
-      ROLLER: 'урон 56 hp, катится по склону дольше и быстрее',
-      DIGGER: 'бур 14 hp/такт + финал 38 hp (бур не поджигает залежи)',
-      DIRT: 'без урона — насыпь грунта',
-      MIRV: 'залп: 5×30 hp'
+      MISSILE: 'штатный снаряд баронств — 36 hp',
+      FUNKY: 'кассета: россыпь разрывов — 8×24 hp + финал 24 hp',
+      DEATH: 'тяжёлая голова торговцев — 80 hp',
+      NUKE: 'артефакт Войн Переработки — 105 hp',
+      PLASMA: 'прилипающий огонь, плавит породу — 32 hp + ~9 hp/с',
+      NAPALM: 'заливает склон горящим — 10 hp + ~7 hp/с огонь',
+      ROLLER: 'катится по земле до цели — 56 hp',
+      DIGGER: 'пробуривает пласт — финал 38 hp',
+      DIRT: 'насыпь породы — без урона',
+      MIRV: 'залп из пяти боеголовок — 5×30 hp'
     };
     const wgal = overlay.querySelector('.sc-wpnhelp');
     ARSENAL.forEach((w, i) => {
@@ -2699,6 +3183,21 @@ function drawCaveShade() {
       helpEl.classList.toggle('show', willOpen);
       helpOpen = willOpen;
       if (willOpen) refreshHelpRecs();
+    };
+    // fullscreen toggle (mobile): the overlay itself goes fullscreen,
+    // then the canvas is re-measured
+    overlay.querySelector('.sc-fs').onclick = (e) => {
+      e.stopPropagation();
+      try {
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          const ex = document.exitFullscreen || document.webkitExitFullscreen;
+          if (ex) { const pr = ex.call(document); if (pr && pr.catch) pr.catch(() => {}); }
+        } else {
+          const rq = overlay.requestFullscreen || overlay.webkitRequestFullscreen;
+          if (rq) { const pr = rq.call(overlay); if (pr && pr.catch) pr.catch(() => {}); }
+        }
+      } catch (err) {}
+      setTimeout(() => { if (typeof resize === 'function') resize(); }, 350);
     };
     overlay.querySelector('.sc-helpx').onclick = (e) => { e.stopPropagation(); closeHelp(); };
     helpEl.onclick = (e) => e.stopPropagation();

@@ -2,10 +2,26 @@
 // вулкан, лава, вода, снаряды, взрывы, урон/смерть, цикл симуляции
 const ARCH = ['hills', 'mountain', 'craterValley', 'mesa', 'island', 'badlands'];
 const gauss = (u, c, w, a) => a * Math.exp(-((u - c) / w) * ((u - c) / w));
+// live rare events: the sandworm (desert/rust) and the orbital junk rain
+let worm = null;
+let junks = [];
+// 3D-precalc moon system of the planet sky + the round's event plans
+let moonSys = null;
+let wormPlan = { q: 0, at: [], n: 0 };
+let junkPlan = { q: 0, at: [], n: 0 };
+// round-relative clock for the event plans
+let rgt = 0;
+// PROCEDURAL PLANET MASK for the moon-biome skies: a per-round land/ocean
+// grid generated on the SPHERE (see genPlanetMask / planetMask) — the ui
+// paints the home planet disc from it
+let planetMask = null;
 
 // ================= TERRAIN =================
 function genSky() {
   stars = [];
+  stars.w = Wc;
+  genPlanetMask();
+  genMoonSys();
   for (let i = 0; i < 130; i++) {
     stars.push({
       x: Math.random() * Wc, y: Math.random() * Hc * 0.5,
@@ -92,6 +108,21 @@ function buildGroundTex() {
       g.beginPath(); g.arc(R(4, T - 4), R(4, T - 4), r * 0.5, 0, Math.PI * 2); g.fill();
       g.fillStyle = 'rgba(0,0,0,0.3)';
     }
+  }
+  // rusty scrap of the orbital era: every world's soil carries it
+  for (let i = 0; i < 24; i++) {
+    const bx = R(2, T - 3), by = R(2, T - 3);
+    const len = R(5, 15), a = R(0, 6.28);
+    g.save();
+    g.translate(bx, by);
+    g.rotate(a);
+    g.fillStyle = Math.random() < 0.5 ? 'rgba(138,69,48,0.8)' : 'rgba(94,44,30,0.8)';
+    g.fillRect(-len / 2, -2, len, 4);
+    g.fillStyle = 'rgba(200,120,80,0.55)';
+    g.fillRect(-len / 2, -2, len, 1.4);
+    g.fillStyle = 'rgba(40,20,12,0.5)';
+    g.fillRect(len / 2 - 2, -2, 2, 4);
+    g.restore();
   }
   groundPat = ctx.createPattern(c, 'repeat');
   if (groundPat.setTransform) {
@@ -301,12 +332,15 @@ function genTerrain() {
         if (pockets.some(pk => cx > pk.x0 - 30 && cx < pk.x1 + 30)) continue;
         const giant = S() < 0.035;
         const mega = giant || S() < 0.1;
-        const w = giant ? Math.min(R(170, 240), Wc * 0.38) : mega ? R(95, 140) : R(44, 84);
-        const h = clamp(w * R(0.17, 0.35), 14, giant ? 55 : mega ? 46 : 30);
+        // the seam width is PROPORTIONAL to the screen — the look of a
+        // narrow-start scene stretched 4x: very elongated layered lenses;
+        // height and burial depth stay absolute, like a real seam
+        const w = giant ? Wc * R(0.68, 0.88) : mega ? Wc * R(0.44, 0.66) : Wc * R(0.22, 0.4);
+        const h = clamp(w * R(0.11, 0.23), 10, giant ? 37 : mega ? 31 : 20);
         const depth = giant ? R(95, 135) : mega ? R(55, 85) : R(34, 58);
         let y0 = cy0 + depth;
         let y1 = Math.min(y0 + h, Hc - 8);
-        if (y1 - y0 < (giant ? 40 : 12)) continue;
+        if (y1 - y0 < (giant ? 24 : 9)) continue;
         let hh = y1 - y0;
         // flank cover on slopes: the seam must hide behind the hillside
         // rock, not only under the topsoil — measure the thinnest rock
@@ -322,13 +356,13 @@ function genTerrain() {
         if (sink > 0) {
           y0 += sink;
           y1 = Math.min(y0 + hh, Hc - 8);
-          if (y1 - y0 < (giant ? 40 : 12)) continue;
+          if (y1 - y0 < (giant ? 24 : 9)) continue;
           hh = y1 - y0;
         }
         // visual blobs: a chain of stretched, jittered ellipses along the
         // seam's own wavy axis, tapering (pinching out) toward the tips
         const bl = [];
-        const nb = 5 + ((w / 20) | 0);
+        const nb = Math.min(32, 5 + ((w / 20) | 0));
         const wav = R(-0.07, 0.07);
         for (let q = 0; q < nb; q++) {
           const t = (q + 0.5) / nb * 2 - 1;
@@ -748,7 +782,7 @@ function waterAt(x) {
 }
 
 // ================= PLACEMENT =================
-function placeTanks() {
+function placeTanks(final) {
   const N = cols.length;
   // water headroom budget: ~2-3 missile craters of rock between a fighter
   // and the waterline (scaled by the world's blast depth) — the first
@@ -783,7 +817,10 @@ function placeTanks() {
       return best;
     };
     const p1 = pick(dryIdx.length ? dryIdx[Math.floor(dryIdx.length * 0.25)] : Math.floor(N * 0.22));
-    const p2 = pick(dryIdx.length ? dryIdx[Math.floor(dryIdx.length * 0.75)] : Math.floor(N * 0.78));
+    let p2 = pick(dryIdx.length ? dryIdx[Math.floor(dryIdx.length * 0.75)] : Math.floor(N * 0.78));
+    // never let the emergency fallback pick the SAME spot twice — the
+    // stacked-pair bug starts right here
+    if (p2 === p1) p2 = clamp(p1 > N / 2 ? p1 - Math.round(N * 0.25) : p1 + Math.round(N * 0.25), 6, N - 7);
     [p1, p2].forEach(c => {
       const target = waterLevel - head;
       for (let k = -5; k <= 5; k++) {
@@ -909,6 +946,24 @@ function placeTanks() {
     tanks[1].y = surfaceAt(tanks[1].x);
   }
 
+  // hard guarantee: the pair is NEVER stacked on one spot. If this map
+  // cannot split them, report failure — newRound regenerates the scene;
+  // on the final attempt two synthetic quarter platforms are force-built
+  if (Math.abs(tanks[0].x - tanks[1].x) < 60) {
+    if (!final) return false;
+    [0.25, 0.75].forEach((fxp, q) => {
+      const c = clamp(Math.round(fxp * Wc / cols.step), 6, N - 7);
+      const target = clamp(waterLevel - head, Hc * 0.18, Hc * 0.45);
+      for (let k = -7; k <= 7; k++) {
+        const j = clamp(c + k, 0, N - 1);
+        const fall = 1 - Math.abs(k) / 8;
+        cols[j].top = Math.min(cols[j].top, target + (1 - fall) * 18);
+      }
+      tanks[q].x = c * cols.step;
+      tanks[q].y = surfaceAt(tanks[q].x);
+    });
+  }
+
   // lava defence: moat + rampart between the volcano and each turret
   if (volcano) {
     const NP = cols.length;
@@ -964,12 +1019,19 @@ function placeTanks() {
       if (pk.y1 + add < Hc - 6) { pk.y0 += add; pk.y1 += add; pk.cy += add; pk.dep += add; }
     });
   });
+  return true;
 }
 
 function newRound(first) {
-  genTerrain();
-  wind = windDir * R(0.3, 4);
-  placeTanks();
+  // the pair must never land stacked on one spot: if this scene cannot
+  // split the two fighters, regenerate it — up to 4 tries, the last one
+  // force-builds quarter platforms (see placeTanks)
+  let placed = false;
+  for (let tries = 0; tries < 4 && !placed; tries++) {
+    genTerrain();
+    wind = windDir * R(0.3, 4);
+    placed = placeTanks(tries === 3);
+  }
   if (first) roundOpener = firstShooter;
   else roundOpener = 1 - roundOpener;
   turnOrder = roundOpener;
@@ -980,7 +1042,20 @@ function newRound(first) {
   cur2 = 0;
   cycleT = Math.random() < 0.7 ? R(0, 0.36) : R(0.56, 0.9);
   updateTod();
-  shot = null; subshots = []; liquids = []; debris = []; remains = []; terraJobs = []; events = []; sinkers = []; fx = []; firePatches = []; wreckBits = [];
+  shot = null; subshots = []; liquids = []; debris = []; remains = []; terraJobs = []; events = []; sinkers = []; fx = []; firePatches = []; wreckBits = []; worm = null; junks = [];
+  rgt = 0;
+  // rare-event plans: 0-2 sightings per ~5 minutes, never early; the
+  // times are ROUND-RELATIVE (rgt — the cumulative game clock gt made
+  // the worm spawn at second 0 of every round after the first); test
+  // summons bypass the plans
+  wormPlan = { q: 0, at: [], n: 0 };
+  junkPlan = { q: 0, at: [], n: 0 };
+  const wq = Math.random();
+  if (wq > 0.8) { wormPlan.q = wq > 0.95 ? 2 : 1; wormPlan.at = [R(70, 200), R(210, 290)]; }
+  if (!UNDER) {
+    const jq = Math.random();
+    if (jq > 0.85) { junkPlan.q = jq > 0.97 ? 2 : 1; junkPlan.at = [R(90, 220), R(240, 320)]; }
+  }
   windParts = []; comets = []; grains = []; lavaBits = []; lastHitInfo = null; killed = null; lastKillMethod = 'weapon'; lastShotApex = 0;
   shake = 0;
   skyLight = { x: -999, col: '255,255,255', a: 0 };
@@ -1019,12 +1094,19 @@ function craterMask(cx, r, pow, mode, form, melt) {
   pow = pow || 1;
   const N = cols.length;
   form = form || 'circle';
+  // per-impact random ASYMMETRY for the blast bowl: each hit picks its
+  // own stretch and skew, so repeated craters stop cloning one identical
+  // (triangular) stamp; the wall jitter runs on LOW-frequency noise
+  const blast = mode !== 'add' && mode !== 'smooth';
+  const ash = (cx * 13.7 + r * 7.3 + seed) | 0;
+  const str = blast ? 0.85 + noise(ash * 0.71) * 0.35 : 1;
+  const skw = blast ? (noise(ash * 1.37) - 0.5) * 0.5 : 0;
   const i0 = clamp(Math.round((cx - r * 1.35) / cols.step), 0, N - 1);
   const i1 = clamp(Math.round((cx + r * 1.35) / cols.step), 0, N - 1);
   const list = [];
   for (let i = i0; i <= i1; i++) {
     const dx = (i * cols.step - cx) / r;
-    const j = 0.82 + noise(i * 3.7) * 0.36;
+    const j = 0.9 + noise(i * 1.1 + cx * 0.03) * 0.2;
     let shape = 1;
     if (form === 'star') {
       const ray = Math.pow(Math.abs(Math.sin(dx * Math.PI * 6)), 0.35);
@@ -1034,6 +1116,7 @@ function craterMask(cx, r, pow, mode, form, melt) {
     } else if (form === 'line') {
       shape = Math.abs(dx) < 0.4 ? 1.2 : 0.15;
     }
+    const ax = dx * str + skw;
     let to = null;
     if (mode === 'add') {
       if (Math.abs(dx) < 1.05) to = cols[i].top - r * 2.1 * shape * Math.sqrt(Math.max(0, 1.06 - dx * dx)) * j;
@@ -1041,16 +1124,16 @@ function craterMask(cx, r, pow, mode, form, melt) {
       const prev = cols[clamp(i - 1, 0, N - 1)].top, next = cols[clamp(i + 1, 0, N - 1)].top;
       to = (cols[i].top * 2 + prev + next) / 4;
     } else {
-      if (Math.abs(dx) < 0.74) to = cols[i].top + r * M().depthF * pow * shape * Math.pow(1 - dx * dx, 0.75) * j;
-      else if (Math.abs(dx) < 1.06) {
-        const f = 1 - (Math.abs(dx) - 0.74) / 0.32;
+      if (Math.abs(ax) < 0.74) to = cols[i].top + r * M().depthF * pow * shape * Math.pow(1 - ax * ax, 0.75) * j;
+      else if (Math.abs(ax) < 1.06) {
+        const f = 1 - (Math.abs(ax) - 0.74) / 0.32;
         to = cols[i].top - r * M().rimF * pow * shape * Math.pow(f, 1.2) * j;
       }
     }
     if (to !== null && Math.abs(to - cols[i].top) > 0.5) {
-      const isCrater = mode !== 'add' && mode !== 'smooth' && Math.abs(dx) < 0.74;
-      const isRim = mode !== 'add' && mode !== 'smooth' && Math.abs(dx) >= 0.74;
-      list.push({ i, from: cols[i].top, to, delay: Math.abs(dx) * 0.22 + noise(i * 9.1) * 0.08, dur: 0.3 + noise(i * 5.3) * 0.15, isCrater, isRim, melt: melt || 0, fill: mode === 'add' });
+      const isCrater = mode !== 'add' && mode !== 'smooth' && Math.abs(ax) < 0.74;
+      const isRim = mode !== 'add' && mode !== 'smooth' && Math.abs(ax) >= 0.74;
+      list.push({ i, from: cols[i].top, to, delay: Math.abs(ax) * 0.22 + noise(i * 9.1) * 0.08, dur: 0.3 + noise(i * 5.3) * 0.15, isCrater, isRim, melt: melt || 0, fill: mode === 'add' });
     }
   }
   if (list.length) {
@@ -1141,10 +1224,16 @@ function slump(i0, i1, rounds) {
   const N = cols.length;
   i0 = clamp(i0, 1, N - 2);
   i1 = clamp(i1, 1, N - 2);
-  const stable = M().slope * 2.2;
+  // the rest angle varies PER COLUMN and per pass: a uniform threshold
+  // grades every slope to the same straight line — the source of the
+  // triangular ridges. Alternating sweep direction removes the bias
+  const st0 = M().slope * 2.2;
   for (let it = 0; it < rounds; it++) {
     let moved = false;
-    for (let i = i0; i < i1; i++) {
+    const fwd = it & 1;
+    for (let k = 0; k < i1 - i0; k++) {
+      const i = fwd ? i0 + k : i1 - 1 - k;
+      const stable = st0 * (0.6 + noise(i * 0.53 + it * 7.7) * 0.8);
       const diff = cols[i + 1].top - cols[i].top;
       if (diff > stable) {
         const q = (diff - stable) * 0.5;
@@ -1173,21 +1262,29 @@ function smoothGround(i0, i1, rounds) {
   i0 = clamp(i0, 1, N - 2);
   i1 = clamp(i1, 1, N - 2);
   if (i1 <= i0 + 1) return;
-  const stable = Math.max(1.5, M().slope * 0.55);
+  // the rest angle varies PER COLUMN (noise-seeded): a uniform threshold
+  // relaxes every slope to the same straight grade — that is where the
+  // triangular ridges and cone craters came from
+  const st0 = Math.max(1.5, M().slope * 0.55);
   for (let it = 0; it < (rounds || 10); it++) {
     let moved = false;
-    for (let i = i0; i < i1; i++) {
+    const fwd = it & 1;
+    for (let k = 0; k < i1 - i0; k++) {
+      const i = fwd ? i0 + k : i1 - 1 - k;
+      const stable = st0 * (0.55 + noise(i * 0.63 + it * 3.1) * 0.9);
       const diff = cols[i + 1].top - cols[i].top;
       if (diff > stable) { const q = (diff - stable) * 0.5; cols[i].top += q; cols[i + 1].top -= q; moved = true; }
       else if (diff < -stable) { const q = (-diff - stable) * 0.5; cols[i].top -= q; cols[i + 1].top += q; moved = true; }
     }
     if (!moved) break;
   }
-  for (let pass = 0; pass < 2; pass++) {
+  // a WIDE 5-tap low-pass, 3 passes: kills single-column spikes and
+  // straight-line artifacts alike, leaving rounded organic humps
+  for (let pass = 0; pass < 3; pass++) {
     const src = [];
     for (let i = i0; i <= i1; i++) src.push(cols[i].top);
-    for (let k = 1; k < src.length - 1; k++) {
-      cols[i0 + k].top = src[k] * 0.52 + (src[k - 1] + src[k + 1]) * 0.24;
+    for (let k = 2; k < src.length - 2; k++) {
+      cols[i0 + k].top = src[k] * 0.42 + (src[k - 1] + src[k + 1]) * 0.2 + (src[k - 2] + src[k + 2]) * 0.09;
     }
   }
   dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1 + 1);
@@ -1246,6 +1343,33 @@ function ceilingCrush(x, r) {
   }
   sfx(0.6);
 }
+
+// a nuke tearing into the cave ceiling: the torn rock pours back down as
+// a FULL-HEIGHT column, floor to ceiling — a turret caught inside takes
+// a partial crush while the rising earth lifts it onto the column's top
+function growCeilColumn(x, r) {
+  const N = cols.length;
+  const i0 = clamp(Math.round((x - r) / cols.step), 1, N - 2);
+  const i1 = clamp(Math.round((x + r) / cols.step), 1, N - 2);
+  const list = [];
+  for (let i = i0; i <= i1; i++) {
+    const dx = Math.abs(i * cols.step - x) / r;
+    if (dx >= 1) continue;
+    const to = ceilAt(i * cols.step) + 2 + (1 - Math.sqrt(Math.max(0, 1 - dx * dx))) * 10;
+    if (to < cols[i].top - 0.5) list.push({ i, from: cols[i].top, to, delay: Math.abs(dx) * 0.3 + R(0, 0.08), dur: 0.5, fill: true });
+  }
+  if (list.length) {
+    terraJobs.push({ t: 0, cols: list });
+    dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1);
+  }
+  tanks.forEach((tk, i) => {
+    if (canHurt(i) && Math.abs(tk.x - x) < r * 0.85) addTerrDmg(i, 18, 'завал');
+  });
+  spawnDirtFall(x, r * 0.7);
+  sfx(0.7);
+  shake = Math.min(10, shake + 3);
+}
+
 // fossil pockets in the ceiling: a blast nearby cracks one open and it
 // pours FIRE and EARTH downward in waves
 function hitVents(x, y, r) {
@@ -1301,10 +1425,13 @@ function stepTerra(dt) {
   });
   const ms = M().slope * 1.6;
   const K = 3 * dt;
+  // per-column threshold jitter: the continuous relaxation otherwise
+  // planes every slope to one identical angle — straight triangle walls
   for (let i = Math.max(1, dirtyA); i < Math.min(cols.length - 1, dirtyB); i++) {
+    const msi = ms * (0.55 + noise(i * 0.47) * 0.9);
     const diff = cols[i + 1].top - cols[i].top;
-    if (diff > ms) { const q = Math.min((diff - ms) * 0.25, K * 20); cols[i].top += q; cols[i + 1].top -= q; }
-    else if (diff < -ms) { const q = Math.min((-diff - ms) * 0.25, K * 20); cols[i].top -= q; cols[i + 1].top += q; }
+    if (diff > msi) { const q = Math.min((diff - msi) * 0.25, K * 20); cols[i].top += q; cols[i + 1].top -= q; }
+    else if (diff < -msi) { const q = Math.min((-diff - msi) * 0.25, K * 20); cols[i].top -= q; cols[i + 1].top += q; }
   }
   // wind-driven creep of the drift worlds
   if (biome.mat.drift) {
@@ -1533,12 +1660,12 @@ function pocketDetonate(pk) {
   const cx = (pk.x0 + pk.x1) / 2;
   const wP = pk.x1 - pk.x0;
   const big = pk.mega;
-  const n = big ? Math.max(4, Math.round(wP / 40)) : Math.max(2, Math.round(wP / 36));
+  const n = big ? clamp(Math.round(wP / 40), 4, 8) : Math.max(2, Math.round(wP / 36));
   fx.push({ k: 'skyflash', t: 0, life: 0.9, col: 'rgba(255,214,150,', a: big ? 0.4 : 0.25 });
   for (let k = 0; k < n; k++) {
     schedule(() => {
       const bx = cx + (k / (n - 1) - 0.5) * wP * 0.85;
-      boomsAt(bx, surfaceAt(bx) - 6, (big ? 30 : 20) + wP * 0.2, 'nuke', big ? 3 : 2, false, true);
+      boomsAt(bx, surfaceAt(bx) - 6, Math.min((big ? 30 : 20) + wP * 0.2, 160), 'nuke', big ? 3 : 2, false, true);
     }, 0.1 + k * 0.15);
   }
   schedule(() => {
@@ -1577,6 +1704,11 @@ function boomsAt(x, y, r, style, dmg, noTerr, noDouble) {
   dmg = dmg || 0;
   const m = M();
   const nuke = style === 'nuke';
+  // a cave blast hugging the ceiling BURSTS the inverted ground instead
+  // of digging a floor crater — decided once, used by the terrain block
+  // and the nuke package below
+  const ceilY = ceilAt(x);
+  const hitCeil = UNDER && (y - ceilY) < (surfaceAt(x) - y);
   hitFx(x, y, r, nuke);
   igniteAt(x, y, r);
   if (UNDER) {
@@ -1618,10 +1750,6 @@ function boomsAt(x, y, r, style, dmg, noTerr, noDouble) {
   fx.push({ k: 'shock', x, y, r0: r * 0.4, r1: r * (nuke ? 4.2 : 2.2), t: 0, life: nuke ? 0.5 : 0.28 });
   fx.push({ k: 'fire', x, y, r, t: 0, life: nuke ? 1.4 : 0.45, nuke, col: acc });
   if (!noTerr) {
-    // in a cave a blast hugging the ceiling BURSTS the inverted ground
-    // (ceilingCrush) instead of digging a crater into the floor
-    const ceilY = ceilAt(x);
-    const hitCeil = UNDER && (y - ceilY) < (surfaceAt(x) - y);
     if (hitCeil) {
       schedule(() => ceilingCrush(x, r * (nuke ? 1.2 : 1)), 0.1);
     } else {
@@ -1641,11 +1769,14 @@ function boomsAt(x, y, r, style, dmg, noTerr, noDouble) {
     }, 0.16);
   }
   if (nuke) {
-    schedule(() => fx.push({ k: 'mush', x, y: y - r * 0.4, r, t: 0, life: 3.4 }), 0.35);
+    // on a ceiling hit the "stem" is the rock COLUMN now — no mushroom
+    if (!hitCeil) schedule(() => fx.push({ k: 'mush', x, y: y - r * 0.4, r, t: 0, life: 3.4 }), 0.35);
     if (!noTerr) {
-      schedule(() => spawnDust(x, y - r * 0.6, r * 0.7, m.dustN), 0.5);
+      schedule(() => spawnDust(x, hitCeil ? surfaceAt(x) - r * 0.4 : y - r * 0.6, r * 0.7, m.dustN), 0.5);
       schedule(() => spawnDust(x + R(-r, r), y, r * 0.5, m.dustN * 0.5), 0.75);
-      schedule(() => craterMask(x, r * 0.45, 0.5, 'add', 'ellipse'), 0.55);
+      // the center fill: on a CEILING hit it becomes the full-height rock
+      // column (growCeilColumn) instead of a harmless floor mound
+      schedule(() => { if (hitCeil) growCeilColumn(x, Math.max(30, r * 0.5)); else craterMask(x, r * 0.45, 0.5, 'add', 'ellipse'); }, 0.55);
       schedule(() => {
         const [ga, gb] = blastRange(x, r * 1.1);
         for (let i = ga; i <= gb; i++) {
@@ -2020,9 +2151,15 @@ function aiTurn() {
   const dir = foe.x > me.x ? 1 : -1;
   let w = aiPickWeapon();
   let best = null;
+  // mobile guard: the aim grid is searched SYNCHRONOUSLY (up to ~2600
+  // simulated flights) — a slow phone freezes for seconds, which reads
+  // as a hang right after big blasts settle and the PC's turn begins.
+  // Hard wall-clock cap on the search
+  const tSearch = performance.now();
   for (let strat = 0; strat < 4; strat++) {
     const angBase = [35, 45, 55, 65][strat];
     for (let ang = angBase - 10; ang <= angBase + 10; ang += 2) {
+      if (performance.now() - tSearch > 200) break;
       for (let p = 10; p <= 100; p += 3) {
         const sim = simulateShot(me.x, me.y - 12, ang, p, dir, w.wind);
         if (sim && (!best || Math.abs(sim.x - foe.x) < best.dist)) best = { ang, p, dist: Math.abs(sim.x - foe.x) };
@@ -2056,6 +2193,7 @@ function aiTurn() {
   };
   schedule(anim, 0.03);
 }
+
 function simulateShot(x0, y0, ang, pow, dir, wa) {
   const rad = ang * Math.PI / 180;
   const pos = { x: x0, y: y0 };
@@ -2064,10 +2202,12 @@ function simulateShot(x0, y0, ang, pow, dir, wa) {
   for (let t = 0; t < 10; t += dt) {
     integrate(pos, vel, wa, dt);
     if (pos.x < -50 || pos.x > Wc + 50) return null;
+    if (pos.y > Hc) return null;
     if (pos.x >= 0 && pos.x <= Wc && shotBlocked(pos.x, pos.y)) return { x: pos.x, y: pos.y };
   }
   return null;
 }
+
 //scorch.world.js part03
 // ============ DIGGER: charge-based bore ============
 function digEnter(p) {
@@ -2208,15 +2348,24 @@ function updateProjectile(p, dt) {
     // ceiling by proximity and collapses the rock
     if (UNDER && !p.digging && p.y <= ceilAt(p.x)) { p.dead = true; return; }
     if (!isTerr(p.w.type)) {
-      tanks.forEach((tk, i) => {
-        if (!canHurt(i)) return;
-        if (i === p.owner && gt < (p.arm || 0)) return;
-        if (Math.abs(p.x - tk.x) < 16 && p.y > tk.y - 34 && p.y < tk.y + 8) {
-          p.dead = true;
-          if (tk.shield > 0) { tk.shield = 0; fx.push({ k: 'shieldPop', x: tk.x, y: tk.y - 12, col: tk.col, t: 0, life: 0.45 }); }
-          else { damageTank(i, p.w.dmg, p.w.type, p.x, p.y); confirmClose = true; }
-        }
-      });
+      // SWEPT hull test: a fast flat shot moves up to |v|*dt px per frame
+      // (40+px on a slow phone) and can jump clean over the 32px hull
+      // box in one step — that was the PC's direct shots flying through
+      // the turret. Sample the whole prev→cur segment in ≤9px steps
+      const nseg = Math.max(1, Math.ceil(Math.hypot(p.vx, p.vy) * dt / 9));
+      for (let s = 0; s < nseg && !p.dead; s++) {
+        const hx = p.x - p.vx * dt * (1 - (s + 0.5) / nseg);
+        const hy = p.y - p.vy * dt * (1 - (s + 0.5) / nseg);
+        tanks.forEach((tk, i) => {
+          if (p.dead || !canHurt(i)) return;
+          if (i === p.owner && gt < (p.arm || 0)) return;
+          if (Math.abs(hx - tk.x) < 16 && hy > tk.y - 34 && hy < tk.y + 8) {
+            p.dead = true;
+            if (tk.shield > 0) { tk.shield = 0; fx.push({ k: 'shieldPop', x: tk.x, y: tk.y - 12, col: tk.col, t: 0, life: 0.45 }); }
+            else { damageTank(i, p.w.dmg, p.w.type, hx, hy); confirmClose = true; }
+          }
+        });
+      }
       if (p.dead) return;
     }
     const surf = surfaceAt(p.x);
@@ -2274,6 +2423,7 @@ function updateProjectile(p, dt) {
     } else if (shotBlocked(p.x, p.y)) p.dead = true;
   }
 }
+
 function updateLiquid(l, dt) {
   l.vy += GRAV * 0.3 * dt;
   l.vx += wind * 0.5 * WINDF * dt;
@@ -2771,6 +2921,544 @@ function stepGrains(dt) {
   });
 }
 
+// ================= RARE EVENTS: sandworm & orbital junk =================
+// the worm (desert/rust): up to twice per round by the round's plan (half
+// the rounds see none); it enters from a flank at depth, from below, or
+// just under the cave ceiling, crosses in ~10s, breaches out of the sand,
+// swims across water, scorches in the volcano, swallows cave crystals,
+// blows up searchlights and grinds through turrets; seams ignite from the
+// churn, and the tunnel subsides behind it by the digger's void rule
+function spawnWorm() {
+  // in a cave it CRAWLS — hugging the ceiling or the floor; on the
+  // surface it crosses at depth. Dune proportions: a THIRD thicker and
+  // half as long. The WHOLE trajectory is precomputed against the live
+  // landscape (buildWormPath) and simply ridden
+  const mode = UNDER ? (Math.random() < 0.5 ? 'top' : 'floor') : (Math.random() < 0.3 ? 'bottom' : 'side');
+  const side = Math.random() < 0.5 ? -1 : 1;
+  const dir = -side;
+  const x = mode === 'bottom' ? R(Wc * 0.3, Wc * 0.7) : (side < 0 ? -24 : Wc + 24);
+  worm = {
+    x, y: 0, mode,
+    t: 0, hang: dir > 0 ? 0 : Math.PI,
+    vx: dir * Wc / R(9.2, 11.2), hitT: 0, hp: 100,
+    sndT: 0, ceilT: 0, ignT: 0, trT: 0, tr: [], sid: ++digSid,
+    bw: 30, len: 150, path: [], pi: 0
+  };
+  buildWormPath(worm);
+  lastHitInfo = 'ЧЕРВЬ!';
+  sfx(0.8);
+  shake = Math.min(10, shake + 4);
+}
+// the precomputed trajectory, sampled every 6px against the CURRENT
+// landscape: buried under the smoothed surface (or glued to the cave
+// ceiling/floor — in a cave it NEVER surfaces mid-height), with
+// pre-planned breach windows and water swims, and a SLOPE LIMITER so
+// the body never accelerates vertically — the pop-outs are gone
+function buildWormPath(w) {
+  const dir = Math.sign(w.vx);
+  const step = 6;
+  const n = Math.max(2, Math.ceil((dir > 0 ? Wc + 70 - w.x : w.x + 70) / step));
+  const ph = R(0, 6.28);
+  const amp = R(9, 17);
+  // breach windows (surface worlds): 1-2 planned stretches above the sand
+  const br = [];
+  if (!UNDER) {
+    const nb = 1 + (Math.random() < 0.5 ? 1 : 0);
+    for (let b = 0; b < nb; b++) {
+      const s = R(0.15, 0.7);
+      br.push([s, Math.min(0.95, s + R(0.06, 0.15))]);
+    }
+  }
+  const surfS = (x) => (surfaceAt(x - 12) + surfaceAt(x - 6) + surfaceAt(x) + surfaceAt(x + 6) + surfaceAt(x + 12)) / 5;
+  const ceilS = (x) => (ceilAt(x - 12) + ceilAt(x - 6) + ceilAt(x) + ceilAt(x + 6) + ceilAt(x + 12)) / 5;
+  const pts = [];
+  let prevY = null;
+  for (let i = 0; i <= n; i++) {
+    const x = w.x + dir * step * i;
+    const xc = clamp(x, 8, Wc - 8);
+    const u = i / n;
+    const surf = surfS(xc);
+    const wy = waterAt(xc);
+    const overWater = !UNDER && surf > wy + 8;
+    const inBr = !UNDER && br.some(b => u >= b[0] && u <= b[1]);
+    let ty, g = 1;
+    if (overWater) { ty = wy + 4; g = 2; }
+    else if (inBr) { ty = surf - 32; g = 0; }
+    else if (w.mode === 'top') ty = ceilS(xc) + 21 + Math.sin(u * 8 + ph) * 4;
+    else ty = surf + 24 + Math.sin(u * 6 + ph) * amp;
+    // slope limiter — max ~0.9 vertical per 1 horizontal, no bursts
+    let y = ty;
+    if (prevY !== null) y = prevY + clamp(y - prevY, -step * 0.9, step * 0.9);
+    // keep it in the ground (or glued under the cave ceiling)
+    if (g === 1) {
+      if (w.mode === 'top') y = Math.max(y, ceilS(xc) + 15);
+      else y = Math.max(y, surf + 14);
+    }
+    prevY = y;
+    pts.push({ x, y, g });
+  }
+  w.path = pts;
+  w.pi = 0;
+  w.y = pts[0].y;
+}
+// the end-of-run sweep: EVERY void of the worm's own dig session drops
+// at once — the whole trench settles along its full span
+function collapseWormTunnel(w) {
+  const N = cols.length;
+  const x0 = Math.min(w.path[0].x, w.path[w.path.length - 1].x);
+  const x1 = Math.max(w.path[0].x, w.path[w.path.length - 1].x);
+  const a = clamp(Math.round(x0 / cols.step), 1, N - 2);
+  const b = clamp(Math.round(x1 / cols.step), 1, N - 2);
+  let did = false;
+  for (let i = a; i <= b; i++) {
+    const c = cols[i];
+    if (c.h1 > 0 && c.sid === w.sid) {
+      if (subsideColumn(i, false) > 0) did = true;
+    }
+  }
+  if (did) {
+    smoothGround(a, b);
+    sfx(0.9);
+    shake = Math.min(10, shake + 5);
+  }
+}
+function stepWorm(dt) {
+  if (!biome || !cols || (biomeKey() !== 'desert' && biomeKey() !== 'rust')) { worm = null; return; }
+  if (!worm && wormPlan.n < wormPlan.q && rgt >= wormPlan.at[wormPlan.n]) {
+    wormPlan.n++;
+    spawnWorm();
+  }
+  if (!worm) return;
+  const w = worm;
+  const px = w.x, py = w.y;
+  w.t += dt;
+  w.x += w.vx * dt;
+  // the whole run rumbles: constant shake + a digger-grade growl
+  shake = Math.max(shake, 1.4);
+  w.sndT += dt;
+  if (w.sndT > 0.7) { w.sndT = 0; sfx(0.4); }
+  // PRECOMPUTED path (buildWormPath): the whole trajectory was laid out
+  // at spawn against the live landscape — buried, with planned breach
+  // windows and water swims, slope-limited. Ride it by index
+  w.pi = clamp(Math.round(Math.abs(w.x - w.path[0].x) / 6), 0, w.path.length - 1);
+  const pA = w.path[w.pi];
+  const pB = w.path[Math.min(w.pi + 1, w.path.length - 1)];
+  const f = clamp(Math.abs(w.x - pA.x) / (Math.abs(pB.x - pA.x) || 6), 0, 1);
+  w.y = pA.y + (pB.y - pA.y) * f;
+  const cur = w.path[w.pi];
+  if (cur.g === 0 && Math.random() < dt * 20) fx.push({ k: 'dust', x: w.x + R(-10, 10), y: surfaceAt(w.x) - 4, vx: R(-40, 40), vy: -R(30, 90), r: R(3, 6), t: 0, life: R(0.5, 1), col: M().dustCol });
+  if (cur.g === 2) {
+    if (Math.random() < dt * 6) pushRipple(w.x, 2.5);
+    if (Math.random() < dt * 8) fx.push({ k: 'splash', x: w.x, y: waterAt(w.x), r: 7, t: 0, life: 0.4 });
+  }
+  // the heading is low-passed HARD so the maw glides instead of twitching
+  const ha = Math.atan2(w.y - py, w.x - px);
+  let dh = ha - w.hang;
+  while (dh > Math.PI) dh -= Math.PI * 2;
+  while (dh < -Math.PI) dh += Math.PI * 2;
+  w.hang += dh * Math.min(1, dt * 3);
+  const underground = cur.g === 1;
+  if (underground) {
+    carveLine(px, py, w.x, w.y, 19, w.sid);
+    // NO progressive subsidence: the tunnel stays open behind the body;
+    // every void of its dig session collapses in ONE end-of-run sweep
+    // (collapseWormTunnel on despawn)
+    // the shudder of its passing: a small jolt for a fighter standing
+    // right above the trench (the direct grind below is the big one)
+    w.joltT = Math.max(0, (w.joltT || 0) - dt);
+    if (w.joltT <= 0) {
+      let near = false;
+      tanks.forEach((tk, i) => {
+        if (canHurt(i) && Math.abs(tk.x - w.x) < 28) { addTerrDmg(i, 3, 'сотрясение'); near = true; }
+      });
+      if (near) w.joltT = 0.8;
+    }
+    w.ignT += dt;
+    if (w.ignT > 0.3) { w.ignT = 0; igniteAt(w.x, w.y, 22, 'fire'); }
+    if (Math.random() < dt * 10) fx.push({ k: 'dust', x: w.x + R(-14, 14), y: surfaceAt(w.x) - 2, vx: R(-20, 20), vy: -R(10, 40), r: R(2, 5), t: 0, life: R(0.4, 0.9), col: M().dustCol });
+  }
+  // CEILING crawl: the rock it bolts to tears open behind it and rains
+  // down; the searchlights it passes under blow up
+  if (w.mode === 'top') {
+    w.ceilT += dt;
+    if (w.ceilT > 0.3) {
+      w.ceilT = 0;
+      ceilingCrush(w.x - Math.sign(w.vx) * 60, 30);
+    }
+  }
+  // TURRETS: a direct pass grinds them down (50% of the old punch)
+  w.hitT = Math.max(0, w.hitT - dt);
+  if (w.hitT <= 0) {
+    tanks.forEach((tk, i) => {
+      if (!canHurt(i)) return;
+      if (Math.abs(tk.x - w.x) < 25 && w.y > tk.y - 42 && w.y < tk.y + 12) {
+        w.hitT = 0.5;
+        damageTank(i, 30, 'worm', w.x, w.y);
+        confirmClose = true;
+      }
+    });
+  }
+  // VOLCANO / lava: the worm scorches
+  const cW = colAt(w.x);
+  if ((volcano && inVolcCone(w.x, w.y)) || cW.lava > 2) {
+    w.hp -= 42 * dt;
+    if (Math.random() < dt * 14) fx.push({ k: 'ember', x: w.x + R(-10, 10), y: w.y, vx: R(-30, 30), vy: -R(40, 120), t: 0, life: R(0.4, 0.9), s: R(1, 2) });
+    if (w.hp <= 0) {
+      boomsAt(w.x, w.y, 40, 'missile', 12);
+      lastHitInfo = 'червь сгорел в лаве';
+      collapseWormTunnel(w);
+      worm = null;
+      return;
+    }
+  }
+  // CRYSTALS are swallowed, SEARCHLIGHTS explode
+  if (UNDER) {
+    for (let q = caveLights.length - 1; q >= 0; q--) {
+      const L = caveLights[q];
+      if (L.k === 'cry' && Math.hypot(w.x - L.x, w.y - L.y) < 36) {
+        caveLights.splice(q, 1);
+        fx.push({ k: 'flash', x: L.x, y: L.y, r: L.r * 0.7, t: 0, life: 0.18, col: `rgb(${L.col})` });
+        spawnEmbers(L.x, L.y, 8, 20);
+        sfx(0.4);
+        shake = Math.min(8, shake + 2);
+      } else if (L.k === 'beam' && Math.abs(w.x - L.x) < 28 && w.y < L.y + 60) {
+        caveLights.splice(q, 1);
+        boomsAt(L.x, L.y + 4, 26, 'missile', 1, true, true);
+        fx.push({ k: 'flash', x: L.x, y: L.y + 2, r: 16, t: 0, life: 0.14, col: `rgb(${L.col})` });
+        spawnEmbers(L.x, L.y + 2, 9, 26);
+        sfx(0.5);
+      }
+    }
+  }
+  // the body trail, trimmed to the body length
+  w.trT += dt;
+  if (w.trT > 0.045) {
+    w.trT = 0;
+    w.tr.push({ x: w.x, y: w.y });
+    let acc = 0;
+    for (let s = w.tr.length - 1; s > 0; s--) {
+      acc += Math.hypot(w.tr[s].x - w.tr[s - 1].x, w.tr[s].y - w.tr[s - 1].y);
+      if (acc > w.len) { w.tr.splice(0, s - 1); break; }
+    }
+  }
+  if (w.x < -60 || w.x > Wc + 60 || w.t > 20 || w.pi >= w.path.length - 1) {
+    // end of the run: the whole tunnel collapses at once
+    collapseWormTunnel(w);
+    worm = null;
+  }
+}
+// orbital garbage (all worlds except caves): a rare rain of rust flakes
+// from the Great Cleanup ring — the flakes settle and barely raise the
+// ground; a few HEAVY angular chunks land with a small mound, and a
+// direct hit on a turret hurts badly
+function stepJunks(dt) {
+  if (!cols || UNDER) return;
+  if (!junks.length && junkPlan.n < junkPlan.q && rgt >= junkPlan.at[junkPlan.n]) {
+    junkPlan.n++;
+    garbageStrike();
+  }
+  junks = junks.filter(j => {
+    j.t += dt;
+    j.vy = Math.min(j.vy + GRAV * 0.9 * dt, 640);
+    j.x += (j.vx + wind * 1.5) * dt;
+    j.y += j.vy * dt;
+    if (j.s >= 6 && Math.random() < dt * 8) fx.push({ k: 'wisp', x: j.x + R(-3, 3), y: j.y - j.s, vx: R(-4, 4), vy: -R(10, 26), ph: R(0, 6.28), t: 0, life: R(0.3, 0.7) });
+    if (j.s >= 6 && Math.random() < dt * 5) fx.push({ k: 'ember', x: j.x + R(-3, 3), y: j.y - 4, vx: R(-14, 14), vy: -R(20, 60), t: 0, life: R(0.3, 0.6), s: R(1, 1.8) });
+    for (let i = 0; i < tanks.length; i++) {
+      const tk = tanks[i];
+      if (j.s >= 6 && canHurt(i) && Math.abs(tk.x - j.x) < 13 + j.s && j.y > tk.y - 32 && j.y < tk.y + 10) {
+        damageTank(i, Math.round(j.s * 3.5), 'junk', j.x, j.y);
+        confirmClose = true;
+        junkLand(j);
+        return false;
+      }
+    }
+    const wy = waterAt(j.x);
+    if (j.y >= wy && surfaceAt(j.x) > wy + 2 && j.y < wy + 14) {
+      fx.push({ k: 'splash', x: j.x, y: wy, r: 10, t: 0, life: 0.5 });
+      pushRipple(j.x, 6);
+    }
+    if (j.y >= surfaceAt(j.x) - j.s * 0.5 && !inVoid(j.x, j.y)) { junkLand(j); return false; }
+    if (inVoid(j.x, j.y) && j.y >= colAt(j.x).h1 - j.s * 0.5) { junkLand(j); return false; }
+    return j.y < Hc + 40;
+  });
+}
+function garbageStrike() {
+  const cx = R(Wc * 0.15, Wc * 0.85);
+  fx.push({ k: 'skyflash', t: 0, life: 0.7, col: 'rgba(255,130,60,', a: 0.14 });
+  sfx(0.7);
+  shake = Math.min(10, shake + 2);
+  // the flake cloud — dots big enough to read, they barely lift the ground
+  for (let k = 0; k < 60; k++) {
+    debris.push({ x: cx + R(-90, 90), y: -R(10, 300), vx: R(-10, 10), vy: R(140, 300), rot: R(0, 6.28), vr: R(-6, 6), s: R(1.4, 2.8), col: ['#8a4530', '#6a3020', '#a06040'][(Math.random() * 3) | 0], settled: false, life: 15 });
+  }
+  const nBig = 2 + (Math.random() * 3 | 0);
+  for (let k = 0; k < nBig; k++) {
+    schedule(() => {
+      const pts = [];
+      const nv = 5 + (Math.random() * 3 | 0);
+      for (let v = 0; v < nv; v++) pts.push(R(0.55, 1.15));
+      const jx = clamp(cx + R(-70, 70), 16, Wc - 16);
+      junks.push({ x: jx, y: -40, vx: R(-6, 6), vy: 300, t: 0, s: R(9, 16), pts });
+      // dozens of pixel shards STREAK down right beside the big chunk —
+      // they render as falling streaks (see drawJunks)
+      for (let q = 0; q < 22; q++) {
+        junks.push({ x: jx + R(-24, 24), y: -R(4, 80), vx: R(-5, 5), vy: 230 + R(0, 110), t: 0, s: R(1.3, 2.4) });
+      }
+      fx.push({ k: 'flash', x: cx, y: -8, r: 16, t: 0, life: 0.25, col: '#ff9a5a' });
+      sfx(0.3);
+    }, 0.4 + k * R(0.25, 0.7) + R(0, 0.3));
+  }
+  lastHitInfo = 'мусор с орбиты!';
+}
+function junkLand(j) {
+  // pixel shards land with just a puff — no mound, no shake
+  if (j.s < 3) {
+    if (Math.random() < 0.4) fx.push({ k: 'dust', x: j.x, y: surfaceAt(j.x) - 2, vx: R(-6, 6), vy: -R(6, 16), r: R(1, 2), t: 0, life: R(0.3, 0.6), col: M().dustCol });
+    return;
+  }
+  craterMask(j.x, j.s * 1.6, 0.4, 'add', 'ellipse');
+  spawnDirtFall(j.x, j.s * 0.9);
+  spawnEmbers(j.x, Math.min(j.y, surfaceAt(j.x) - 4), 10, j.s * 2);
+  spawnDust(j.x, surfaceAt(j.x) - 4, j.s * 2, M().dustN * 0.6);
+  // a NEAR miss still jolts the fighter standing beside the impact —
+  // the direct hit above is the big one
+  tanks.forEach((tk, i) => {
+    if (canHurt(i) && Math.abs(tk.x - j.x) < j.s * 2.4) addTerrDmg(i, 4, 'обвал');
+  });
+  shake = Math.min(10, shake + 4);
+  sfx(0.9);
+}
+// ============ the 3D-precalc moon system of the planet sky ============
+// four moons on projected near-ecliptic orbits: sizes and speeds follow a
+// Kepler-ish a^-1.5 law (inner small and quick, outer big and slow);
+// positions, phases and shadow directions are computed live in drawSky
+// against the star's current place in the sky
+// ============ PROCEDURAL PLANET MASK (spherical) ============
+// The continents are grown ON THE SPHERE, not as flat screen polygons:
+// every grid cell maps to a hemisphere point (dx,dy,z). 6-8 seed
+// continents pull a multi-scale noise field toward the sea level, the
+// coast is distorted only in a narrow band around it, the mask is
+// eroded/smoothed to kill noise artifacts, then small islands and
+// archipelags with ragged radial profiles are sprinkled. Fully
+// deterministic per round (the round's seeded `noise` + S)
+function genPlanetMask() {
+  const R2 = 64;                      // grid resolution (R2 x R2 cells)
+  const rnd = mulberry32((seed ^ 0x5f3a) | 0);
+  // continent centers as unit sphere vectors, random sizes/strengths
+  const conts = [];
+  const nC = 6 + (rnd() * 3 | 0);
+  for (let k = 0; k < nC; k++) {
+    const th = rnd() * Math.PI * 2, ph2 = Math.acos(rnd() * 1.6 - 0.8);
+    conts.push({
+      x: Math.sin(ph2) * Math.cos(th), y: Math.cos(ph2), z: Math.sin(ph2) * Math.sin(th),
+      r: 0.34 + rnd() * 0.4,          // angular size
+      s: 0.5 + rnd() * 0.6             // height strength
+    });
+  }
+  // 3-4 mid-plateau bumps for inner seas / land bridges
+  const mids = [];
+  for (let k = 0; k < 4; k++) {
+    const th = rnd() * Math.PI * 2, ph2 = Math.acos(rnd() * 1.4 - 0.7);
+    mids.push({ x: Math.sin(ph2) * Math.cos(th), y: Math.cos(ph2), z: Math.sin(ph2) * Math.sin(th), r: 0.5 + rnd() * 0.45, s: 0.32 + rnd() * 0.3 });
+  }
+  // fractal-ish fbm over the ROUND noise (multi-scale, deterministic)
+  const fbmS = (a, b, c) => {
+    let v = 0, amp = 0.5, f = 1, tot = 0;
+    for (let o = 0; o < 4; o++) {
+      v += noise(a * f * 0.9 + o * 61) * b * f * 0.7 + noise(c * f * 1.1 + o * 37) * b * 0.3 * f;
+      tot += b * f; amp *= 0.5; f *= 2.1;
+    }
+    return v / tot;
+  };
+  // continent field: smooth falloff from each seed over the sphere
+  const field = (px2, py2, pz) => {
+    let h = 0;
+    conts.forEach(c => {
+      const d = Math.acos(clamp(px2 * c.x + py2 * c.y + pz * c.z, -1, 1));
+      if (d < c.r) h = Math.max(h, c.s * (1 - (d / c.r) * (d / c.r) * 0.85));
+    });
+    mids.forEach(m => {
+      const d = Math.acos(clamp(px2 * m.x + py2 * m.y + pz * m.z, -1, 1));
+      if (d < m.r) h = Math.max(h, m.s * (1 - d / m.r));
+    });
+    return h;
+  };
+  const sea = 0.34;                   // sea level of the mask field
+  const m = new Float32Array(R2 * R2);
+  for (let j = 0; j < R2; j++) {
+    const dy = (j + 0.5) / R2 * 2 - 1;
+    for (let i = 0; i < R2; i++) {
+      const dx = (i + 0.5) / R2 * 2 - 1;
+      const rr = dx * dx + dy * dy;
+      if (rr >= 1) { m[j * R2 + i] = -1; continue; }
+      const z = Math.sqrt(1 - rr);
+      const h = field(dx, dy, z);
+      // multi-scale noise: LOW shapes the mass, MID works mostly in the
+      // narrow coastal band around sea level, HIGH adds fine grain
+      const coast = clamp(1 - Math.abs(h - sea) / 0.22, 0, 1);
+      const nLo = (fbmS(i * 0.11 + 500, 1, j * 0.11) - 0.5) * 0.34;
+      const nMid = (fbmS(i * 0.42 + 300, 1, j * 0.42) - 0.5) * 0.26 * (0.25 + coast);
+      const nHi = (noise(i * 1.7 + 90) - 0.5) * 0.08 * coast;
+      m[j * R2 + i] = h + nLo + nMid + nHi;
+    }
+  }
+  // EROSION: 3 passes of a center-weighted 3x3 blur — kills single-cell
+  // noise specks, rounds the coast naturally (bays stay, spikes go)
+  for (let it = 0; it < 3; it++) {
+    const t = new Float32Array(R2 * R2);
+    for (let j = 0; j < R2; j++) for (let i = 0; i < R2; i++) {
+      let s = 0, w = 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const a = clamp(i + di, 0, R2 - 1), b2 = clamp(j + dj, 0, R2 - 1);
+        const v = m[b2 * R2 + a];
+        if (v <= -0.5) continue;
+        const cw = (di || dj) ? 1 : 3;
+        s += v * cw; w += cw;
+      }
+      t[j * R2 + i] = w ? s / w : -1;
+    }
+    m.set(t);
+  }
+  // ISLANDS + ARCHIPELAGOS: small land seeds with a ragged radial profile
+  const isles = [];
+  const nI = 8 + (rnd() * 8 | 0);
+  for (let q = 0; q < nI; q++) {
+    const th = rnd() * Math.PI * 2, ph2 = Math.acos(rnd() * 1.5 - 0.75);
+    const ix = Math.sin(ph2) * Math.cos(th), iy = Math.cos(ph2), iz = Math.sin(ph2) * Math.sin(th);
+    const arch = q % 3 === 0;          // every 3rd becomes an archipelago
+    const ir = arch ? 2 + (rnd() * 2 | 0) : 0;
+    const cl = [];
+    const nP = arch ? 3 + ir : 1;
+    for (let p = 0; p < nP; p++) {
+      const spr = p === 0 ? 0 : (0.06 + rnd() * 0.09);
+      const jx = rnd() * 0.16 - 0.08, jz = rnd() * 0.16 - 0.08, jy = rnd() * 0.1 - 0.05;
+      const l2 = Math.hypot(ix + jx * p, iy + jy * p, iz + jz * p) || 1;
+      cl.push({
+        x: (ix + jx * p) / l2, y: (iy + jy * p) / l2, z: (iz + jz * p) / l2,
+        r: (arch ? 0.035 + rnd() * 0.03 : 0.05 + rnd() * 0.045),
+        s: 0.4 + rnd() * 0.22
+      });
+    }
+    isles.push({ cl });
+  }
+  // write the islands in CELL terms (already eroded once by their own
+  // ragged profile) then one light smoothing pass over the deltas
+  for (let j = 0; j < R2; j++) {
+    const dy = (j + 0.5) / R2 * 2 - 1;
+    for (let i = 0; i < R2; i++) {
+      const dx = (i + 0.5) / R2 * 2 - 1;
+      const rr = dx * dx + dy * dy;
+      if (rr >= 1) continue;
+      const z = Math.sqrt(1 - rr);
+      let add = 0;
+      isles.forEach(o => o.cl.forEach(c => {
+        const d = Math.acos(clamp(dx * c.x + dy * c.y + z * c.z, -1, 1));
+        if (d < c.r) {
+          // ragged radial profile: 2 harmonic wobbling of the rim
+          const a4 = Math.atan2(z, dx);
+          const wob = 1 + Math.sin(a4 * 5 + c.x * 40) * 0.22 + Math.sin(a4 * 9 + c.z * 40) * 0.13;
+          const dd = d / c.r;
+          add = Math.max(add, c.s * (1 - dd * dd) * wob);
+        }
+      }));
+      if (add > 0) m[j * R2 + i] = Math.max(m[j * R2 + i], sea + 0.02 + add * 0.5 - 0.18 * (1 - add));
+    }
+  }
+  // a final gentle erosion over the island deltas only (one pass)
+  {
+    const t = new Float32Array(m);
+    for (let j = 1; j < R2 - 1; j++) for (let i = 1; i < R2 - 1; i++) {
+      const v = m[j * R2 + i];
+      if (v <= -0.5) continue;
+      let s = 0, w = 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const n = m[(j + dj) * R2 + (i + di)];
+        if (n <= -0.5) continue;
+        const cw = (di || dj) ? 1 : 2;
+        s += n * cw; w += cw;
+      }
+      t[j * R2 + i] = s / w;
+    }
+    m.set(t);
+  }
+  // INCLUSIONS (rust blooms / green flecks) — grown by the SAME
+  // principle as the continents: seed centers on the sphere, smooth
+  // radial falloff, the rim ragged by two harmonics + a mid noise
+  // octave (strongest in the narrow band around the inclusion's own
+  // coast), then a light erosion. Per-cell intensity grids, land-only;
+  // green is weighted toward the hills. The ui paints them as cells
+  const mkOverlay = (count, baseR, rSpread, hi) => {
+    const g = new Float32Array(R2 * R2);
+    const seeds = [];
+    for (let q = 0; q < count; q++) {
+      const th = rnd() * Math.PI * 2, ph2 = Math.acos(rnd() * 1.5 - 0.75);
+      seeds.push({
+        x: Math.sin(ph2) * Math.cos(th), y: Math.cos(ph2), z: Math.sin(ph2) * Math.sin(th),
+        r: baseR + rnd() * rSpread, s: 0.6 + rnd() * 0.4
+      });
+    }
+    for (let j = 0; j < R2; j++) {
+      const dy = (j + 0.5) / R2 * 2 - 1;
+      for (let i = 0; i < R2; i++) {
+        const dx = (i + 0.5) / R2 * 2 - 1;
+        const rr = dx * dx + dy * dy;
+        if (rr >= 1) continue;
+        const z = Math.sqrt(1 - rr);
+        const h = m[j * R2 + i];
+        if (h <= sea) continue;
+        if (hi && h < sea + 0.07) continue;
+        let v = 0;
+        seeds.forEach(sd => {
+          const d = Math.acos(clamp(dx * sd.x + dy * sd.y + z * sd.z, -1, 1));
+          if (d >= sd.r) return;
+          const a4 = Math.atan2(z, dx);
+          const wob = 1 + Math.sin(a4 * 4 + sd.x * 55) * 0.24 + Math.sin(a4 * 7 + sd.z * 55) * 0.15;
+          const dd = d / (sd.r * wob);
+          const rim = clamp(1 - Math.abs(dd - 0.72) / 0.3, 0, 1);
+          const nM = (noise(i * 0.5 + sd.x * 80 + 700) - 0.5) * 0.35 * (0.3 + rim);
+          v = Math.max(v, sd.s * clamp(1 - dd * dd + nM, 0, 1));
+        });
+        g[j * R2 + i] = v;
+      }
+    }
+    // one erosion pass, clamped to land — kills single-cell specks
+    const t = new Float32Array(g);
+    for (let j = 1; j < R2 - 1; j++) for (let i = 1; i < R2 - 1; i++) {
+      if (m[j * R2 + i] <= sea) continue;
+      let s = 0, w = 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        if (m[(j + dj) * R2 + (i + di)] <= sea) continue;
+        const cw = (di || dj) ? 1 : 2;
+        s += g[(j + dj) * R2 + (i + di)] * cw; w += cw;
+      }
+      t[j * R2 + i] = w ? s / w : 0;
+    }
+    return t;
+  };
+  const rust = mkOverlay(22, 0.05, 0.07, false);
+  const grn = mkOverlay(12, 0.035, 0.045, true);
+  planetMask = { n: R2, m, sea, rust, grn };
+}
+function genMoonSys() {
+  moonSys = [];
+  const cols4 = ['#5c5654', '#a06ad0', '#d88a58', '#8c8c96'];
+  for (let m = 0; m < 4; m++) {
+    const a = 0.22 + m * 0.12;
+    const mo = {
+      a, ry: Hc * (0.02 + m * 0.012), cy: Hc * (0.07 + m * 0.042),
+      ang: R(0, 6.28), spd: 0.05 * Math.pow(0.22 / a, 1.5),
+      rr: [5, 8, 11, 15][m], col: cols4[m], crat: []
+    };
+    const nc = 2 + (Math.random() * 2 | 0);
+    for (let k = 0; k < nc; k++) mo.crat.push([R(-0.5, 0.5), R(-0.5, 0.5), R(0.15, 0.35)]);
+    moonSys.push(mo);
+  }
+}
+function stepMoonSys(dt) {
+  if (!moonSys) return;
+  moonSys.forEach(mo => { mo.ang = (mo.ang + mo.spd * dt) % (Math.PI * 2); });
+}
 // ================= LOOP =================
 function start() {
   score = 0; wins = 0; shots = 0; shots2 = 0; aiSkill = 0.35;
@@ -2792,7 +3480,7 @@ function loop(t) {
   if (overlay && overlay.classList.contains('show')) step(dt);
 }
 function step(dt) {
-  gt += dt; skyT += dt; cloudOff += windDir * 6 * dt;
+  gt += dt; rgt += dt; skyT += dt; cloudOff += windDir * 6 * dt;
   cycleT = (cycleT + dt / DAY_CYCLE) % 1;
   todT += dt;
   if (todT > 0.25) { todT = 0; updateTod(); }
@@ -2925,6 +3613,9 @@ function step(dt) {
   comets.forEach(c => { c.x += c.vx * dt; c.y += c.vy * dt; c.t += dt; });
   comets = comets.filter(c => c.t < c.life);
 
+  stepWorm(dt);
+  stepJunks(dt);
+  stepMoonSys(dt);
   stepGrains(dt);
   // wind particles fly on the surface AND in the caves — drifting motes
   // in the shafts, kept strictly between the ceiling and the floor. On
