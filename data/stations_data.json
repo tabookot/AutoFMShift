@@ -159,7 +159,7 @@
         "url": "https://icecast-vgtrk.cdnvideo.ru/vestifm",
         "bitrate": 320,
         "codec": "MP3",
-        "favicon": "",
+        "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
         "tags": ""
       },
       {
@@ -188,7 +188,7 @@
       }
     ],
     "homepage": "http://radiovesti.ru/",
-    "favicon": "https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=100045127456557",
+    "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
     "tags": "news, talk"
   },
   {
@@ -1314,32 +1314,24 @@
         "tags": ""
       },
       {
-        "name": "Radio 7",
-        "url": "https://radio7server.streamr.ru:8040/radio7256.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "https://radio7.ru/favicon.png",
-        "tags": ""
-      },
-      {
-        "name": "Radio 7 Moscow",
-        "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
-        "bitrate": 320,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": "hits, russian hits"
-      },
-      {
         "name": "Авторадио 107.7 FM",
         "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
         "bitrate": 64,
         "codec": "AAC+",
         "favicon": "",
         "tags": ""
+      },
+      {
+        "name": "Radio Hit Orsk 103.7 FM",
+        "url": "http://hit.trkeurasia.ru:8000/hit128",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "top 40 hits"
       }
     ],
     "homepage": "https://radio7.ru/",
-    "favicon": "https://radio7.ru/favicon.png",
+    "favicon": "",
     "tags": ""
   },
   {
@@ -2256,7 +2248,7 @@
         "tags": "folk"
       }
     ],
-    "homepage": "https://www.radiopriboy.ru/",
+    "homepage": "http://priboy.news/",
     "favicon": "http://priboy.news/static/favicon_150x150.png",
     "tags": "folk"
   },
@@ -2432,9 +2424,9 @@
         "tags": "music, news, talk"
       }
     ],
-    "homepage": "http://www.radiorus.ru/",
+    "homepage": "https://radiorus.ru/",
     "favicon": "https://vestiorel.ru/favicon.png",
-    "tags": "music, news, talk"
+    "tags": "news, talk"
   },
   {
     "name": "Радио Русские песни",
@@ -2516,9 +2508,9 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://www.ruhit.fm/player.htm?region=1",
+    "homepage": "https://fm-24.ru/web/russkij-xit",
     "favicon": "https://fm-24.ru/assets/image/radio/180/ruhitnew.jpg",
-    "tags": "поп-музыка"
+    "tags": "поп"
   },
   {
     "name": "Радио Русь",
@@ -2924,12 +2916,12 @@
         "url": "http://79.120.77.11:8000/jazz",
         "bitrate": 320,
         "codec": "AAC+",
-        "favicon": "",
+        "favicon": "r",
         "tags": ""
       },
       {
-        "name": "Acid Jazz",
-        "url": "http://79.111.14.76:8000/acidjazz",
+        "name": "Guitar Jazz",
+        "url": "http://79.120.77.11:8000/guitarjazz",
         "bitrate": 320,
         "codec": "AAC+",
         "favicon": "",
@@ -2998,7 +2990,35 @@
   },
   {
     "name": "Радио № 1",
-    "streams": []
+    "streams": [
+      {
+        "name": "1",
+        "url": "https://stream.0nlineradio.com/schlager?ref=crystalmissions",
+        "bitrate": 192,
+        "codec": "MP3",
+        "favicon": "null",
+        "tags": "https://stream.0nlineradio.com/schlager?ref=crysta"
+      },
+      {
+        "name": "Новое Радио 91.1 (СПб)",
+        "url": "http://emgspb.hostingradio.ru/novoespb128.mp3",
+        "bitrate": 256,
+        "codec": "MP3",
+        "favicon": "https://newradio.ru/favicon.ico",
+        "tags": ""
+      },
+      {
+        "name": "Radio Jazz 89.1 - JAZZ Vocals",
+        "url": "http://jfm1.hostingradio.ru:14536/jvstream.mp3",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "https://radiojazzfm.ru/favicons/favicon-32x32.png",
+        "tags": "jazz vocal"
+      }
+    ],
+    "homepage": "https://stream.0nlineradio.com/schlager?ref=crystalmissions",
+    "favicon": "https://newradio.ru/favicon.ico",
+    "tags": "https://stream.0nlineradio.com/schlager?ref=crysta"
   },
   {
     "name": "Радио Nostalgie",
@@ -3560,20 +3580,20 @@
         "tags": ""
       },
       {
-        "name": "DFM",
-        "url": "https://hls-01-dfm.hostingradio.ru/dfm/playlist.m3u8",
-        "bitrate": 100,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": "club, dance, edm, electronic, pop dance"
-      },
-      {
         "name": "DFM - Breakbeat",
         "url": "https://dfm-breakbeat.hostingradio.ru/breakbeat96.aacp",
         "bitrate": 96,
         "codec": "AAC+",
         "favicon": "https://dfm.ru/uploads/favicon.ico",
         "tags": "breakbeat"
+      },
+      {
+        "name": "DFM - Chill",
+        "url": "https://dfm-dfmchill.hostingradio.ru/dfmchill96.aacp",
+        "bitrate": 96,
+        "codec": "AAC+",
+        "favicon": "https://dfm.ru/uploads/favicon.ico",
+        "tags": "ambient, chill, relax, relaxation music"
       }
     ],
     "homepage": "https://dfm.ru/",
@@ -3826,20 +3846,20 @@
         "tags": "deep house, house"
       },
       {
+        "name": "Radio Record Organic",
+        "url": "http://radiorecord.hostingradio.ru/organic96.aacp",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "https://www.radiorecord.ru/icons/apple-touch-icon.png",
+        "tags": "house, organic house, progressive house"
+      },
+      {
         "name": "Radio Record Phonk",
         "url": "http://radiorecord.hostingradio.ru/phonk96.aacp",
         "bitrate": 0,
         "codec": "AAC",
         "favicon": "",
         "tags": "phonk, rap, witch house"
-      },
-      {
-        "name": "Radio Record Synthwave",
-        "url": "http://radiorecord.hostingradio.ru/synth96.aacp",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "http://www.radiorecord.ru/icons/apple-touch-icon.png",
-        "tags": ""
       }
     ],
     "homepage": "https://www.radiorecord.ru/",
@@ -3902,14 +3922,6 @@
     "name": "Rock FM",
     "streams": [
       {
-        "name": "Rock FM",
-        "url": "http://nashe.streamr.ru/rock-128.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "https://cdn.onlineradiobox.com/img/apple-touch-icon-120x120.png",
-        "tags": "russian rock"
-      },
-      {
         "name": "ROCK FM",
         "url": "http://nashe1.hostingradio.ru/rock-128.mp3",
         "bitrate": 0,
@@ -3934,16 +3946,24 @@
         "tags": ""
       },
       {
-        "name": "Arena Rock",
-        "url": "http://79.111.14.76:8000/aor",
+        "name": "Glam Rock / Metal - Caprice Radio",
+        "url": "http://79.120.39.202:8000/glam",
         "bitrate": 320,
         "codec": "AAC+",
-        "favicon": "",
-        "tags": ""
+        "favicon": "http://radcap.ru/graf2/radcaplogo.png",
+        "tags": "glam metal, glam rock"
+      },
+      {
+        "name": "Acoustic Rock Radio",
+        "url": "http://live-radio.ru:8111/live",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "http://live-radio.ru/favicon.png",
+        "tags": "accordion, acoustic, acoustic rock, autor-interprete, cantautor"
       }
     ],
     "homepage": "http://www.rockfm.ru/",
-    "favicon": "https://cdn.onlineradiobox.com/img/apple-touch-icon-120x120.png",
+    "favicon": "https://lh3.googleusercontent.com/D3taObR7tfyhwDFY40VS8DIVri7iif5RuzI9C-mXxRwF41vGZ_dO_n6MWM57P-mZczFC=w300",
     "tags": "classic rock, pop rock, rock"
   },
   {
