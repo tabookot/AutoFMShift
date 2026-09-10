@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "0.5.1-github-action",
-  "exportDate": 1788940692054,
+  "exportDate": 1789027089255,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -2469,6 +2469,12 @@
           "deletedAt": null
         },
         {
+          "name": "Радио Лето",
+          "freq": 98.9,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
           "name": "Радио Маяк",
           "freq": 100.8,
           "isDeleted": false,
@@ -2561,6 +2567,12 @@
         {
           "name": "Серебряный дождь",
           "freq": 88.8,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Спутник 107 FM",
+          "freq": 107,
           "isDeleted": false,
           "deletedAt": null
         },
@@ -10533,6 +10545,12 @@
           "deletedAt": null
         },
         {
+          "name": "Семёрка",
+          "freq": 103.1,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
           "name": "Серебряный дождь",
           "freq": 91.2,
           "isDeleted": false,
@@ -12405,6 +12423,24 @@
       "type": "station",
       "city": "Уфа",
       "name": "Радио КП",
+      "reason": "glitch_protect"
+    },
+    {
+      "type": "station",
+      "city": "Екатеринбург",
+      "name": "Радиопедия:Черновик/Радио Лето",
+      "reason": "glitch_protect"
+    },
+    {
+      "type": "station",
+      "city": "Екатеринбург",
+      "name": "Радиопедия:Черновик/Радио Спутник (Екатеринбург)",
+      "reason": "glitch_protect"
+    },
+    {
+      "type": "station",
+      "city": "Тюмень",
+      "name": "Радиопедия:Черновик/Радио Семёрка",
       "reason": "glitch_protect"
     }
   ]
