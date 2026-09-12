@@ -4,6 +4,7 @@
 const LS_KEY = 'scorch_records';
 const LS_PROFILE = 'scorch_profiles';
 const LS_LAST = 'scorch_last';
+const LS_VOL = 'scorch_vol';
 const MAX_REC = 10;
 const ROUNDS_MAX = 5;
 const GRAV = 195;
@@ -148,10 +149,16 @@ let shake = 0;
 let touchUI = false, tctlEl = null, angRange = null, powRange = null, angVal = null, powVal = null, hudRefs = null, apEl = null, apBuf = null;
 let lastKillMethod = 'weapon', lastShotApex = 0, lastWeapon = 'MISSILE';
 let turnTimer = 0, warnedAt = {};
+// round-arming flag: start-of-round terrain settling never costs HP —
+// see addTerrDmg; armed by the round's first launch()
+let roundArmed = false;
 let shotOwner = 0;
 let turnCard = null;
 let driftT = 0;
 let AC = null;
+// master game volume, LS-persisted (sc-vol slider / ⚙ wheel); 0 = mute
+let sVol = 0.8;
+try { const v = parseFloat(localStorage.getItem(LS_VOL)); if (!isNaN(v)) sVol = clamp(v, 0, 1); } catch (e) {}
 let pockets = [];
 let players = [
   { name: 'Player1', col: '#2ecc71', hull: 'classic', ai: false },
@@ -194,6 +201,12 @@ const mixTri = (a, b, t) => {
 const isHumanSeat = (i) => i === 0 || (GMODE === 2 && i === 1);
 const activeTank = () => tanks[turn] || tanks[0];
 const activeDir = () => { const me = activeTank(); const foe = tanks[turn === 0 ? 1 : 0]; return foe.x > me.x ? 1 : -1; };
+// PVC: the human's angle/power/weapon controls stay live through the WHOLE
+// round (pre-aiming during the computer's turn); aimTank/aimDir always
+// bind them to the human's own turret
+const ctlLive = () => (state === 'aim' && isHumanSeat(turn) && canAct(turn)) || (GMODE === 1 && state !== 'over' && state !== 'closing' && canAct(0));
+const aimTank = () => GMODE === 1 ? tanks[0] : activeTank();
+const aimDir = () => GMODE === 1 ? playerDir() : activeDir();
 // the ONE zombie rule: a DYING fighter may fire one shot inside its window
 // and cannot be hurt; a DEAD one can do nothing at all
 const canAct = (i) => { const t = tanks && tanks[i]; return !!t && !t.dead && (!t.dying || (gt < t.lsUntil && !t.lsShot)); };
@@ -599,7 +612,7 @@ function sfx(size) {
     const flt = AC.createBiquadFilter(); flt.type = 'lowpass';
     flt.frequency.value = 300 / size + 250;
     const g = AC.createGain();
-    g.gain.value = clamp(0.12 * size, 0.06, 0.5);
+    g.gain.value = clamp(0.12 * size, 0.06, 0.5) * sVol;
     src.connect(flt); flt.connect(g); g.connect(AC.destination);
     src.start();
   } catch (e) {}
@@ -611,7 +624,7 @@ function beep(freq, dur, vol) {
     const g = AC.createGain();
     o.frequency.value = freq;
     o.type = 'square';
-    g.gain.setValueAtTime(vol, AC.currentTime);
+    g.gain.setValueAtTime(vol * sVol, AC.currentTime);
     g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + dur);
     o.connect(g); g.connect(AC.destination);
     o.start(); o.stop(AC.currentTime + dur);

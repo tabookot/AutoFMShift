@@ -24,7 +24,7 @@ function rrectPath(c, x, y, w, h, r) {
   }
   // pointer aiming over the FULL barrel arc
   function updateAimFromPointer(p) {
-    const t = activeTank(), dir = activeDir();
+    const t = aimTank(), dir = aimDir();
     const dx = p.x - t.x, dy = (t.y - 14) - p.y;
     const dist = Math.hypot(dx, dy);
     const ax = Math.abs(dx) < 4 ? 4 : dx * dir;
@@ -37,7 +37,7 @@ function rrectPath(c, x, y, w, h, r) {
   // bottom control panel; the wind bar stays pinned to the bottom edge
   function updateTctl() {
     if (!tctlEl) return;
-    const active = state === 'aim' && isHumanSeat(turn);
+    const active = ctlLive();
     const blocked = helpOpen || setupOpen || confirmOpen;
     // touchUI: the panel starts visible; a click on the ∠/⚡ chips now
     // TEMPORARILY hides it (landscape) — the same click that opens the
@@ -98,7 +98,8 @@ function rrectPath(c, x, y, w, h, r) {
     drawHpLate();
     drawBanners();
     drawTurnCards();
-    if (state === 'aim' && isHumanSeat(turn) && !helpOpen && !setupOpen && !confirmOpen) drawAim();
+    // PVC: the aim preview hides while any shell is in the air
+    if (ctlLive() && !(GMODE === 1 && (shot || subshots.length)) && !helpOpen && !setupOpen && !confirmOpen) drawAim();
     ctx.restore();
     drawHUD();
     drawOffscreenMarks();
@@ -384,47 +385,70 @@ function rrectPath(c, x, y, w, h, r) {
       // mask itself, nothing is drawn as a screen polygon
       if (planetMask) {
         const MN = planetMask.n, MM = planetMask.m, sea2 = planetMask.sea;
-        const cell = (pr * 2) / MN;
-        for (let j = 0; j < MN; j++) {
-          const dy = (j + 0.5) / MN * 2 - 1;
-          for (let i = 0; i < MN; i++) {
-            const dx = (i + 0.5) / MN * 2 - 1;
-            const rr = dx * dx + dy * dy;
-            if (rr >= 1) continue;
-            const h = MM[j * MN + i];
-            if (h <= sea2) continue;
-            const elev = clamp((h - sea2) / 0.55, 0, 1);
-            // shore sand at the coast, desert inside, dusty core
-            ctx.fillStyle = elev < 0.22 ? '#e0be74' : (elev > 0.62 ? '#d4ad62' : '#c9a45e');
-            const X = dx * pr, Y = cyOff(dy) * pr;
-            ctx.fillRect(X - cell / 2 - 0.6, Y - cell / 2 - 0.6, cell + 1.2, cell + 1.2);
-          }
-        }
-        // rust blooms + green flecks — from the OVERLAY grids built by
-        // the same spherical principle as the continents (mkOverlay in
-        // genPlanetMask: seed field, ragged noise rim, erosion) —
-        // painted as cells over the land, never as ellipses
-        const RU = planetMask.rust || null, GR = planetMask.grn || null;
-        for (let j = 0; j < MN; j++) {
-          const dy = (j + 0.5) / MN * 2 - 1;
-          for (let i = 0; i < MN; i++) {
-            const idx = j * MN + i;
-            if (MM[idx] <= sea2) continue;
-            const dx = (i + 0.5) / MN * 2 - 1;
-            if (dx * dx + dy * dy >= 1) continue;
-            const rv = RU ? RU[idx] : 0, gv = GR ? GR[idx] : 0;
-            if (rv < 0.06 && gv < 0.06) continue;
-            const X = dx * pr, Y = cyOff(dy) * pr;
-            if (rv >= 0.06) {
-              ctx.fillStyle = `rgba(${idx & 1 ? '138,69,48' : '160,90,55'},${Math.min(0.55, rv * 0.5).toFixed(3)})`;
-              ctx.fillRect(X - cell / 2 - 0.6, Y - cell / 2 - 0.6, cell + 1.2, cell + 1.2);
-            }
-            if (gv >= 0.06) {
-              ctx.fillStyle = `rgba(93,138,58,${Math.min(0.8, gv * 0.75).toFixed(3)})`;
-              ctx.fillRect(X - cell / 2 - 0.6, Y - cell / 2 - 0.6, cell + 1.2, cell + 1.2);
+        // the cell layers render ONCE per round/size into an offscreen at
+        // device resolution (the mask grid itself is 3x denser now — see
+        // genPlanetMask) and are blitted 1:1 each frame: no interpolation,
+        // no blur — just the original per-cell drawing, cached
+        const dpr = window.devicePixelRatio || 1;
+        const bW = Math.max(2, Math.ceil(pr * 2 * dpr));
+        if (drawSky._pmk !== seed || !drawSky._pcv || drawSky._pcv.width !== bW) {
+          drawSky._pmk = seed;
+          drawSky._pcv = document.createElement('canvas');
+          drawSky._pcv.width = drawSky._pcv.height = bW;
+          const pc = drawSky._pcv.getContext('2d');
+          pc.setTransform(dpr, 0, 0, dpr, 0, 0);
+          pc.translate(bW / (2 * dpr), bW / (2 * dpr));
+          pc.rotate(-0.3);
+          pc.beginPath(); pc.arc(0, 0, pr, 0, Math.PI * 2); pc.clip();
+          const cell = (pr * 2) / MN;
+          for (let j = 0; j < MN; j++) {
+            const dy = (j + 0.5) / MN * 2 - 1;
+            for (let i = 0; i < MN; i++) {
+              const dx = (i + 0.5) / MN * 2 - 1;
+              const rr = dx * dx + dy * dy;
+              if (rr >= 1) continue;
+              const h = MM[j * MN + i];
+              if (h <= sea2) continue;
+              const elev = clamp((h - sea2) / 0.55, 0, 1);
+              // shore sand at the coast, desert inside, dusty core
+              pc.fillStyle = elev < 0.22 ? '#e0be74' : (elev > 0.62 ? '#d4ad62' : '#c9a45e');
+              const X = dx * pr, Y = cyOff(dy) * pr;
+              pc.fillRect(X - cell / 2 - 0.6, Y - cell / 2 - 0.6, cell + 1.2, cell + 1.2);
             }
           }
+          // rust blooms + green flecks — from the OVERLAY grids built by
+          // the same spherical principle as the continents (mkOverlay in
+          // genPlanetMask: seed field, ragged noise rim, erosion) —
+          // painted as cells over the land, never as ellipses
+          const RU = planetMask.rust || null, GR = planetMask.grn || null;
+          for (let j = 0; j < MN; j++) {
+            const dy = (j + 0.5) / MN * 2 - 1;
+            for (let i = 0; i < MN; i++) {
+              const idx = j * MN + i;
+              if (MM[idx] <= sea2) continue;
+              const dx = (i + 0.5) / MN * 2 - 1;
+              if (dx * dx + dy * dy >= 1) continue;
+              const rv = RU ? RU[idx] : 0, gv = GR ? GR[idx] : 0;
+              if (rv < 0.06 && gv < 0.06) continue;
+              const X = dx * pr, Y = cyOff(dy) * pr;
+              if (rv >= 0.06) {
+                pc.fillStyle = `rgba(${idx & 1 ? '138,69,48' : '160,90,55'},${Math.min(0.55, rv * 0.5).toFixed(3)})`;
+                pc.fillRect(X - cell / 2 - 0.6, Y - cell / 2 - 0.6, cell + 1.2, cell + 1.2);
+              }
+              if (gv >= 0.06) {
+                pc.fillStyle = `rgba(93,138,58,${Math.min(0.8, gv * 0.75).toFixed(3)})`;
+                pc.fillRect(X - cell / 2 - 0.6, Y - cell / 2 - 0.6, cell + 1.2, cell + 1.2);
+              }
+            }
+          }
         }
+        // the buffer already carries the disc frame's -0.3 tilt, so back
+        // out of it and drop an exact 1:1 device-pixel copy in place
+        ctx.save();
+        ctx.rotate(0.3);
+        ctx.translate(-px2, -py2);
+        ctx.drawImage(drawSky._pcv, px2 - pr, py2 - pr, pr * 2, pr * 2);
+        ctx.restore();
       }
       // polar caps, both CENTRED on the axis (local vertical of the ring
       // frame): the north pole HIGH — the end tipped toward the viewer;
@@ -635,6 +659,10 @@ let tglow = [];
 let bwlights = [];
 let eclipseF = 0;
 let sunDim = 0;
+// DEBUG MODE: off by default; double-tap the "SCORCH ARENA" title in the
+// settings window to toggle. While off the manual test summons (worm /
+// junk rain on the HP lines) stay dormant
+let scDebug = false;
 function drawCaveShade() {
     ctx.fillStyle = 'rgba(3,5,12,0.52)';
     ctx.fillRect(-30, -30, Wc + 60, Hc + 60);
@@ -2097,10 +2125,10 @@ function drawCaveShade() {
   }
   
   function drawTanks() {
-    if (state === 'aim') {
-      if (isHumanSeat(turn)) tanks[turn].dispAng = aim.ang;
-      if (GMODE === 1 && turn >= 1) tanks[1].dispAng = aiAim;
-    }
+    if (GMODE === 1) {
+      tanks[0].dispAng = aim.ang;
+      if (state === 'aim' && turn >= 1) tanks[1].dispAng = aiAim;
+    } else if (state === 'aim' && isHumanSeat(turn)) tanks[turn].dispAng = aim.ang;
     tanks.forEach((t, i) => {
       if (t.dead) return;
       const hpF = 1 - clamp(t.hp, 0, TANK_HP) / TANK_HP;
@@ -2227,7 +2255,7 @@ function drawCaveShade() {
       ctx.font = '700 10px Orbitron, monospace';
       ctx.textAlign = 'center';
       const lx = clamp(p.x, 44, Wc - 44);
-      const ly = Math.max(28, surfaceAt(lx) - 16);
+      const ly = Math.max(28, UNDER && p.y < ceilAt(p.x) ? ceilAt(lx) + 16 : surfaceAt(lx) - 16);
       ctx.strokeStyle = 'rgba(0,0,0,0.75)';
       ctx.lineWidth = 3;
       ctx.strokeText(label, lx, ly);
@@ -2427,8 +2455,8 @@ function drawCaveShade() {
   }
   //scorch.ui.js part03
   function drawAim() {
-    const t = activeTank();
-    const dir = activeDir();
+    const t = aimTank();
+    const dir = aimDir();
     const rad = aim.ang * Math.PI / 180;
     const pos = { x: t.x + Math.cos(rad) * 18 * dir, y: t.y - 12 - Math.sin(rad) * 18 };
     const vel = { vx: Math.cos(rad) * aim.pow * (VMAX / 100) * dir, vy: -Math.sin(rad) * aim.pow * (VMAX / 100) };
@@ -2790,7 +2818,14 @@ function drawCaveShade() {
       .sc-setup .sc-suggest .sc-sug-item canvas { flex-shrink: 0; }
       .sc-setup .sc-suggest .sc-sug-item .sc-sug-del { margin-left: auto; width: 20px; height: 20px; border-radius: 5px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; }
       .sc-setup .sc-suggest .sc-sug-item .sc-sug-del:hover { border-color: var(--pink); color: var(--pink); }
-      .sc-setup .sc-setup-btns { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; }
+      .sc-setup .sc-setup-btns { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; align-items: center; }
+      .sc-volrow { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; margin-right: 6px; }
+      .sc-volrow .sc-volsym { color: var(--text-dim); display: flex; flex-shrink: 0; }
+      .sc-vol { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; height: 36px; background: transparent; cursor: pointer; touch-action: manipulation; }
+      .sc-vol::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); }
+      .sc-vol::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%; background: #ffb020; border: 2px solid #0a0d12; margin-top: -10px; box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+      .sc-vol::-moz-range-track { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); }
+      .sc-vol::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: #ffb020; border: 2px solid #0a0d12; }
       .sc-setup .sc-setup-btns button { padding: 10px 18px; border-radius: 7px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text); cursor: pointer; font-size: 18px; }
       .sc-setup .sc-setup-btns .sc-go { border-color: var(--accent); color: var(--accent); font-size: 22px; }
       .sc-setup .sc-setup-btns button:hover { border-color: var(--accent); }
@@ -2968,7 +3003,8 @@ function drawCaveShade() {
               взяла право оставить в системе свои маяки. Орбиту Вейл до сих
               пор опоясывает ржавое кольцо мусора Великой Чистки: осколки
               сыплются на все миры и тонут в грунте, а в песках Пустыни и
-              Ржавых дюн живёт червь, который это кольцо глотает.
+              Ржавых дюнах живёт червь — песчаный исполин, чуткий к дрожи
+              грунта.
             </div>
             <h5>Фракции</h5>
             <div class="sc-facrow"><i class="sc-fac" style="background:#7ecbff">↻</i><div><b>Кольцо СКОРЧ</b> — инженеры павшей фабрики. Корпуса: «Рельсотрон», «Стелс»</div></div>
@@ -2999,6 +3035,10 @@ function drawCaveShade() {
               <div class="sc-pl-block" data-p="1"></div>
             </div>
             <div class="sc-setup-btns">
+              <div class="sc-volrow" title="Громкость звуков">
+                <span class="sc-volsym"><svg width="18" height="18" viewBox="0 0 16 16"><path d="M2 6h3l4-3.4v10.8L5 10H2z" fill="currentColor"/><path d="M11 5.2c1.7 1.6 1.7 4 0 5.6M12.6 3.4c2.6 2.5 2.6 6.7 0 9.2" stroke="currentColor" fill="none" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+                <input class="sc-vol" type="range" min="0" max="100" step="1">
+              </div>
               <button class="sc-go sc-sym" title="В бой!">&#x25B6;</button>
             </div>
           </div>
@@ -3090,16 +3130,40 @@ function drawCaveShade() {
       if (!el) return;
       // manual double-tap on pointerdown — the synthesized dblclick does
       // not survive the per-frame innerHTML rewrite of these lines, and
-      // on touch it fires unreliably
+      // on touch it fires unreliably. Dormant unless DEBUG MODE is on
       let tapT = 0;
       el.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
         e.preventDefault();
+        if (!scDebug) { tapT = 0; return; }
         const now = Date.now();
         if (now - tapT < 400 && now - tapT > 30) { tapT = 0; pair[1](); }
         else tapT = now;
       });
     });
+    // DEBUG MODE toggle: double-tap the "SCORCH ARENA" title in the
+    // settings window — the subtitle flashes the state, the summons above
+    // wake only while it is on; default off every session
+    {
+      const ttl = overlay.querySelector('.sc-setup-head h3');
+      const sub = overlay.querySelector('.sc-setup-sub');
+      if (ttl && sub) {
+        let tTtl = 0, subT = null;
+        ttl.addEventListener('pointerdown', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const now = Date.now();
+          if (now - tTtl < 400 && now - tTtl > 30) {
+            tTtl = 0;
+            scDebug = !scDebug;
+            sub.textContent = scDebug ? 'DEBUG MODE: ON' : 'DEBUG MODE: OFF';
+            clearTimeout(subT);
+            subT = setTimeout(() => { sub.textContent = 'SELECT YOUR FIGHTER'; }, 1400);
+            beep(scDebug ? 880 : 440, 0.09, 0.12);
+          } else tTtl = now;
+        });
+      }
+    }
     // hull gallery in help: each chassis is bound to its lore faction —
     // drawn in the faction's colour, with the faction sigil under it
     const FACTIONS = {
@@ -3477,7 +3541,26 @@ function drawCaveShade() {
       setupEl.classList.add('show');
       setupOpen = true;
     };
-    scSel('.sc-pvpbtn').onclick = (e) => { e.stopPropagation(); openSetup(); };
+    // game volume: the slider in the setup window, the mouse wheel over
+    // the ⚙ chip itself, LS-persisted; 0 = full mute
+    const volRange = overlay.querySelector('.sc-vol');
+    const pvpBtn = scSel('.sc-pvpbtn');
+    const setVol = (v, silent) => {
+      sVol = clamp(v, 0, 1);
+      try { localStorage.setItem(LS_VOL, String(sVol)); } catch (e2) {}
+      if (volRange) volRange.value = Math.round(sVol * 100);
+      pvpBtn.title = `Игроки и режим · громкость ${Math.round(sVol * 100)}%`;
+      if (!silent) beep(700, 0.06, 0.12);
+    };
+    if (volRange) {
+      volRange.addEventListener('pointerdown', (e) => e.stopPropagation());
+      volRange.addEventListener('input', () => setVol(+volRange.value / 100, true));
+      volRange.addEventListener('change', () => setVol(+volRange.value / 100));
+      volRange.addEventListener('wheel', (e) => { e.preventDefault(); setVol(sVol + (e.deltaY < 0 ? 0.05 : -0.05)); }, { passive: false });
+    }
+    pvpBtn.addEventListener('wheel', (e) => { e.preventDefault(); e.stopPropagation(); setVol(sVol + (e.deltaY < 0 ? 0.05 : -0.05)); }, { passive: false });
+    setVol(sVol, true);
+    pvpBtn.onclick = (e) => { e.stopPropagation(); openSetup(); };
     overlay.querySelector('.sc-set-x').onclick = (e) => { e.stopPropagation(); closeSetup(); };
     scSel('.sc-go').onclick = (e) => {
       e.stopPropagation();
@@ -3524,7 +3607,7 @@ function drawCaveShade() {
     overlay.querySelectorAll('.sc-aimctl').forEach(el => {
       el.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (state !== 'aim' || helpOpen) return;
+        if (!ctlLive() || helpOpen) return;
         tctlOpen = !tctlOpen;
         draw();
       });
@@ -3538,7 +3621,7 @@ function drawCaveShade() {
       if (helpOpen) { closeHelp(); return; }
       if (wmenu.classList.contains('show')) { wmenu.classList.remove('show'); return; }
       if (state === 'over' || state === 'closing') return;
-      if (state !== 'aim' || !isHumanSeat(turn)) return;
+      if (!ctlLive()) return;
       drag = { x: ptrPos(e).x, y: ptrPos(e).y, moved: false };
       try { cv.setPointerCapture(e.pointerId); } catch {}
     });
@@ -3557,7 +3640,7 @@ function drawCaveShade() {
     });
     cv.addEventListener('wheel', (e) => {
       e.preventDefault();
-      if (state !== 'aim' || !isHumanSeat(turn)) return;
+      if (!ctlLive()) return;
       aim.pow = clamp(aim.pow + (e.deltaY < 0 ? 1 : -1), 10, 100);
       draw();
     }, { passive: false });
@@ -3693,7 +3776,7 @@ function drawCaveShade() {
     }
     if (/^[0-9]$/.test(e.key)) {
       e.preventDefault();
-      if (state !== 'aim' || !isHumanSeat(turn)) return;
+      if (!ctlLive()) return;
       const idx = e.key === '0' ? 9 : parseInt(e.key, 10) - 1;
       const inv = currentInv();
       if (idx < ARSENAL.length && (inv[ARSENAL[idx].key] > 0 || ARSENAL[idx].ammo === Infinity)) { setCurrentCur(idx); overlay.querySelector('.sc-wmenu').classList.remove('show'); draw(); }
@@ -3701,10 +3784,11 @@ function drawCaveShade() {
     }
     if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','w','W','ц','Ц'].includes(e.key)) e.preventDefault();
     if (e.key === 'w' || e.key === 'W' || e.key === 'ц' || e.key === 'Ц') { nextWeapon(); return; }
-    if (state !== 'aim' || !isHumanSeat(turn)) return;
-    // aiming is always live; firing and the trajectory are own-turn only.
-    // The clamps span the FULL barrel arc (AIM_MIN..AIM_MAX)
-    const ccw = activeDir();
+    if (!ctlLive()) return;
+    // aiming stays live in PVC through the computer's turn (pre-aiming);
+    // firing is own-turn only. The clamps span the FULL barrel arc
+    // (AIM_MIN..AIM_MAX)
+    const ccw = aimDir();
     if (e.key === 'ArrowLeft') aim.ang = clamp(aim.ang + ccw, AIM_MIN, AIM_MAX);
     if (e.key === 'ArrowRight') aim.ang = clamp(aim.ang - ccw, AIM_MIN, AIM_MAX);
     if (e.key === 'ArrowUp') aim.pow = clamp(aim.pow + 1, 10, 100);

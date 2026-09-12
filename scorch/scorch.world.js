@@ -989,7 +989,7 @@ function placeTanks(final) {
       dirtyA = Math.min(dirtyA, mi - 16); dirtyB = Math.max(dirtyB, ci + 25);
     });
   }
-
+//scorch.world.js part02
   // a fighter standing on a slope gets a built-out LEDGE: flat ground
   // under the tracks, then a shoulder at a stable scree angle running
   // downhill until it MERGES into the hillside — no hanging base, no
@@ -1050,8 +1050,9 @@ function newRound(first) {
   // summons bypass the plans
   wormPlan = { q: 0, at: [], n: 0 };
   junkPlan = { q: 0, at: [], n: 0 };
+  // the worm: on average once per THREE rounds, one appearance max
   const wq = Math.random();
-  if (wq > 0.8) { wormPlan.q = wq > 0.95 ? 2 : 1; wormPlan.at = [R(70, 200), R(210, 290)]; }
+  if (wq > 0.67) { wormPlan.q = 1; wormPlan.at = [R(70, 200)]; }
   if (!UNDER) {
     const jq = Math.random();
     if (jq > 0.85) { junkPlan.q = jq > 0.97 ? 2 : 1; junkPlan.at = [R(90, 220), R(240, 320)]; }
@@ -1060,6 +1061,7 @@ function newRound(first) {
   shake = 0;
   skyLight = { x: -999, col: '255,255,255', a: 0 };
   roundStart = Date.now();
+  roundArmed = false;
   turnTimer = TURN_TIME;
   warnedAt = {};
   confirmClose = false;
@@ -1155,7 +1157,6 @@ function subsideColumn(i, quiet) {
   dirtyA = Math.min(dirtyA, i); dirtyB = Math.max(dirtyB, i + 1);
   return drop;
 }
-//scorch.world.js part02
 // the void TRACKS the drill: floor extends to it, ceiling rises with it
 function carve(x, y, rad, sid) {
   const N = cols.length;
@@ -1303,6 +1304,10 @@ function digTrench(x, y, ang, len, rad) {
 
 function addTerrDmg(i, dmg, src) {
   const t = tanks[i];
+  // round-start settling (fresh ledges sagging, young relief relaxing,
+  // wind-built sand creeping) never costs HP: terrain damage wakes up
+  // with the round's first shot
+  if (!roundArmed && (src === 'падение' || src === 'грунт')) return;
   if (!canHurt(i) || dmg <= 0) return;
   const room = TERR_DMG_MAX - (t.terrDmg || 0);
   if (room <= 0) return;
@@ -1342,6 +1347,30 @@ function ceilingCrush(x, r) {
     debris.push({ x: cx, y: ceilAt(cx) - R(2, 10), vx: R(-24, 24), vy: R(30, 90), rot: R(0, 6.28), vr: R(-5, 5), s: R(1.6, 3.6), col: M().chunks[(Math.random() * M().chunks.length) | 0], settled: false, life: 12 });
   }
   sfx(0.6);
+}
+
+// a Dirt Ball bursting against the ceiling GROWS the rock downward: its
+// mass stays up there as a stalactite (mirror of ceilingCrush). The room
+// is never pinched shut — the floor keeps a turret-high clearance (in a
+// pathologically shallow cave the growth simply stops instead of carving
+// the ceiling open), and any cave light caught inside the new rock is
+// buried with it
+function growStalactite(x, r) {
+  const N = cols.length;
+  const i0 = clamp(Math.round((x - r) / cols.step), 0, N - 1);
+  const i1 = clamp(Math.round((x + r) / cols.step), 0, N - 1);
+  for (let i = i0; i <= i1; i++) {
+    const dx = (i * cols.step - x) / r;
+    if (Math.abs(dx) > 1) continue;
+    const j = 0.8 + noise(i * 5.1) * 0.4;
+    const drop = r * 0.55 * Math.pow(Math.max(0, 1 - dx * dx), 0.8) * j;
+    ceil[i] = Math.max(ceil[i], Math.min(cols[i].top - 36, ceil[i] + drop));
+  }
+  for (let q = caveLights.length - 1; q >= 0; q--) {
+    const L = caveLights[q];
+    if (L.x < x - r || L.x > x + r) continue;
+    if (L.k === 'beam' ? ceilAt(L.x) > L.y + 2 : ceilAt(L.x) > L.y + L.g * 0.4) caveLights.splice(q, 1);
+  }
 }
 
 // a nuke tearing into the cave ceiling: the torn rock pours back down as
@@ -1591,15 +1620,22 @@ function stepTerra(dt) {
       t.y = Math.min(t.y + 340 * dt, fl);
       if (t.y >= fl - 0.5) {
         const fall = t.fallFrom - fl;
-        if (fall > 8) {
+        // round-start settling never bites: the freshly built ledges and
+        // the first relaxation passes can drop the ground a few px under
+        // a fighter — that is placement noise, not combat
+        if (fall > 8 && rgt > 3) {
           addTerrDmg(i, fall * 0.45, 'падение');
           fx.push({ k: 'dust', x: t.x, y: t.y, vx: R(-14, 14), vy: -20, r: 5, t: 0, life: 0.6, col: M().dustCol });
         }
         t.fallFrom = undefined;
       }
     } else if (c.top < t.y - 0.5 && !inTun) {
+      // lift ceiling: a fighter never rides rising ground above the
+      // cave's ceiling or off the top of the screen — it stays put,
+      // buried, and blasts/digs its way out (classic dirt-burial rules)
+      const capY = UNDER ? ceilAt(t.x) + 32 : 40;
       t.riseAcc = (t.riseAcc || 0) + (t.y - c.top);
-      t.y = c.top;
+      t.y = Math.min(t.y, Math.max(c.top, capY));
       t.fallFrom = undefined;
     } else {
       if ((t.riseAcc || 0) > 1.2) {
@@ -2039,7 +2075,7 @@ function stepFx(dt) {
     if (canHurt(i) && burnN[i]) damageTank(i, Math.min(burnN[i], 2) * 7 * dt, 'napalm', tanks[i].x, tanks[i].y - 10);
   }
 }
-
+//scorch.world.js part03
 // persistent hull chunks from overkill deaths
 function stepWreckBits(dt) {
   wreckBits = wreckBits.filter(w => {
@@ -2078,9 +2114,9 @@ function integrate(pos, vel, w, dt) {
   pos.x += vel.vx * dt; pos.y += vel.vy * dt;
 }
 
-function currentInv() { return tanks[turn] ? (turn === 0 ? ammoInv : aiAmmo) : ammoInv; }
+function currentInv() { return GMODE === 2 && turn === 1 ? aiAmmo : ammoInv; }
 function currentCur() { return turn === 0 ? cur : (GMODE === 2 ? cur2 : cur); }
-function setCurrentCur(v) { if (turn === 0) cur = v; else if (GMODE === 2) cur2 = v; }
+function setCurrentCur(v) { if (turn === 0 || GMODE === 1) cur = v; else cur2 = v; }
 
 function fire() {
   if (state !== 'aim' || turn !== 0 || turnIntro > 0 || !canAct(0)) return;
@@ -2113,6 +2149,7 @@ function fire2() {
 function launch(t, ang, pow, dir, w, who) {
   const rad = ang * Math.PI / 180;
   shotOwner = tanks.indexOf(t);
+  roundArmed = true;
   if (shotOwner) shots2++;
   t.recoil = 1;
   // last stand: this is the dying fighter's ONE shot
@@ -2208,10 +2245,10 @@ function simulateShot(x0, y0, ang, pow, dir, wa) {
   return null;
 }
 
-//scorch.world.js part03
 // ============ DIGGER: charge-based bore ============
 function digEnter(p) {
   p.digging = true;
+  p.touched = true;
   p.sid = ++digSid;
   p.digT = 0;
   if (p.charge === undefined) p.charge = Wc * DIG_LEN;
@@ -2246,7 +2283,13 @@ function digCollapse(p) {
   }
 }
 function digMotion(p, dt) {
-  if (p.y < surfaceAt(p.x) - 4 && !inVoid(p.x, p.y)) {
+  // emerged into REAL open air only: above the cave ceiling the rock is
+  // endless (shotBlocked stays true while y < surfaceAt still claims
+  // air), and the old y<surface test deadlocked the drill in that
+  // phantom zone — digEnter and this exit traded places every frame
+  // without a single move or a tick of charge. It drills on through
+  // now and ends by charge, exactly like endless rock should
+  if (!shotBlocked(p.x, p.y, p.sid)) {
     p.digging = false;
     const sp = Math.max(Math.hypot(p.vx, p.vy), 240);
     p.vx = p.dvx * sp;
@@ -2264,13 +2307,16 @@ function digMotion(p, dt) {
   p.x = nx; p.y = ny;
   p.digT += dt;
   shake = Math.max(shake, 0.8 + Math.sin(gt * 21) * 0.45);
+  // while drilling the ceiling's endless rock the dust drifts DOWN from
+  // the underside and no floor debris erupts
+  const inCeil = UNDER && p.y < ceilAt(p.x);
   p.puffT = (p.puffT || 0) + dt;
   if (p.puffT > 0.12) {
     p.puffT = 0;
     const sx = p.x + R(-7, 7);
-    fx.push({ k: 'dust', x: sx, y: surfaceAt(sx) - 2, vx: R(-8, 8), vy: -R(10, 26), r: R(1.5, 3), t: 0, life: R(0.4, 0.8), col: M().dustCol });
+    fx.push({ k: 'dust', x: sx, y: inCeil ? ceilAt(sx) + 2 : surfaceAt(sx) - 2, vx: R(-8, 8), vy: inCeil ? R(6, 20) : -R(10, 26), r: R(1.5, 3), t: 0, life: R(0.4, 0.8), col: M().dustCol });
   }
-  if (Math.random() < dt * 4) {
+  if (!inCeil && Math.random() < dt * 4) {
     debris.push({ x: p.x + R(-6, 6), y: surfaceAt(p.x) - R(0, 4), vx: R(-35, 35), vy: -R(50, 140), rot: R(0, 6), vr: R(-5, 5), s: R(1, 2.5), col: M().chunks[(Math.random() * M().chunks.length) | 0], settled: false, life: 10 });
   }
   digCollapse(p);
@@ -2370,6 +2416,7 @@ function updateProjectile(p, dt) {
     }
     const surf = surfaceAt(p.x);
     if (p.w.type === 'roller' && !p.rollDrop && p.y >= surf - 6 && p.y < surf + 16) {
+      p.touched = true;
       const c = colAt(p.x);
       if (c.h1 > 0 && c.h0 <= c.top + 2) { p.rollDrop = true; return; }
       if (c.lava > 2) { p.dead = true; p.y = surf - 4; return; } // rolled into a lava pool: detonate
@@ -2442,10 +2489,10 @@ function updateLiquid(l, dt) {
 
 // ================= WEAPON IMPACTS =================
 function resolveHit(p) {
-  if (p.sunkSilent) { state = 'boom'; lastShotApex = p.apex || 0; endTurnWaterSink(); return; }
+  if (p.sunkSilent) { if (!p.bg) { state = 'boom'; lastShotApex = p.apex || 0; endTurnWaterSink(); } return; }
   if (p.wet) { wetHit(p); return; }
   const w = p.w, x = p.x, y = p.y;
-  state = 'boom';
+  if (!p.bg) state = 'boom';
   lastShotApex = p.apex || 0;
   if (p.intercept) {
     boomsAt(p.intercept.x, p.intercept.y, Math.max(20, w.r * 0.55), 'missile', Math.round(w.dmg * 0.7));
@@ -2583,38 +2630,43 @@ function resolveHit(p) {
     case 'roller':
       boomsAt(x, y, w.r, 'roller', w.dmg);
       break;
-    case 'digger': {
-      hitFx(x, y, w.r * 0.4, false);
-      if (p.dug) {
-        boomsAt(x, y, 30, 'missile', 38);
-        for (let k = 0; k < 10; k++) {
-          const dx = x + R(-14, 14);
-          debris.push({ x: dx, y: surfaceAt(dx) - R(4, 20), vx: R(-40, 40), vy: -R(80, 200), rot: R(0, 6), vr: R(-6, 6), s: R(1.5, 3.5), col: M().chunks[(Math.random() * M().chunks.length) | 0], settled: false, life: 12 });
+      case 'digger': {
+        hitFx(x, y, w.r * 0.4, false);
+        if (p.dug) {
+          boomsAt(x, y, 30, 'missile', 38);
+          // a charge spent inside the ceiling's endless rock tears it open
+          // via boomsAt' hitCeil path — the floor-side chunk burst and dust
+          // cloud would erupt from the wrong end of the cave there
+          if (!(UNDER && y < ceilAt(x))) {
+            for (let k = 0; k < 10; k++) {
+              const dx = x + R(-14, 14);
+              debris.push({ x: dx, y: surfaceAt(dx) - R(4, 20), vx: R(-40, 40), vy: -R(80, 200), rot: R(0, 6), vr: R(-6, 6), s: R(1.5, 3.5), col: M().chunks[(Math.random() * M().chunks.length) | 0], settled: false, life: 12 });
+            }
+            fx.push({ k: 'dustc', x, y: surfaceAt(x) - 10, r: 14, t: 0, life: 0.9, col: M().dustCol });
+          }
+        } else if (nearCeil) {
+          // a drill rammed into the cave ceiling: it gouges the inverted
+          // ground and the mass rains down
+          ceilingCrush(x, w.r * 0.9);
+          fx.push({ k: 'shock', x, y, r0: 6, r1: w.r, t: 0, life: 0.25 });
+          sfx(0.4);
+        } else {
+          fx.push({ k: 'shock', x, y, r0: 6, r1: w.r, t: 0, life: 0.25 });
+          digTrench(x, y, ang, w.r * 1.7, w.r * DIG_RADIUS_F);
+          sfx(0.4);
         }
-        fx.push({ k: 'dustc', x, y: surfaceAt(x) - 10, r: 14, t: 0, life: 0.9, col: M().dustCol });
-      } else if (nearCeil) {
-        // a drill rammed into the cave ceiling: it gouges the inverted
-        // ground and the mass rains down
-        ceilingCrush(x, w.r * 0.9);
-        fx.push({ k: 'shock', x, y, r0: 6, r1: w.r, t: 0, life: 0.25 });
-        sfx(0.4);
-      } else {
-        fx.push({ k: 'shock', x, y, r0: 6, r1: w.r, t: 0, life: 0.25 });
-        digTrench(x, y, ang, w.r * 1.7, w.r * DIG_RADIUS_F);
-        sfx(0.4);
+        break;
       }
-      break;
-    }
-    case 'dirt': {
-      if (nearCeil) {
-        // a Dirt Ball bursting against the ceiling buries the floor below
-        ceilingCrush(x, w.r);
-        spawnDirtFall(x, w.r);
-      } else {
-        craterMask(x, w.r, 1, 'add', 'ellipse');
-        spawnDirtFall(x, w.r);
-      }
-      fx.push({ k: 'dustc', x, y: surfaceAt(x) - w.r * 0.5, r: w.r * 0.5, t: 0, life: 1.2, col: M().dustCol });
+      case 'dirt': {
+        if (nearCeil) {
+          // a Dirt Ball bursting against the ceiling STAYS up there: the
+          // rock grows a stalactite downward — the dirt's own mass, no rain
+          growStalactite(x, w.r);
+        } else {
+          craterMask(x, w.r, 1, 'add', 'ellipse');
+          spawnDirtFall(x, w.r);
+        }
+        fx.push({ k: 'dustc', x, y: nearCeil ? ceilAt(x) + w.r * 0.5 : surfaceAt(x) - w.r * 0.5, r: w.r * 0.5, t: 0, life: 1.2, col: M().dustCol });
       const [sa, sb] = blastRange(x, w.r * 1.2);
       schedule(() => slump(sa, sb, 10), 0.9);
       if (nearVolcano(x, y) && gt > volcano.doused) {
@@ -2636,7 +2688,7 @@ function endTurnWaterSink() {
 }
 
 function wetHit(p) {
-  state = 'boom';
+  if (!p.bg) state = 'boom';
   lastShotApex = p.apex || 0;
   const w = p.w, x = p.x, y = p.y;
   const yw = waterAt(x);
@@ -2797,6 +2849,7 @@ function endRound() {
   state = 'wait';
   schedule(() => resolveRound(), 1.3);
 }
+//scorch.world.js part04
 function resolveRound() {
   const d0 = tanks[0].dead, d1 = tanks[1].dead;
   killed = null;
@@ -3243,7 +3296,12 @@ function junkLand(j) {
 // archipelags with ragged radial profiles are sprinkled. Fully
 // deterministic per round (the round's seeded `noise` + S)
 function genPlanetMask() {
-  const R2 = 64;                      // grid resolution (R2 x R2 cells)
+  // 3x supersampling of the SAME field: every cell-space noise frequency
+  // below is normalized by k, so a given seed grows the SAME planet — the
+  // coasts just step in fine cells instead of chunky blocks. The basis
+  // (sphere seeds + noise + erosion + islands) is untouched
+  const R2 = 192;
+  const k = 64 / R2;                  // cell→disc frequency normalizer
   const rnd = mulberry32((seed ^ 0x5f3a) | 0);
   // continent centers as unit sphere vectors, random sizes/strengths
   const conts = [];
@@ -3297,9 +3355,9 @@ function genPlanetMask() {
       // multi-scale noise: LOW shapes the mass, MID works mostly in the
       // narrow coastal band around sea level, HIGH adds fine grain
       const coast = clamp(1 - Math.abs(h - sea) / 0.22, 0, 1);
-      const nLo = (fbmS(i * 0.11 + 500, 1, j * 0.11) - 0.5) * 0.34;
-      const nMid = (fbmS(i * 0.42 + 300, 1, j * 0.42) - 0.5) * 0.26 * (0.25 + coast);
-      const nHi = (noise(i * 1.7 + 90) - 0.5) * 0.08 * coast;
+      const nLo = (fbmS(i * 0.11 * k + 500, 1, j * 0.11 * k) - 0.5) * 0.34;
+      const nMid = (fbmS(i * 0.42 * k + 300, 1, j * 0.42 * k) - 0.5) * 0.26 * (0.25 + coast);
+      const nHi = (noise(i * 1.7 * k + 90) - 0.5) * 0.08 * coast;
       m[j * R2 + i] = h + nLo + nMid + nHi;
     }
   }
@@ -3416,7 +3474,7 @@ function genPlanetMask() {
           const wob = 1 + Math.sin(a4 * 4 + sd.x * 55) * 0.24 + Math.sin(a4 * 7 + sd.z * 55) * 0.15;
           const dd = d / (sd.r * wob);
           const rim = clamp(1 - Math.abs(dd - 0.72) / 0.3, 0, 1);
-          const nM = (noise(i * 0.5 + sd.x * 80 + 700) - 0.5) * 0.35 * (0.3 + rim);
+          const nM = (noise(i * 0.5 * k + sd.x * 80 + 700) - 0.5) * 0.35 * (0.3 + rim);
           v = Math.max(v, sd.s * clamp(1 - dd * dd + nM, 0, 1));
         });
         g[j * R2 + i] = v;
@@ -3515,6 +3573,15 @@ function step(dt) {
     if (shot && shot.dead) { resolveHit(shot); shot = null; }
   }
   subshots = subshots.filter(s => { updateProjectile(s, dt); if (s.dead) { resolveHit(s); return false; } return true; });
+  // roller/digger first ground touch: hand the turn over AT ONCE — the shot
+  // keeps rolling/drilling as a background subshot (bg), and its later blast
+  // touches no turn state, like napalm's fire outliving its own turn
+  if (state === 'fly' && shot && shot.touched) {
+    shot.bg = true;
+    subshots.push(shot);
+    shot = null;
+    endTurn();
+  }
   liquids = liquids.filter(l => { updateLiquid(l, dt); return !l.dead; });
   sinkers = sinkers.filter(sk => {
     sk.t += dt;
@@ -3645,9 +3712,15 @@ function step(dt) {
 
   if (state === 'aim' && turn === 1 && GMODE === 1 && !shot && subshots.length === 0 && canAct(1) && turnReady()) schedule(aiTurn, 0.9);
   if (boomsIdle() && !shot && subshots.length === 0 && killed !== null && state !== 'wait' && state !== 'over' && state !== 'closing') endRound();
-  if (state === 'boom' && killed === null && !shot && subshots.length === 0 && turnReady()) endTurn();
+  // the turn returns the instant the sky clears of shells — the same
+  // moment the aim preview reappears — while the blast fx, smoke and the
+  // settling debris keep playing in the background, exactly like the
+  // napalm fire that already outlives its own turn handover
+  if (state === 'boom' && killed === null && !shot && subshots.length === 0) endTurn();
   if (state !== 'closing' && state !== 'over') draw();
 }
-// dead-hand pacing: control returns once the blast fades and the tanks settle
+// dead-hand pacing for the PC's reply and the round END: the computer
+// fires, and the fatality banner appears, only once the blast fades and
+// the tanks settle — the human's own turn returns with the last shell
 const turnReady = () => !fx.some(f => f.k === 'fire' || f.k === 'flash' || f.k === 'shock' || f.k === 'star' || f.k === 'spark' || f.k === 'crackle' || f.k === 'plasmaOrb') && terraJobs.length === 0 && events.length === 0 && tanks.every(t => t.dead || t.fallFrom === undefined);
 const boomsIdle = () => turnReady() && liquids.length === 0 && !debris.some(d => !d.settled) && !firePatches.some(fp => !fp.volc);
