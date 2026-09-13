@@ -1136,7 +1136,27 @@
   },
   {
     "name": "Радио 10",
-    "streams": []
+    "streams": [
+      {
+        "name": "Радио 10",
+        "url": "https://ic.radio10.live/stream.mp3",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "https://topradio.me/assets/image/radio/100/10-petrozavodsk.png",
+        "tags": "поп-музыка, чилаут"
+      },
+      {
+        "name": "Град Петров Санкт Петербург 73.10 УКВ",
+        "url": "http://stream.grad-petrov.ru:8093/mp3",
+        "bitrate": 96,
+        "codec": "MP3",
+        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241228_214012596.jpg?alt=media&token=1844ad26-1a93-4b6a-807a-2dfcebf2d413",
+        "tags": "christian, grad petrov, religious, sankt peterburg"
+      }
+    ],
+    "homepage": "https://topradio.me/10",
+    "favicon": "https://topradio.me/assets/image/radio/100/10-petrozavodsk.png",
+    "tags": "поп-музыка, чилаут"
   },
   {
     "name": "Радио 100",
@@ -2022,43 +2042,7 @@
   },
   {
     "name": "Радио Мир",
-    "streams": [
-      {
-        "name": "Радио Мир (Барнаул)",
-        "url": "https://icecast-mirtv.cdnvideo.ru/radio_mir4_256",
-        "bitrate": 326,
-        "codec": "AAC+",
-        "favicon": "",
-        "tags": "barnaul, music, wapmahka, барнаул, местные новости"
-      },
-      {
-        "name": "Радио МИР",
-        "url": "https://icecast-mirtv.cdnvideo.ru/radio_mir_256",
-        "bitrate": 333,
-        "codec": "AAC+",
-        "favicon": "https://i.ibb.co/ygdPW3d/image.png",
-        "tags": "music, wapmahka, музыка, новости, разговорное"
-      },
-      {
-        "name": "Радио Мир Смоленск 103.1 FM",
-        "url": "http://92.241.103.200:8083/mir_sm",
-        "bitrate": 256,
-        "codec": "MP3",
-        "favicon": "null",
-        "tags": "103_1 fm, music, pop, radio mir, smolensk"
-      },
-      {
-        "name": "Радио Мир Владикавказ 91.6 FM",
-        "url": "http://icecast.mir24.tv:8000/Mir_Vladikavkaz",
-        "bitrate": 64,
-        "codec": "MP3",
-        "favicon": "null",
-        "tags": "pop, russian"
-      }
-    ],
-    "homepage": "https://radiomir.fm/",
-    "favicon": "https://i.ibb.co/ygdPW3d/image.png",
-    "tags": "music, wapmahka, музыка, новости, разговорное"
+    "streams": []
   },
   {
     "name": "Радио Мира Белогорья",
@@ -2312,11 +2296,11 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд Christmas",
-        "url": "http://radiorecord.hostingradio.ru/christmas96.aacp",
+        "name": "Радио Рекорд Breaks",
+        "url": "http://radiorecord.hostingradio.ru/brks96.aacp",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "http://radiorecord.ru/local/templates/record/assets/build/favicon-set/apple-touch-icon.png",
+        "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
         "tags": ""
       },
       {
@@ -2360,9 +2344,9 @@
         "tags": "music, nostalgia, pop, rrd, semenov"
       }
     ],
-    "homepage": "https://top-radio.ru/web/rodnyix-dorog",
+    "homepage": "http://radiord.ru/",
     "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20250111_000229150.jpg?alt=media&token=d7b2a8c7-5700-4c55-98c2-8846031700ca",
-    "tags": "chanson, music, pop, rrd"
+    "tags": "cheboksary, federal radiochanel, music, news, road"
   },
   {
     "name": "Радио Рокс",
@@ -2572,7 +2556,7 @@
         "url": "https://stream.radiosibir.ru:8093/HQ",
         "bitrate": 192,
         "codec": "MP3",
-        "favicon": "",
+        "favicon": "https://radiosibir.ru/img/logo-small.png",
         "tags": "томск"
       },
       {
@@ -2585,7 +2569,7 @@
       }
     ],
     "homepage": "https://radiosibir.ru/",
-    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241008_175133555.jpg?alt=media&token=ae43a0c7-60da-4f7e-aa10-bfe3db95d518",
+    "favicon": "https://radiosibir.ru/img/logo-small.png",
     "tags": "томск"
   },
   {
@@ -2916,6 +2900,14 @@
         "tags": "jazz, smooth jazz"
       },
       {
+        "name": "Радио Jazz",
+        "url": "http://nashe1.hostingradio.ru/jazz-256",
+        "bitrate": 256,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": ""
+      },
+      {
         "name": "Jazz",
         "url": "http://79.120.77.11:8000/jazz",
         "bitrate": 320,
@@ -2932,10 +2924,10 @@
         "tags": ""
       },
       {
-        "name": "Guitar Jazz",
-        "url": "http://79.120.77.11:8000/guitarjazz",
-        "bitrate": 320,
-        "codec": "AAC+",
+        "name": "Coffee Jazz",
+        "url": "https://tower.hayva.ru/f7lwc-96",
+        "bitrate": 0,
+        "codec": "AAC",
         "favicon": "",
         "tags": ""
       }
@@ -3422,7 +3414,7 @@
     ],
     "homepage": "https://smotri.radio/",
     "favicon": "https://hitfm.ru/favicon.ico",
-    "tags": "chr, dance, hits, international hits, pop"
+    "tags": "pop rock, russian music, top hits"
   },
   {
     "name": "Экспресс Радио",
@@ -3561,14 +3553,6 @@
       },
       {
         "name": "DFM",
-        "url": "https://dfm.hostingradio.ru/dfm96.aacp?5c80d70c",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "DFM",
         "url": "https://hls-01-dfm.hostingradio.ru/dfm/playlist.m3u8",
         "bitrate": 100,
         "codec": "AAC",
@@ -3582,6 +3566,14 @@
         "codec": "AAC+",
         "favicon": "https://dfm.ru/uploads/favicon.ico",
         "tags": "breakbeat"
+      },
+      {
+        "name": "DFM - Chill",
+        "url": "https://dfm-dfmchill.hostingradio.ru/dfmchill96.aacp",
+        "bitrate": 96,
+        "codec": "AAC+",
+        "favicon": "https://dfm.ru/uploads/favicon.ico",
+        "tags": "ambient, chill, relax, relaxation music"
       }
     ],
     "homepage": "https://dfm.ru/",
@@ -3918,16 +3910,24 @@
         "tags": "classic rock, pop rock, rock"
       },
       {
-        "name": "ROCK FM",
-        "url": "https://nashe1.hostingradio.ru:80/rock-128.mp3",
+        "name": "Rock FM",
+        "url": "http://nashe2.hostingradio.ru/rock-128.mp3",
         "bitrate": 0,
         "codec": "MP3",
-        "favicon": "https://www.rockfm.ru/favicons/apple-touch-icon.png",
-        "tags": "rock"
+        "favicon": "",
+        "tags": ""
       },
       {
-        "name": "Arena Rock",
-        "url": "http://79.111.14.76:8000/aor",
+        "name": "Rock",
+        "url": "http://79.120.77.11:8000/rock",
+        "bitrate": 320,
+        "codec": "AAC+",
+        "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "Folk Rock",
+        "url": "http://79.111.14.76:8000/folkrock",
         "bitrate": 320,
         "codec": "AAC+",
         "favicon": "",
