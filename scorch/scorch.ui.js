@@ -36,6 +36,7 @@ function rrectPath(c, x, y, w, h, r) {
   }
   // bottom control panel; the wind bar stays pinned to the bottom edge
   function updateTctl() {
+    updateMedia();
     if (!tctlEl) return;
     const active = ctlLive();
     const blocked = helpOpen || setupOpen || confirmOpen;
@@ -50,6 +51,42 @@ function rrectPath(c, x, y, w, h, r) {
       powVal.textContent = Math.round(aim.pow);
     }
   }
+
+  // the HUD media bar state: which audio source owns the buttons now —
+  // the external stream (extMode 1/2) or the built-in chiptune
+  function updateMedia() {
+    const bar = overlay && overlay.querySelector('.sc-mediabar');
+    if (!bar) return;
+    const hasMus = typeof musicInfo === 'function';
+    if (!hasMus && !extMode) { if (bar.style.display !== 'none') bar.style.display = 'none'; return; }
+    bar.style.display = 'flex';
+    const inf = hasMus ? musicInfo() : null;
+    const playing = extMode === 1 || !!(inf && inf.playing);
+    if (bar._p === playing) return;
+    bar._p = playing;
+    const b = bar.querySelector('[data-a="play"]');
+    if (b) {
+      b.innerHTML = playing
+        ? '<svg width="11" height="11" viewBox="0 0 12 12"><path d="M2 1h3v10H2zM7 1h3v10H7z" fill="currentColor"/></svg>'
+        : '<svg width="11" height="11" viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg>';
+      b.title = playing ? 'Пауза' : 'Пуск';
+    }
+  }
+
+  // standalone OPTIONS: the setup window over the splash, no duel behind
+  // it — every close path (✓, ✕, Esc, click outside) saves the drafts and
+  // returns; the splash melody keeps playing throughout
+  function openOptionsUI() {
+    build();
+    ensureAudio();
+    syncLightTheme();
+    scOptions = true;
+    overlay.classList.add('show');
+    overlay.classList.add('sc-opts');
+    if (uiOpenSetup) uiOpenSetup(true);
+    setTimeout(resize, 60);
+  }
+  if (window.Scorch) window.Scorch.options = openOptionsUI;
   
   // ================= RENDER =================
   function draw() {
@@ -659,6 +696,11 @@ let tglow = [];
 let bwlights = [];
 let eclipseF = 0;
 let sunDim = 0;
+// standalone OPTIONS mode: the setup window floats over the splash with
+// no duel behind it — every close path saves and returns (openOptionsUI)
+let scOptions = false;
+let uiOpenSetup = null;
+let uiCloseOptions = () => {};
 // DEBUG MODE: off by default; double-tap the "SCORCH ARENA" title in the
 // settings window to toggle. While off the manual test summons (worm /
 // junk rain on the HP lines) stay dormant
@@ -2741,6 +2783,15 @@ function drawCaveShade() {
       .sc-lives .sc-shd { display: inline-block; width: 13px; height: 13px; border: 2px solid #4ac0ff; border-radius: 50%; vertical-align: -1px; opacity: 0.85; margin-left: 5px; }
       .sc-windbar { position: absolute; right: 14px; bottom: 12px; z-index: 4; pointer-events: none; display: flex; align-items: center; gap: 10px; font-family: 'Orbitron', monospace; font-size: 28px; color: rgba(212,222,238,0.92); text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.7); }
       .sc-windarrow { font-size: 40px; letter-spacing: -4px; }
+      .sc-mediabar { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 4; display: none; gap: 6px; pointer-events: auto; }
+      .sc-mb { width: 34px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: rgba(6,10,18,0.72); color: #cdd9e8; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+      .sc-mb:hover { border-color: rgba(150,190,235,0.55); color: #fff; }
+      .sc-mb:active { background: #ffb020; color: #10131a; }
+      .sc-overlay.sc-light .sc-mb { background: rgba(244, 247, 250, 0.82); color: #2a3a4e; border-color: #c4cdd9; }
+      .sc-overlay.sc-light .sc-mb:hover { border-color: rgba(31, 127, 208, 0.6); color: #1f7fd0; }
+      .sc-overlay.sc-light .sc-mb:active { background: #ffb020; color: #10131a; }
+      @media (max-width: 640px) { .sc-mediabar { bottom: 48px; } .sc-mb { width: 30px; height: 27px; } }
+      .sc-overlay.sc-opts .sc-hud, .sc-overlay.sc-opts .sc-lives, .sc-overlay.sc-opts .sc-windbar, .sc-overlay.sc-opts .sc-mediabar, .sc-overlay.sc-opts .sc-fs, .sc-overlay.sc-opts .sc-close { display: none !important; }
       .sc-tctl { position: absolute; left: 50%; transform: translateX(-50%); bottom: 62px; z-index: 5; display: none; flex-direction: column; gap: 5px; width: calc(100% - 20px); background: rgba(6,10,18,0.86); border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px; font-family: 'Orbitron', monospace; pointer-events: auto; }
       .sc-tctl.show { display: flex; }
       .sc-tctl .sc-trow { display: flex; align-items: center; gap: 8px; height: 42px; }
@@ -2818,14 +2869,21 @@ function drawCaveShade() {
       .sc-setup .sc-suggest .sc-sug-item canvas { flex-shrink: 0; }
       .sc-setup .sc-suggest .sc-sug-item .sc-sug-del { margin-left: auto; width: 20px; height: 20px; border-radius: 5px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; }
       .sc-setup .sc-suggest .sc-sug-item .sc-sug-del:hover { border-color: var(--pink); color: var(--pink); }
-      .sc-setup .sc-setup-btns { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; align-items: center; }
-      .sc-volrow { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; margin-right: 6px; }
-      .sc-volrow .sc-volsym { color: var(--text-dim); display: flex; flex-shrink: 0; }
-      .sc-vol { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; height: 36px; background: transparent; cursor: pointer; touch-action: manipulation; }
+      .sc-setup .sc-setup-btns { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; align-items: center; flex-shrink: 0; }
+      .sc-sndbox { flex: 1; min-width: 0; padding: 8px 10px 6px; border: 1px solid var(--border); border-radius: 8px; background: rgba(4,8,14,0.35); }
+      .sc-overlay.sc-light .sc-sndbox { background: var(--panel-light); }
+      .sc-overlay.sc-light .sc-sndval { color: #b8860b; }
+      .sc-sndbox .sc-sndtitle { margin: 0 2px 5px; font: 700 9px 'Orbitron', monospace; letter-spacing: 2px; color: var(--text-dim); }
+      .sc-sndrow { display: flex; align-items: center; gap: 10px; height: 34px; }
+      .sc-sndico { width: 30px; height: 28px; flex: none; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 7px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); cursor: pointer; }
+      .sc-sndico:hover { border-color: var(--accent); color: var(--accent); }
+      .sc-sndlab { width: 62px; flex: none; font: 700 9px 'Orbitron', monospace; letter-spacing: 1px; color: var(--text-dim); }
+      .sc-sndval { min-width: 40px; flex: none; text-align: right; font: 700 11px 'Orbitron', monospace; color: #ffd23f; }
+      .sc-vol { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; height: 30px; background: transparent; cursor: pointer; touch-action: manipulation; }
       .sc-vol::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); }
-      .sc-vol::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%; background: #ffb020; border: 2px solid #0a0d12; margin-top: -10px; box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+      .sc-vol::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #ffb020; border: 2px solid #0a0d12; margin-top: -8px; box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
       .sc-vol::-moz-range-track { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); }
-      .sc-vol::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: #ffb020; border: 2px solid #0a0d12; }
+      .sc-vol::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #ffb020; border: 2px solid #0a0d12; }
       .sc-setup .sc-setup-btns button { padding: 10px 18px; border-radius: 7px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text); cursor: pointer; font-size: 18px; }
       .sc-setup .sc-setup-btns .sc-go { border-color: var(--accent); color: var(--accent); font-size: 22px; }
       .sc-setup .sc-setup-btns button:hover { border-color: var(--accent); }
@@ -2913,6 +2971,12 @@ function drawCaveShade() {
           <span class="sc-lasthit"></span>
         </div>
         <div class="sc-windbar"><span class="sc-windarrow"></span><span class="sc-windval"></span><span style="font-size:14px">ветер</span></div>
+        <div class="sc-mediabar">
+          <button class="sc-mb" data-a="prev" title="Предыдущий трек"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 1h2v10H2zM11 1v10L4.5 6z" fill="currentColor"/></svg></button>
+          <button class="sc-mb" data-a="play" title="Пуск/пауза"><svg width="11" height="11" viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg></button>
+          <button class="sc-mb" data-a="stop" title="Стоп"><svg width="10" height="10" viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" fill="currentColor"/></svg></button>
+          <button class="sc-mb" data-a="next" title="Следующий трек"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M8 1h2v10H8zM1 1v10l6.5-5z" fill="currentColor"/></svg></button>
+        </div>
         <div class="sc-wmenu"></div>
         <div class="sc-offmark"></div>
         <div class="sc-hint"></div>
@@ -3035,9 +3099,20 @@ function drawCaveShade() {
               <div class="sc-pl-block" data-p="1"></div>
             </div>
             <div class="sc-setup-btns">
-              <div class="sc-volrow" title="Громкость звуков">
-                <span class="sc-volsym"><svg width="18" height="18" viewBox="0 0 16 16"><path d="M2 6h3l4-3.4v10.8L5 10H2z" fill="currentColor"/><path d="M11 5.2c1.7 1.6 1.7 4 0 5.6M12.6 3.4c2.6 2.5 2.6 6.7 0 9.2" stroke="currentColor" fill="none" stroke-width="1.3" stroke-linecap="round"/></svg></span>
-                <input class="sc-vol" type="range" min="0" max="100" step="1">
+              <div class="sc-sndbox">
+                <div class="sc-sndtitle">ЗВУК</div>
+                <div class="sc-sndrow" id="scRowFx" title="Эффекты: ползунок или колесо мыши (шаг 1%); иконка — вкл/выкл">
+                  <button class="sc-sndico" id="scIcoFx" type="button"></button>
+                  <span class="sc-sndlab">ЭФФЕКТЫ</span>
+                  <input class="sc-vol" id="scVolFx" type="range" min="0" max="100" step="1">
+                  <b class="sc-sndval" id="scValFx"></b>
+                </div>
+                <div class="sc-sndrow" id="scRowMus" title="Музыка: ползунок или колесо (шаг 0.1%); иконка — вкл/выкл; уступает внешнему аудиопотоку">
+                  <button class="sc-sndico" id="scIcoMus" type="button"></button>
+                  <span class="sc-sndlab">МУЗЫКА</span>
+                  <input class="sc-vol" id="scVolMus" type="range" min="0" max="100" step="0.1">
+                  <b class="sc-sndval" id="scValMus"></b>
+                </div>
               </div>
               <button class="sc-go sc-sym" title="В бой!">&#x25B6;</button>
             </div>
@@ -3529,7 +3604,7 @@ function drawCaveShade() {
         renderSetupBlocks();
       };
     });
-    const openSetup = () => {
+    const openSetup = (asOpts) => {
       setup.mode = GMODE;
       setup.draft = draftForMode(setup.mode);
       setup.picked = [null, null];
@@ -3540,31 +3615,151 @@ function drawCaveShade() {
       renderSetupBlocks();
       setupEl.classList.add('show');
       setupOpen = true;
+      // options mode: the go button turns into SAVE — no duel starts here
+      const go = overlay.querySelector('.sc-go');
+      if (go) {
+        go.textContent = asOpts ? '✓ СОХРАНИТЬ' : '▶';
+        go.title = asOpts ? 'Сохранить и закрыть' : 'В бой!';
+      }
     };
-    // game volume: the slider in the setup window, the mouse wheel over
-    // the ⚙ chip itself, LS-persisted; 0 = full mute
-    const volRange = overlay.querySelector('.sc-vol');
+    uiOpenSetup = openSetup;
+    // game volume: two labelled rows in the setup window — the slider,
+    // the mouse wheel over the whole row (effects 1%, music 0.1%), and
+    // the icon that toggles mute; all LS-persisted, 0 = full mute. The
+    // music defaults to a whisper (0.5%) and lives independently of the
+    // effects volume
+    const fxRange = overlay.querySelector('#scVolFx');
+    const musRange = overlay.querySelector('#scVolMus');
+    const fxRow = overlay.querySelector('#scRowFx');
+    const musRow = overlay.querySelector('#scRowMus');
+    const fxIco = overlay.querySelector('#scIcoFx');
+    const musIco = overlay.querySelector('#scIcoMus');
+    const fxVal = overlay.querySelector('#scValFx');
+    const musVal = overlay.querySelector('#scValMus');
+    const hasMusic = typeof musicVol === 'function';
+    if (!hasMusic && musRow) musRow.style.display = 'none';
     const pvpBtn = scSel('.sc-pvpbtn');
+    const IC_SPK = '<svg width="18" height="18" viewBox="0 0 16 16"><path d="M2 6h3l4-3.4v10.8L5 10H2z" fill="currentColor"/><path d="M11 5.2c1.7 1.6 1.7 4 0 5.6M12.6 3.4c2.6 2.5 2.6 6.7 0 9.2" stroke="currentColor" fill="none" stroke-width="1.3" stroke-linecap="round"/></svg>';
+    const IC_SPK0 = '<svg width="18" height="18" viewBox="0 0 16 16"><path d="M2 6h3l4-3.4v10.8L5 10H2z" fill="currentColor"/><path d="M11 6.2l3.6 3.6M14.6 6.2 11 9.8" stroke="#ff5c7a" stroke-width="1.6" stroke-linecap="round"/></svg>';
+    const IC_NOT = '<svg width="18" height="18" viewBox="0 0 16 16"><path d="M13 2 6 3.6v7.9a2.3 2.3 0 1 0 1.3 2V6.3l4.4-1v5.2a2.3 2.3 0 1 0 1.3 2z" fill="currentColor"/></svg>';
+    const IC_NOT0 = '<svg width="18" height="18" viewBox="0 0 16 16"><path d="M13 2 6 3.6v7.9a2.3 2.3 0 1 0 1.3 2V6.3l4.4-1v5.2a2.3 2.3 0 1 0 1.3 2z" fill="currentColor"/><path d="M2.5 2.5l11 11" stroke="#ff5c7a" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    let fxLast = 0, musLast = 0;
+    const paintFx = () => {
+      if (fxRange) fxRange.value = Math.round(sVol * 100);
+      if (fxVal) fxVal.textContent = Math.round(sVol * 100) + '%';
+      if (fxIco) fxIco.innerHTML = sVol > 0 ? IC_SPK : IC_SPK0;
+      pvpBtn.title = `Игроки и режим · громкость ${Math.round(sVol * 100)}%`;
+    };
+    const paintMus = () => {
+      if (!hasMusic) return;
+      const v = musicVol();
+      if (musRange) musRange.value = Math.round(v * 1000) / 10;
+      if (musVal) musVal.textContent = (v * 100).toFixed(1) + '%';
+      if (musIco) musIco.innerHTML = v > 0 ? IC_NOT : IC_NOT0;
+    };
     const setVol = (v, silent) => {
       sVol = clamp(v, 0, 1);
       try { localStorage.setItem(LS_VOL, String(sVol)); } catch (e2) {}
-      if (volRange) volRange.value = Math.round(sVol * 100);
-      pvpBtn.title = `Игроки и режим · громкость ${Math.round(sVol * 100)}%`;
-      if (!silent) beep(700, 0.06, 0.12);
+      if (hasMusic) musicSync();
+      paintFx();
+      if (!silent && sVol > 0) beep(700, 0.06, 0.12);
     };
-    if (volRange) {
-      volRange.addEventListener('pointerdown', (e) => e.stopPropagation());
-      volRange.addEventListener('input', () => setVol(+volRange.value / 100, true));
-      volRange.addEventListener('change', () => setVol(+volRange.value / 100));
-      volRange.addEventListener('wheel', (e) => { e.preventDefault(); setVol(sVol + (e.deltaY < 0 ? 0.05 : -0.05)); }, { passive: false });
-    }
-    pvpBtn.addEventListener('wheel', (e) => { e.preventDefault(); e.stopPropagation(); setVol(sVol + (e.deltaY < 0 ? 0.05 : -0.05)); }, { passive: false });
-    setVol(sVol, true);
-    pvpBtn.onclick = (e) => { e.stopPropagation(); openSetup(); };
-    overlay.querySelector('.sc-set-x').onclick = (e) => { e.stopPropagation(); closeSetup(); };
-    scSel('.sc-go').onclick = (e) => {
+    const setMus = (v, silent) => {
+      if (!hasMusic) return;
+      musicSetVol(v);
+      paintMus();
+      if (!silent && musicVol() > 0) beep(880, 0.06, 0.1);
+    };
+    [[fxRow, fxRange, setVol, 1], [musRow, musRange, setMus, 0.1]].forEach(([row, range, apply, step]) => {
+      if (!row || !range) return;
+      row.addEventListener('pointerdown', (e) => e.stopPropagation());
+      row.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        apply(clamp((+range.value + (e.deltaY < 0 ? step : -step)) / 100, 0, 1));
+      }, { passive: false });
+      range.addEventListener('input', () => apply(+range.value / 100, true));
+      range.addEventListener('change', () => apply(+range.value / 100));
+    });
+    if (fxIco) fxIco.onclick = (e) => {
       e.stopPropagation();
-      if (!checkName(0) || !checkName(1)) { beep(220, 0.12, 0.2); return; }
+      if (sVol > 0) { fxLast = sVol; setVol(0, true); }
+      else setVol(fxLast || 0.8);
+    };
+    if (musIco) musIco.onclick = (e) => {
+      e.stopPropagation();
+      if (!hasMusic) return;
+      const v = musicVol();
+      if (v > 0) { musLast = v; setMus(0, true); }
+      else setMus(musLast || 0.005);
+    };
+    // the media bar: system-media-style control over the external stream
+    // (play/pause/stop on its element; next/prev via the host's optional
+    // window.scMedia = {next, prev} hooks, else synthetic media-key events
+    // fired on window/document/body for players that listen for them);
+    // STOP hands the stage over to the built-in tracks (extKilled); with
+    // no stream it drives the chiptune, which owns the system MediaSession
+    // then (scorch.music.js)
+    overlay.querySelectorAll('.sc-mb').forEach(b => {
+      // preventDefault on pointerdown: the click still fires but the
+      // button never takes focus — no lingering highlight after a tap
+      b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); });
+      // the wheel over any media button trims the MUSIC volume (0.1%)
+      b.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (hasMusic) setMus(clamp(musicVol() + (e.deltaY < 0 ? 0.001 : -0.001), 0, 1), true);
+      }, { passive: false });
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const a = b.dataset.a;
+        const el = apEl;
+        const extP = (on) => { if (!el) return; const p = on ? el.play() : el.pause(); if (p && p.catch) p.catch(() => {}); };
+        const extSkip = (d) => {
+          const h = window.scMedia;
+          const k = d > 0 ? 'next' : 'prev';
+          if (h && typeof h[k] === 'function') { h[k](); return; }
+          const key = d > 0 ? 'MediaTrackNext' : 'MediaTrackPrevious';
+          [window, document, document.body].forEach(t => {
+            ['keydown', 'keyup'].forEach(ty => {
+              try { t.dispatchEvent(new KeyboardEvent(ty, { key, code: key, keyCode: d > 0 ? 177 : 176, bubbles: true, cancelable: true })); } catch (e2) {}
+            });
+          });
+        };
+        if (a === 'play') {
+          if (extMode === 1) extP(false);
+          else if (extMode === 2) extP(true);
+          else if (hasMusic) {
+            const inf = musicInfo();
+            if (inf && inf.playing) musicPause();
+            else if (inf && inf.paused) musicResume();
+            else musicPlayIdx(0);
+          }
+        } else if (a === 'stop') {
+          if (extMode) {
+            // stop HANDS THE STAGE OVER to the built-in tracks: the stream
+            // is paused and parked, extKilled keeps it from reclaiming
+            // master (readAudio) until it plays again by itself
+            extP(false);
+            try { el.currentTime = 0; } catch (e2) {}
+            extKilled = true;
+            if (hasMusic) { if (musicAlive()) musicResume(); else musicPlayIdx(0); }
+          } else if (hasMusic) musicHalt();
+        } else {
+          const d = a === 'next' ? 1 : -1;
+          if (extMode) extSkip(d);
+          else if (hasMusic) musicSkip(d);
+        }
+        b.blur();
+      });
+    });
+    pvpBtn.addEventListener('wheel', (e) => { e.preventDefault(); e.stopPropagation(); setVol(sVol + (e.deltaY < 0 ? 0.01 : -0.01)); }, { passive: false });
+    paintFx();
+    paintMus();
+    pvpBtn.onclick = (e) => { e.stopPropagation(); paintFx(); paintMus(); openSetup(); };
+    overlay.querySelector('.sc-set-x').onclick = (e) => { e.stopPropagation(); if (scOptions) { closeOptions(false); return; } closeSetup(); };
+    // the shared apply: players, colors, profiles, last cfg
+    const applySetup = () => {
+      if (!checkName(0) || !checkName(1)) return false;
       GMODE = setup.mode;
       players[0] = { name: setup.draft[0].name.trim() || 'Player1', col: setup.draft[0].col, hull: setup.draft[0].hull, ai: false };
       players[1] = setup.mode === 1
@@ -3584,11 +3779,29 @@ function drawCaveShade() {
         else ps.push({ name: pl.name, col: pl.col, hull: pl.hull });
       });
       saveProfiles(ps);
+      return true;
+    };
+    // options mode close: save=true applies the drafts (players, mode,
+    // profiles), save=false DISCARDS them — volumes are live-saved either
+    // way; no duel ever starts from here
+    const closeOptions = (save) => {
+      if (save && !applySetup()) { beep(220, 0.12, 0.2); return; }
+      scOptions = false;
+      overlay.classList.remove('sc-opts');
+      closeSetup();
+      overlay.classList.remove('show');
+    };
+    uiCloseOptions = closeOptions;
+    scSel('.sc-go').onclick = (e) => {
+      e.stopPropagation();
+      if (scOptions) { closeOptions(true); return; }
+      if (!applySetup()) { beep(220, 0.12, 0.2); return; }
       closeSetup();
       start();
     };
     // ============ exit confirmation — every exit route in pvp ============
     const requestExit = (boom) => {
+      if (scOptions) { closeOptions(false); return; }
       if (!boom && GMODE === 2 && confirmClose && state !== 'over') {
         askConfirm('Дуэль не окончена. Сдаться и выйти?', () => closeGame(false));
         return;
@@ -3765,7 +3978,7 @@ function drawCaveShade() {
       const wmenu = overlay.querySelector('.sc-wmenu');
       if (wmenu.classList.contains('show')) { wmenu.classList.remove('show'); return; }
       if (confirmOpen) { overlay.querySelector('.sc-confirm').classList.remove('show'); confirmOpen = false; confirmAction = null; return; }
-      if (setupOpen) { overlay.querySelector('.sc-setup').classList.remove('show'); setupOpen = false; return; }
+      if (setupOpen) { if (scOptions) { uiCloseOptions(false); return; } overlay.querySelector('.sc-setup').classList.remove('show'); setupOpen = false; return; }
       if (tctlOpen && !touchUI) { tctlOpen = false; return; }
       if (helpOpen) { overlay.querySelector('.sc-help').classList.remove('show'); helpOpen = false; return; }
       if (scSel('.sc-over').classList.contains('show')) { scSel('.sc-over').classList.remove('show'); closeGame(false); return; }

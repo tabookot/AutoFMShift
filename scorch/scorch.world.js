@@ -628,9 +628,23 @@ function ensureWaterFx() {
 
 function readAudio() {
   if (!apEl || !apEl.isConnected) apEl = document.getElementById('audioPlayer');
-  const an = window.scAnalyser;
-  audioLive = !!apEl && !apEl.paused && !!an;
-  if (!audioLive) { aState.bass *= 0.8; aState.mid *= 0.8; aState.treble *= 0.8; for (let b = 0; b < WB; b++) bands[b] *= 0.82; return; }
+  // the host page's stream is the MASTER while it exists and has been
+  // used: even PAUSED it keeps the stage — the chiptune holds silent and
+  // its system media keys stay the stream's own. The chiptune steps in
+  // only when the stream is fully over (ended) or never was. extMode
+  // feeds the HUD media bar: 1 playing, 2 paused, 0 none
+  const anExt = window.scAnalyser;
+  const el = apEl || null;
+  const started = !!(el && (el.currentTime > 0.05 || (el.played && el.played.length)));
+  const extRun = !!(el && !el.paused && !el.ended);
+  if (extRun) extKilled = false;
+  const extMaster = !extKilled && (extRun || !!(el && !el.ended && started));
+  extMode = extRun ? 1 : extMaster ? 2 : 0;
+  const musOn = !extMaster && typeof musicAnalyserOn === 'function' && musicAnalyserOn();
+  audioLive = (extRun && !!anExt) || musOn;
+  if (typeof musicExternal === 'function') musicExternal(extMaster);
+  const an = (extRun && anExt) ? anExt : (musOn ? musicAnalyser() : null);
+  if (!an) { aState.bass *= 0.8; aState.mid *= 0.8; aState.treble *= 0.8; for (let b = 0; b < WB; b++) bands[b] *= 0.82; return; }
   try {
     if (!apBuf || apBuf.length !== an.frequencyBinCount) apBuf = new Uint8Array(an.frequencyBinCount);
     const dA = apBuf;
@@ -1062,6 +1076,11 @@ function newRound(first) {
   skyLight = { x: -999, col: '255,255,255', a: 0 };
   roundStart = Date.now();
   roundArmed = false;
+  // each round pulls the next chiptune theme — but never overrides an
+  // explicit STOP: a halted player stays silent across rounds and duels.
+  // musicStopped is the RAW flag: musicInfo() is null until the first
+  // track loads, and it hid the state exactly at the round-1 start
+  if (typeof musicNext === 'function' && !(typeof musicStopped === 'function' && musicStopped())) musicNext();
   turnTimer = TURN_TIME;
   warnedAt = {};
   confirmClose = false;
@@ -2160,6 +2179,7 @@ function launch(t, ang, pow, dir, w, who) {
   for (let k = 0; k < 3; k++) fx.push({ k: 'smoke', x: tipX - Math.cos(rad) * (6 + k * 5) * dir, y: tipY + Math.sin(rad) * (6 + k * 5) + R(-2, 2), r: 2.5 + k, t: 0, life: R(0.5, 0.9) });
   fx.push({ k: 'dust', x: t.x, y: t.y, vx: R(-10, 10), vy: -14, r: 4, t: 0, life: 0.5, col: M().dustCol });
   lastWeapon = w.key;
+  if (typeof shotLaunchSfx === 'function') shotLaunchSfx(w);
   shot = {
     x: tipX, y: tipY,
     vx: Math.cos(rad) * pow * (VMAX / 100) * dir, vy: -Math.sin(rad) * pow * (VMAX / 100),
@@ -3582,6 +3602,8 @@ function step(dt) {
     shot = null;
     endTurn();
   }
+  // the in-flight hum: glued to whichever shell is airborne right now
+  if (typeof flySync === 'function') flySync();
   liquids = liquids.filter(l => { updateLiquid(l, dt); return !l.dead; });
   sinkers = sinkers.filter(sk => {
     sk.t += dt;

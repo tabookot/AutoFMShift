@@ -158,7 +158,18 @@ let driftT = 0;
 let AC = null;
 // master game volume, LS-persisted (sc-vol slider / ⚙ wheel); 0 = mute
 let sVol = 0.8;
-try { const v = parseFloat(localStorage.getItem(LS_VOL)); if (!isNaN(v)) sVol = clamp(v, 0, 1); } catch (e) {}
+// NO clamp() here: it is declared BELOW this block (PURE HELPERS), and
+// touching a const in its temporal dead zone throws a ReferenceError —
+// which this very try/catch silently swallowed, so the LS value never
+// landed and the volume always stayed at the 0.8 default. Plain
+// comparisons only. A stored value > 1 is a legacy INTEGER percent
+// (the 1%-step slider era) — rescale it once.
+try {
+  const v = parseFloat(localStorage.getItem(LS_VOL));
+  if (!isNaN(v)) sVol = v > 1 ? v / 100 : v;
+  if (sVol < 0) sVol = 0;
+  if (sVol > 1) sVol = 1;
+} catch (e) {}
 let pockets = [];
 let players = [
   { name: 'Player1', col: '#2ecc71', hull: 'classic', ai: false },
@@ -174,6 +185,12 @@ let ripples = [], waterH = null, bands = new Float32Array(22);
 let idlePh = 0;
 let aState = { bass: 0, mid: 0, treble: 0, bassAvg: 0, bassPeak: 0.2, lastBeat: -1 };
 let audioLive = false;
+// external audio stream state for the HUD media bar (readAudio):
+// 0 none/fully stopped, 1 playing, 2 paused-but-master
+let extMode = 0;
+// the HUD STOP handed the stage to the chiptune: the parked stream yields
+// until it plays again by itself (see readAudio / the media bar)
+let extKilled = false;
 let glints = [], wBands = [], wBlobs = [], soilTw = [];
 
 // ================== PURE HELPERS ==================
@@ -600,7 +617,19 @@ function makeNoise(rnd) {
 const fbm = (x, oct) => { let s = 0, a = 1, f = 1, t = 0; for (let o = 0; o < oct; o++) { s += noise(x * f) * a; t += a; a *= 0.5; f *= 2.03; } return s / t; };
 
 // ================== AUDIO ==================
-function ensureAudio() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (AC && AC.state === 'suspended') AC.resume().catch(() => {}); }
+function ensureAudio() {
+  if (!AC) {
+    try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+    // standalone auto-open: the context is born suspended (no user gesture
+    // yet) — the first tap/key anywhere wakes it, so the sounds arrive
+    // with the first click instead of staying mute for the whole session
+    if (AC) {
+      const wake = () => { if (AC && AC.state === 'suspended') AC.resume().catch(() => {}); };
+      ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, wake, { passive: true }));
+    }
+  }
+  if (AC && AC.state === 'suspended') AC.resume().catch(() => {});
+}
 function sfx(size) {
   if (!AC) return;
   try {
@@ -675,6 +704,7 @@ function schedule(fn, delay) { events.push({ at: gt + delay, fn }); }
 function openGame() {
   build();
   ensureAudio();
+  if (typeof musicStart === 'function') musicStart();
   syncLightTheme();
   const lc = lastCfg();
   if (lc.mode === 1 || lc.mode === 2) GMODE = lc.mode;
@@ -682,7 +712,10 @@ function openGame() {
   overlay.classList.add('show');
   setTimeout(() => { resize(); start(); }, 60);
 }
-function closeGame(boom) { if (boom) apocalypsis(); else { stopLoop(); overlay.classList.remove('show'); } }
+function closeGame(boom) {
+  if (typeof musicStop === 'function') musicStop();
+  if (boom) apocalypsis(); else { stopLoop(); overlay.classList.remove('show'); }
+}
 // the closing apocalypse REUSES the NUKE impact package with zero damage;
 // bounded by a HARD 2-second wall-clock budget
 function apocalypsis() {
