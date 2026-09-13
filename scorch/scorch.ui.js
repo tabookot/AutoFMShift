@@ -2823,26 +2823,27 @@ function drawCaveShade() {
       .sc-wmenu .sc-witem.sel .num { color: var(--bg); }
       .sc-wmenu .sc-witem .cnt { margin-left: auto; color: var(--text-dim); font-size: 10px; min-width: 18px; text-align: right; }
       .sc-wmenu .sc-witem.noammo { opacity: 0.35; cursor: not-allowed; }
-      .sc-setup { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 9; background: var(--panel); border: 2px solid var(--accent); border-radius: 12px; padding: 0 22px 16px; width: min(640px, 94%); max-height: 88vh; display: none; flex-direction: column; font-size: 13px; }
+      .sc-setup { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 9; background: var(--panel); border: 2px solid var(--accent); border-radius: 12px; padding: 0 22px 12px; width: min(640px, 94%); max-height: 88vh; display: none; flex-direction: column; font-size: 13px; container-type: inline-size; }
       .sc-setup.show { display: flex; }
-      .sc-setup-head { position: relative; flex-shrink: 0; padding: 16px 0 0; }
+      .sc-setup-head { position: relative; flex-shrink: 0; padding: 10px 0 0; }
       .sc-setup h3 { color: var(--accent); margin: 0 44px 4px 0; font-size: 17px; letter-spacing: 2px; }
-      .sc-setup .sc-setup-sub { color: var(--text-dim); font-size: 11px; margin-bottom: 14px; font-family: 'Orbitron', monospace; letter-spacing: 1px; }
+      .sc-setup .sc-setup-sub { color: var(--text-dim); font-size: 11px; margin-bottom: 10px; font-family: 'Orbitron', monospace; letter-spacing: 1px; }
       .sc-setup-body { overflow-y: auto; min-height: 0; }
-      .sc-set-x { position: absolute; right: 0; top: 16px; z-index: 5; width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+      .sc-set-x { position: absolute; right: 0; top: 10px; z-index: 5; width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; }
       .sc-set-x:hover { border-color: var(--pink); color: var(--pink); }
-      .sc-setup .sc-mode-row { display: flex; gap: 10px; margin-bottom: 14px; }
-      .sc-setup .sc-mode-btn { flex: 1; padding: 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text); cursor: pointer; font-size: 15px; text-align: center; }
-      .sc-setup .sc-mode-btn .sc-mm { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; }
+      .sc-setup .sc-mode-row { display: flex; gap: 10px; margin-bottom: 10px; }
+      .sc-setup .sc-mode-btn { flex: 1; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text); cursor: pointer; font-size: 15px; text-align: center; }
+      .sc-setup .sc-mode-btn .sc-mm { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 36px; }
       .sc-setup .sc-mode-btn .sc-mm b { color: var(--text-dim); font-size: 11px; letter-spacing: 1px; }
       .sc-setup .sc-mode-btn .sc-ic { font-style: normal; font-size: 22px; line-height: 1; font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', 'Noto Sans Symbols 2', 'DejaVu Sans', sans-serif; }
-      .sc-setup .sc-mode-btn small { display: block; font-size: 9px; letter-spacing: 1px; margin-top: 4px; color: var(--text-dim); }
+      .sc-setup .sc-mode-btn small { display: block; font-size: 9px; letter-spacing: 1px; margin-top: 2px; color: var(--text-dim); }
       .sc-setup .sc-mode-btn.sel { border-color: var(--accent); color: var(--accent); background: rgba(20,40,60,0.5); box-shadow: 0 0 0 1px var(--accent) inset; }
       .sc-setup .sc-cols { display: flex; gap: 14px; }
-      .sc-setup .sc-pl-block { flex: 1; min-width: 0; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: rgba(4,8,14,0.35); }
+      .sc-setup .sc-pl-block { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: rgba(4,8,14,0.35); }
       .sc-setup .sc-pl-block.locked { opacity: 0.75; }
-      .sc-setup .sc-pl-block .sc-pl-err { color: var(--pink); font-size: 10px; min-height: 14px; margin: 2px 0 4px; font-family: 'Orbitron', monospace; }
-      .sc-setup .sc-pl-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; position: relative; }
+      .sc-setup .sc-pl-block .sc-pl-err { color: var(--pink); font-size: 10px; margin: 1px 0 3px; font-family: 'Orbitron', monospace; }
+      .sc-setup .sc-pl-block .sc-pl-err:empty { display: none; }
+      .sc-setup .sc-pl-head { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; position: relative; }
       .sc-setup .sc-pl-head label { width: 74px; flex-shrink: 0; color: var(--accent); font-family: 'Orbitron', monospace; font-size: 11px; letter-spacing: 1px; }
       .sc-setup .sc-pl-head input { flex: 1; min-width: 0; padding: 7px 32px 7px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; }
       .sc-setup .sc-pl-head input:disabled { opacity: 0.55; }
@@ -2851,13 +2852,13 @@ function drawCaveShade() {
       .sc-setup .sc-pl-tools { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: flex; gap: 3px; }
       .sc-setup .sc-pl-tools button { width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); font-size: 11px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
       .sc-setup .sc-pl-tools button:hover { border-color: var(--accent); color: var(--accent); }
-      .sc-pl-del { display: block; width: 100%; margin-top: 10px; padding: 7px 0; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); font-size: 10px; letter-spacing: 1px; font-family: 'Orbitron', monospace; cursor: pointer; }
+      .sc-pl-del { display: block; width: 100%; margin-top: 6px; padding: 5px 0; border-radius: 6px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); font-size: 10px; letter-spacing: 1px; font-family: 'Orbitron', monospace; cursor: pointer; }
       .sc-pl-del:hover { border-color: var(--pink); color: var(--pink); }
-      .sc-setup .sc-matrix { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+      .sc-setup .sc-matrix { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
       .sc-setup .sc-mcell { border: 2px solid var(--border); border-radius: 8px; cursor: pointer; background: rgba(8,12,20,0.5); padding: 0; }
       .sc-setup .sc-mcell:hover { border-color: var(--accent); }
       .sc-setup .sc-mcell.sel { border-color: var(--accent); background: rgba(20,40,60,0.45); box-shadow: 0 0 0 1px var(--accent) inset; }
-      .sc-setup .sc-matrix-title { font-size: 9px; color: var(--text-dim); letter-spacing: 1px; font-family: 'Orbitron', monospace; margin-bottom: 4px; }
+      .sc-setup .sc-matrix-title { font-size: 9px; color: var(--text-dim); letter-spacing: 1px; font-family: 'Orbitron', monospace; margin-bottom: 3px; }
       .sc-setup .sc-palette { display: flex; gap: 6px; flex-wrap: wrap; }
       .sc-setup .sc-sw { width: 24px; height: 24px; border-radius: 7px; border: 2px solid rgba(0,0,0,0.4); cursor: pointer; padding: 0; }
       .sc-setup .sc-sw.sel { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
@@ -2869,21 +2870,29 @@ function drawCaveShade() {
       .sc-setup .sc-suggest .sc-sug-item canvas { flex-shrink: 0; }
       .sc-setup .sc-suggest .sc-sug-item .sc-sug-del { margin-left: auto; width: 20px; height: 20px; border-radius: 5px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; }
       .sc-setup .sc-suggest .sc-sug-item .sc-sug-del:hover { border-color: var(--pink); color: var(--pink); }
-      .sc-setup .sc-setup-btns { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; align-items: center; flex-shrink: 0; }
-      .sc-sndbox { flex: 1; min-width: 0; padding: 8px 10px 6px; border: 1px solid var(--border); border-radius: 8px; background: rgba(4,8,14,0.35); }
+      .sc-setup .sc-setup-btns { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; align-items: center; flex-shrink: 0; }
+      /* narrow form: the go button drops to its own full-width row BELOW
+         the sound panel instead of riding over the volume sliders */
+      @container (max-width: 560px) {
+        .sc-setup .sc-setup-btns { flex-wrap: wrap; }
+        .sc-setup .sc-setup-btns .sc-go { flex: 1 1 100%; margin-top: 2px; }
+      }
+      .sc-sndbox { flex: 1; min-width: 0; padding: 5px 10px 4px; border: 1px solid var(--border); border-radius: 8px; background: rgba(4,8,14,0.35); }
       .sc-overlay.sc-light .sc-sndbox { background: var(--panel-light); }
-      .sc-overlay.sc-light .sc-sndval { color: #b8860b; }
-      .sc-sndbox .sc-sndtitle { margin: 0 2px 5px; font: 700 9px 'Orbitron', monospace; letter-spacing: 2px; color: var(--text-dim); }
-      .sc-sndrow { display: flex; align-items: center; gap: 10px; height: 34px; }
+      .sc-overlay.sc-light .sc-vol::-webkit-slider-thumb { border-color: #fff; }
+      .sc-overlay.sc-light .sc-vol::-moz-range-thumb { border-color: #fff; }
+      .sc-sndbox .sc-sndtitle { margin: 0 2px 3px; font: 700 9px 'Orbitron', monospace; letter-spacing: 2px; color: var(--text-dim); }
+      .sc-sndrow { display: flex; align-items: center; gap: 10px; height: 30px; }
       .sc-sndico { width: 30px; height: 28px; flex: none; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 7px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text-dim); cursor: pointer; }
       .sc-sndico:hover { border-color: var(--accent); color: var(--accent); }
+      .sc-sndico svg { width: 16px; height: 16px; flex: none; }
       .sc-sndlab { width: 62px; flex: none; font: 700 9px 'Orbitron', monospace; letter-spacing: 1px; color: var(--text-dim); }
-      .sc-sndval { min-width: 40px; flex: none; text-align: right; font: 700 11px 'Orbitron', monospace; color: #ffd23f; }
+      .sc-sndval { min-width: 40px; flex: none; text-align: right; font: 700 11px 'Orbitron', monospace; color: var(--accent); }
       .sc-vol { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; height: 30px; background: transparent; cursor: pointer; touch-action: manipulation; }
       .sc-vol::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); }
-      .sc-vol::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #ffb020; border: 2px solid #0a0d12; margin-top: -8px; box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+      .sc-vol::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); border: 2px solid #0a0d12; margin-top: -8px; box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
       .sc-vol::-moz-range-track { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); }
-      .sc-vol::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #ffb020; border: 2px solid #0a0d12; }
+      .sc-vol::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); border: 2px solid #0a0d12; }
       .sc-setup .sc-setup-btns button { padding: 10px 18px; border-radius: 7px; border: 1px solid var(--border); background: var(--panel-light); color: var(--text); cursor: pointer; font-size: 18px; }
       .sc-setup .sc-setup-btns .sc-go { border-color: var(--accent); color: var(--accent); font-size: 22px; }
       .sc-setup .sc-setup-btns button:hover { border-color: var(--accent); }
@@ -3526,7 +3535,10 @@ function drawCaveShade() {
           if (m) { setup.draft[pi].col = m.col; setup.draft[pi].hull = m.hull; }
         } else setup.picked[pi] = null;
         renderSetupBlocks();
-        renderSuggest(pi);
+        // the saved-fighters list only FILTERS while it is already open:
+        // typing a brand-new name is never shadowed by the old ones (Esc
+        // in the field closes it until the next focus)
+        if (setup.sug[pi] && setup.sug[pi].classList.contains('show')) renderSuggest(pi);
       };
       input.onfocus = () => renderSuggest(pi);
       input.onblur = () => setTimeout(() => closeSuggest(pi), 150);
@@ -3622,7 +3634,9 @@ function drawCaveShade() {
         go.title = asOpts ? 'Сохранить и закрыть' : 'В бой!';
       }
     };
-    uiOpenSetup = openSetup;
+    // icons are DOM-painted (IC_*), and their draw order vs this build()
+    // body is fragile — repaint on every open, whatever the order
+    uiOpenSetup = (asOpts) => { openSetup(asOpts); paintFx(); paintMus(); };
     // game volume: two labelled rows in the setup window — the slider,
     // the mouse wheel over the whole row (effects 1%, music 0.1%), and
     // the icon that toggles mute; all LS-persisted, 0 = full mute. The
@@ -3972,7 +3986,20 @@ function drawCaveShade() {
   
   function keyH(e) {
     if (!overlay || !overlay.classList.contains('show')) return;
+    // TYPING CONTEXT: while a text field owns the keyboard (the fighter
+    // name inputs), every duel hotkey stands down. This capture-phase
+    // handler used to eat the digits, spaces, arrows and the w/ц keys
+    // right inside the name field — a NEW name containing any of them
+    // was literally untypable, and only what matched the saved names
+    // kept fitting the field. Esc keeps working: it first dismisses the
+    // saved-fighters dropdown, then unwinds the windows as before
+    const tk = e.target;
+    const inField = !!(tk && (tk.tagName === 'INPUT' || tk.tagName === 'TEXTAREA' || tk.tagName === 'SELECT' || tk.isContentEditable));
     if (e.key === 'Escape') {
+      if (inField && overlay.querySelector('.sc-suggest.show')) {
+        overlay.querySelectorAll('.sc-suggest.show').forEach(sg => sg.classList.remove('show'));
+        return;
+      }
       // Esc unwinds ONE modal at a time: weapon menu → confirm → setup →
       // control panel → help, and only then considers leaving the game
       const wmenu = overlay.querySelector('.sc-wmenu');
@@ -3987,6 +4014,7 @@ function drawCaveShade() {
       closeGame(false);
       return;
     }
+    if (inField) return;
     if (/^[0-9]$/.test(e.key)) {
       e.preventDefault();
       if (!ctlLive()) return;
