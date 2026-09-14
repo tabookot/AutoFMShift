@@ -1,0 +1,106 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <!-- 
+    Логотип Scorch Arena 
+    Проект: AutoFMShift / scorch
+    Пламя: 4 слоя (L1 ядро → L4 внешний) + малый левый язычок.
+    Динамическая версия (index.html, logoSync) подменяет 8 стопов:
+    L1 = белый→A, L2 = A→⅓AB, L3 = ⅓AB→⅔AB, L4 = ⅔AB→B,
+    где A/B — цвета двух турелей на экране.
+  -->
+  <defs>
+    <!-- L1: горячее ядро -->
+    <linearGradient id="fireL1" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop id="f1t" offset="0" stop-color="#FFFFFF"/>
+      <stop id="f1b" offset="1" stop-color="#FFD400"/>
+    </linearGradient>
+    <!-- L2 -->
+    <linearGradient id="fireL2" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop id="f2t" offset="0" stop-color="#FFE24D"/>
+      <stop id="f2b" offset="1" stop-color="#FFC400"/>
+    </linearGradient>
+    <!-- L3 -->
+    <linearGradient id="fireL3" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop id="f3t" offset="0" stop-color="#FFB300"/>
+      <stop id="f3b" offset="1" stop-color="#FF9500"/>
+    </linearGradient>
+    <!-- L4: внешний слой, лёгкая диагональ как у #outer в референсе -->
+    <linearGradient id="fireL4" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop id="f4t" offset="0" stop-color="#FF8A16"/>
+      <stop id="f4b" offset="1" stop-color="#FF5500"/>
+    </linearGradient>
+
+    <!-- Темный градиент фона щита-арены (в светлой теме подменяется
+         на прозрачный — см. logoSync в index.html) -->
+    <linearGradient id="shieldBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#232733" />
+      <stop offset="100%" stop-color="#0B0C10" />
+    </linearGradient>
+
+
+    <!-- Тепловое свечение (заметно на крупных форматах) -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#FF7B00" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Внешний щит-арена (Hexagon) -->
+  <polygon points="60,5 108,32.5 108,87.5 60,115 12,87.5 12,32.5" 
+           fill="url(#shieldBg)" stroke="#2C3140" stroke-width="3" stroke-linejoin="round"/>
+           
+  <!-- Внутренний технологичный контур арены -->
+  <polygon points="60,15 99,37.5 99,82.5 60,105 21,82.5 21,37.5" 
+           fill="none" stroke="url(#fireL4)" stroke-width="2" stroke-opacity="0.5" stroke-linejoin="round"/>
+
+  <!-- Пламя: 4 слоя, каждый с маской буквы S -->
+  <g filter="url(#glow)">
+    <!-- L4: задний, самый большой -->
+    <path d="M 58,18
+             C 62,24 67,31 72,39
+             C 78,48 82,58 83,68
+             C 84,79 78,90 68,95
+             C 62,98 55,99 49,96
+             C 38,92 30,82 28,71
+             C 26,61 30,50 37,42
+             C 42,36 46,30 49,25
+             C 51,22 53,19 58,18 Z" 
+          fill="url(#fireL4)" mask="url(#cutout)"/>
+    <!-- L3 -->
+    <path d="M 58,33
+             C 62,38 66,44 70,51
+             C 74,58 76,66 75,74
+             C 74,83 68,90 60,93
+             C 52,95 44,92 39,86
+             C 34,80 33,72 36,64
+             C 39,56 43,49 47,42
+             C 50,38 53,34 58,33 Z" 
+          fill="url(#fireL3)" mask="url(#cutout)"/>
+    <!-- L2 -->
+    <path d="M 58,49
+             C 61,54 64,59 67,65
+             C 70,71 71,78 69,84
+             C 67,90 62,94 57,94
+             C 51,94 46,90 44,84
+             C 42,78 43,72 46,66
+             C 49,60 53,54 56,49
+             C 57,47 58,47 58,49 Z" 
+          fill="url(#fireL2)" mask="url(#cutout)"/>
+    <!-- L1: внутренний язычок (ядро) -->
+    <path d="M 58,64
+             C 62,68 65,73 67,79
+             C 69,85 68,91 64,95
+             C 60,99 54,99 50,95
+             C 46,91 45,85 47,79
+             C 49,73 52,68 55,64
+             C 56,62 57,62 58,64 Z" 
+          fill="url(#fireL1)" mask="url(#cutout)"/>
+    <!-- Малый левый язычок (акцент, как в референсе) -->
+    <path d="M 44,66
+             C 46,63 48,59 49,54
+             C 50,51 50,47 49,44
+             C 46,48 43,52 41,57
+             C 39,61 39,65 41,69
+             C 42,71 44,73 46,74
+             C 44,71 43,68 44,66 Z" 
+          fill="url(#fireL1)" mask="url(#cutout)"/>
+  </g>
+</svg>
