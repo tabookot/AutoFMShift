@@ -87,6 +87,19 @@ function rrectPath(c, x, y, w, h, r) {
     setTimeout(resize, 60);
   }
   if (window.Scorch) window.Scorch.options = openOptionsUI;
+  // standalone HELP: same floating chrome as options (HUD hidden, no duel
+  // behind), but the help panel instead of the setup window
+  function openHelpUI() {
+    build();
+    ensureAudio();
+    syncLightTheme();
+    scOptions = true;
+    overlay.classList.add('show');
+    overlay.classList.add('sc-opts');
+    if (uiOpenHelp) uiOpenHelp(true);
+    setTimeout(resize, 60);
+  }
+  if (window.Scorch) window.Scorch.help = openHelpUI;
   
   // ================= RENDER =================
   function draw() {
@@ -700,6 +713,7 @@ let sunDim = 0;
 // no duel behind it — every close path saves and returns (openOptionsUI)
 let scOptions = false;
 let uiOpenSetup = null;
+let uiOpenHelp = null;
 let uiCloseOptions = () => {};
 // DEBUG MODE: off by default; double-tap the "SCORCH ARENA" title in the
 // settings window to toggle. While off the manual test summons (worm /
@@ -3321,7 +3335,24 @@ function drawCaveShade() {
     const setupEl = overlay.querySelector('.sc-setup');
     const confirmEl = overlay.querySelector('.sc-confirm');
     const refreshHelpRecs = () => fillRecordsTable(helpEl.querySelector('.sc-rechelp'), -1);
-    const closeHelp = () => { helpEl.classList.remove('show'); helpOpen = false; };
+    const closeHelp = () => {
+      helpEl.classList.remove('show');
+      helpOpen = false;
+      // standalone HELP mode: closing the window (its own ✕) folds the
+      // whole floating overlay back to the splash — unless the options
+      // window is up too (closeOptions drives then)
+      if (scOptions && !setupOpen) { scOptions = false; overlay.classList.remove('sc-opts'); overlay.classList.remove('show'); }
+    };
+    // the standalone entry: the game's FULL help window (controls, arsenal,
+    // lore, turret gallery, records) over the splash
+    uiOpenHelp = (on) => {
+      if (on) {
+        closeSetup(); closeConfirm();
+        helpEl.classList.add('show');
+        helpOpen = true;
+        refreshHelpRecs();
+      } else closeHelp();
+    };
     const closeSetup = () => { setupEl.classList.remove('show'); setupOpen = false; };
     const closeConfirm = () => { confirmEl.classList.remove('show'); confirmOpen = false; };
     scSel('.sc-helpbtn').onclick = (e) => {
@@ -3803,6 +3834,7 @@ function drawCaveShade() {
       scOptions = false;
       overlay.classList.remove('sc-opts');
       closeSetup();
+      closeHelp();
       overlay.classList.remove('show');
     };
     uiCloseOptions = closeOptions;
@@ -4007,7 +4039,7 @@ function drawCaveShade() {
       if (confirmOpen) { overlay.querySelector('.sc-confirm').classList.remove('show'); confirmOpen = false; confirmAction = null; return; }
       if (setupOpen) { if (scOptions) { uiCloseOptions(false); return; } overlay.querySelector('.sc-setup').classList.remove('show'); setupOpen = false; return; }
       if (tctlOpen && !touchUI) { tctlOpen = false; return; }
-      if (helpOpen) { overlay.querySelector('.sc-help').classList.remove('show'); helpOpen = false; return; }
+      if (helpOpen) { if (scOptions) { uiCloseOptions(false); return; } overlay.querySelector('.sc-help').classList.remove('show'); helpOpen = false; return; }
       if (scSel('.sc-over').classList.contains('show')) { scSel('.sc-over').classList.remove('show'); closeGame(false); return; }
       // pvp in progress → confirmation, otherwise straight out
       if (GMODE === 2 && confirmClose && state !== 'over') { askConfirm('Дуэль не окончена. Сдаться и выйти?', () => closeGame(false)); return; }

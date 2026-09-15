@@ -1064,12 +1064,13 @@ function newRound(first) {
   // summons bypass the plans
   wormPlan = { q: 0, at: [], n: 0 };
   junkPlan = { q: 0, at: [], n: 0 };
-  // the worm: on average once per THREE rounds, one appearance max
+  // the worm: ~once per two rounds (it only lives in desert/rust, so per
+  // ROUND chance is biome-gated — this keeps it rare but eventually seen)
   const wq = Math.random();
-  if (wq > 0.67) { wormPlan.q = 1; wormPlan.at = [R(70, 200)]; }
+  if (wq > 0.5) { wormPlan.q = 1; wormPlan.at = [R(70, 200)]; }
   if (!UNDER) {
     const jq = Math.random();
-    if (jq > 0.85) { junkPlan.q = jq > 0.97 ? 2 : 1; junkPlan.at = [R(90, 220), R(240, 320)]; }
+    if (jq > 0.7) { junkPlan.q = jq > 0.92 ? 2 : 1; junkPlan.at = [R(90, 220), R(240, 320)]; }
   }
   windParts = []; comets = []; grains = []; lavaBits = []; lastHitInfo = null; killed = null; lastKillMethod = 'weapon'; lastShotApex = 0;
   shake = 0;
