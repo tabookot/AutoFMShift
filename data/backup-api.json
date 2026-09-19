@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "0.5.1-github-action",
-  "exportDate": 1789718663979,
+  "exportDate": 1789804479343,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -301,7 +301,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Шансон",
+          "name": "Радио Шансон\nРусское радио \nНаше радио",
           "freq": 101.6,
           "isDeleted": false,
           "deletedAt": null
