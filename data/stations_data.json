@@ -85,7 +85,19 @@
   },
   {
     "name": "Алиса FM",
-    "streams": []
+    "streams": [
+      {
+        "name": "Радио Алиса",
+        "url": "https://listen8.myradio24.com/alisa",
+        "bitrate": 192,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": ""
+      }
+    ],
+    "homepage": "https://listen8.myradio24.com/alisa",
+    "favicon": "",
+    "tags": ""
   },
   {
     "name": "Апекс-радио",
@@ -159,7 +171,7 @@
         "url": "https://icecast-vgtrk.cdnvideo.ru/vestifm",
         "bitrate": 320,
         "codec": "MP3",
-        "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
+        "favicon": "",
         "tags": ""
       },
       {
@@ -188,7 +200,7 @@
       }
     ],
     "homepage": "http://radiovesti.ru/",
-    "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
+    "favicon": "https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=100045127456557",
     "tags": "news, talk"
   },
   {
@@ -744,7 +756,27 @@
   },
   {
     "name": "Мега FM",
-    "streams": []
+    "streams": [
+      {
+        "name": "Мега радио (Абакан )",
+        "url": "http://radio.tvrts.ru:8000/kh.mp3",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "null",
+        "tags": "denc"
+      },
+      {
+        "name": "Мега ФМ Архангельск 106.4 FM",
+        "url": "https://s0.radioheart.ru:8000/RH23554",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241023_130444173.jpg?alt=media&token=15622934-4fac-45a3-bbc2-d404203c495e",
+        "tags": "music, pop"
+      }
+    ],
+    "homepage": "https://tvrts.ru/",
+    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241023_130444173.jpg?alt=media&token=15622934-4fac-45a3-bbc2-d404203c495e",
+    "tags": "denc"
   },
   {
     "name": "Милицейская волна",
@@ -1306,32 +1338,24 @@
         "tags": ""
       },
       {
-        "name": "Radio 7",
-        "url": "https://radio7server.streamr.ru:8040/radio7256.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "https://radio7.ru/favicon.png",
-        "tags": ""
-      },
-      {
-        "name": "Radio 7 Tyumen",
-        "url": "http://live.radio7.su:9000/radio7_128",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": "hits, pop"
-      },
-      {
         "name": "Radio 7 Moscow",
         "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
         "bitrate": 320,
         "codec": "MP3",
         "favicon": "",
         "tags": "hits, russian hits"
+      },
+      {
+        "name": "Авторадио 107.7 FM",
+        "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
+        "bitrate": 64,
+        "codec": "AAC+",
+        "favicon": "",
+        "tags": ""
       }
     ],
     "homepage": "https://radio7.ru/",
-    "favicon": "https://radio7.ru/favicon.png",
+    "favicon": "",
     "tags": ""
   },
   {
@@ -2256,7 +2280,7 @@
         "url": "http://77.232.167.247:1007/admin",
         "bitrate": 0,
         "codec": "MP3",
-        "favicon": "http://priboy.news/static/favicon_150x150.png",
+        "favicon": "",
         "tags": ""
       },
       {
@@ -2268,7 +2292,7 @@
         "tags": "folk"
       }
     ],
-    "homepage": "http://priboy.news/",
+    "homepage": "https://www.radiopriboy.ru/",
     "favicon": "http://priboy.news/static/favicon_150x150.png",
     "tags": "folk"
   },
@@ -2540,9 +2564,9 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://top-volna.ru/channel/russkij-xit",
+    "homepage": "https://ruhit.fm/",
     "favicon": "https://fm-24.ru/assets/image/radio/180/ruhitnew.jpg",
-    "tags": "поп-музыка"
+    "tags": "music, pop, russian"
   },
   {
     "name": "Радио Русь",
@@ -2592,7 +2616,7 @@
         "url": "https://stream.radiosibir.ru:8093/HQ",
         "bitrate": 192,
         "codec": "MP3",
-        "favicon": "",
+        "favicon": "https://radiosibir.ru/img/logo-small.png",
         "tags": "томск"
       },
       {
@@ -2605,7 +2629,7 @@
       }
     ],
     "homepage": "https://radiosibir.ru/",
-    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241008_175133555.jpg?alt=media&token=ae43a0c7-60da-4f7e-aa10-bfe3db95d518",
+    "favicon": "https://radiosibir.ru/img/logo-small.png",
     "tags": "томск"
   },
   {
@@ -3504,9 +3528,9 @@
         "tags": "ретро"
       }
     ],
-    "homepage": "http://radiounost.ru/",
+    "homepage": "https://top-radio.ru/web/yunost",
     "favicon": "https://top-radio.ru/assets/image/radio/180/radiounost.png",
-    "tags": "70s, 80s, retro"
+    "tags": "ретро"
   },
   {
     "name": "Business FM",
@@ -3934,24 +3958,8 @@
         "tags": "classic rock, pop rock, rock"
       },
       {
-        "name": "Rock FM",
-        "url": "http://nashe2.hostingradio.ru/rock-128.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Rock",
-        "url": "http://79.120.77.11:8000/rock",
-        "bitrate": 320,
-        "codec": "AAC+",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Arena Rock",
-        "url": "http://79.111.14.76:8000/aor",
+        "name": "Folk Rock",
+        "url": "http://79.111.14.76:8000/folkrock",
         "bitrate": 320,
         "codec": "AAC+",
         "favicon": "",

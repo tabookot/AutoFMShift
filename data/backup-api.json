@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "0.5.1-github-action",
-  "exportDate": 1790065301834,
+  "exportDate": 1790151837051,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -3966,12 +3966,6 @@
       "name": "Киров",
       "stations": [
         {
-          "name": "(ПЛАН) Радио Родных дорог",
-          "freq": 92,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
           "name": "Вести FM",
           "freq": 105.3,
           "isDeleted": false,
@@ -4046,6 +4040,12 @@
         {
           "name": "Радио Маяк / ГТРК Вятка",
           "freq": 101.4,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Радио Родных дорог",
+          "freq": 92,
           "isDeleted": false,
           "deletedAt": null
         },
