@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "0.5.1-github-action",
-  "exportDate": 1790325507333,
+  "exportDate": 1790411144412,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -11498,12 +11498,6 @@
           "deletedAt": null
         },
         {
-          "name": "(ПЛАН) Comedy Radio",
-          "freq": 87.5,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
           "name": "Вести FM",
           "freq": 92.6,
           "isDeleted": false,
@@ -11662,6 +11656,12 @@
         {
           "name": "Business FM",
           "freq": 100.8,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Comedy Radio",
+          "freq": 87.5,
           "isDeleted": false,
           "deletedAt": null
         },
