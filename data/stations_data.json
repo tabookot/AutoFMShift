@@ -171,7 +171,7 @@
         "url": "https://icecast-vgtrk.cdnvideo.ru/vestifm",
         "bitrate": 320,
         "codec": "MP3",
-        "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
+        "favicon": "null",
         "tags": ""
       },
       {
@@ -200,7 +200,7 @@
       }
     ],
     "homepage": "http://radiovesti.ru/",
-    "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
+    "favicon": "https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=100045127456557",
     "tags": "news, talk"
   },
   {
@@ -951,7 +951,7 @@
     "streams": [
       {
         "name": "Радио Новая Жизнь",
-        "url": "https://nlradio.stream:8000/nlradio-hi.aac",
+        "url": "https://nlradio.stream/hifi",
         "bitrate": 256,
         "codec": "AAC",
         "favicon": "https://nlradio.net/wp-content/uploads/2022/07/cropped-cfqn-180x180.png",
@@ -1338,20 +1338,12 @@
         "tags": ""
       },
       {
-        "name": "Radio 7",
-        "url": "https://radio7server.streamr.ru:8040/radio7256.mp3",
-        "bitrate": 0,
+        "name": "Radio 7 Moscow",
+        "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
+        "bitrate": 320,
         "codec": "MP3",
-        "favicon": "https://radio7.ru/favicon.png",
-        "tags": ""
-      },
-      {
-        "name": "Радио СИ - 103.7 FM",
-        "url": "https://online.radioc.ru/radioc",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://www.radioc.ru/online/logo.png",
-        "tags": ""
+        "favicon": "",
+        "tags": "hits, russian hits"
       },
       {
         "name": "Авторадио 107.7 FM",
@@ -1363,7 +1355,7 @@
       }
     ],
     "homepage": "https://radio7.ru/",
-    "favicon": "https://radio7.ru/favicon.png",
+    "favicon": "",
     "tags": ""
   },
   {
@@ -2070,7 +2062,7 @@
       {
         "name": "Радио Мир (Барнаул)",
         "url": "https://icecast-mirtv.cdnvideo.ru/radio_mir4_256",
-        "bitrate": 319,
+        "bitrate": 286,
         "codec": "AAC+",
         "favicon": "",
         "tags": "barnaul, music, wapmahka, барнаул, местные новости"
@@ -2078,7 +2070,7 @@
       {
         "name": "Радио МИР",
         "url": "https://icecast-mirtv.cdnvideo.ru/radio_mir_256",
-        "bitrate": 332,
+        "bitrate": 329,
         "codec": "AAC+",
         "favicon": "https://i.ibb.co/ygdPW3d/image.png",
         "tags": "music, wapmahka, музыка, новости, разговорное"
@@ -2288,7 +2280,7 @@
         "url": "http://77.232.167.247:1007/admin",
         "bitrate": 0,
         "codec": "MP3",
-        "favicon": "",
+        "favicon": "http://priboy.news/static/favicon_150x150.png",
         "tags": ""
       },
       {
@@ -2356,11 +2348,11 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд Dancecore",
-        "url": "http://radiorecord.hostingradio.ru/dc96.aacp",
+        "name": "Радио Рекорд 2step",
+        "url": "http://radiorecord.hostingradio.ru/2step96.aacp",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "http://radiorecord.ru/local/templates/record/assets/build/favicon-set/apple-touch-icon.png",
+        "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
         "tags": ""
       },
       {
@@ -2422,8 +2414,8 @@
       {
         "name": "Роксана радиосы",
         "url": "https://listen1.myradio24.com/2761",
-        "bitrate": 251,
-        "codec": "AAC",
+        "bitrate": 128,
+        "codec": "MP3",
         "favicon": "http://roksanaradio.ru/assets/icon_256x256.png",
         "tags": "folk, live, news, pop, talk"
       }
@@ -2606,7 +2598,27 @@
   },
   {
     "name": "Радио Си",
-    "streams": []
+    "streams": [
+      {
+        "name": "Радио Си (Екатеринбург)",
+        "url": "https://online.radioc.ru/radioc_aacplus?v=1702736359326",
+        "bitrate": 64,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "Радио СИ - 103.7 FM",
+        "url": "https://online.radioc.ru/radioc",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "https://www.radioc.ru/online/logo.png",
+        "tags": ""
+      }
+    ],
+    "homepage": "https://m.radioc.ru/",
+    "favicon": "https://www.radioc.ru/online/logo.png",
+    "tags": ""
   },
   {
     "name": "Радио Сибирь",
@@ -3054,7 +3066,7 @@
       {
         "name": "Nostalgie Russia",
         "url": "https://listen7.myradio24.com/alexx333",
-        "bitrate": 320,
+        "bitrate": 128,
         "codec": "MP3",
         "favicon": "",
         "tags": "pop rock"
@@ -3114,19 +3126,7 @@
   },
   {
     "name": "Радио Z",
-    "streams": [
-      {
-        "name": "Z Fm",
-        "url": "https://node0.craftradio.ru:8000/193_CB039DF9",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "null",
-        "tags": "фронтовое радио"
-      }
-    ],
-    "homepage": "https://node0.craftradio.ru:8000/193_CB039DF9",
-    "favicon": "",
-    "tags": "фронтовое радио"
+    "streams": []
   },
   {
     "name": "Радио-3",
@@ -3633,6 +3633,14 @@
       },
       {
         "name": "DFM",
+        "url": "https://dfm.hostingradio.ru/dfm96.aacp?5c80d70c",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "DFM",
         "url": "https://hls-01-dfm.hostingradio.ru/dfm/playlist.m3u8",
         "bitrate": 100,
         "codec": "AAC",
@@ -3646,14 +3654,6 @@
         "codec": "AAC+",
         "favicon": "https://dfm.ru/uploads/favicon.ico",
         "tags": "breakbeat"
-      },
-      {
-        "name": "DFM - Chill",
-        "url": "https://dfm-dfmchill.hostingradio.ru/dfmchill96.aacp",
-        "bitrate": 96,
-        "codec": "AAC+",
-        "favicon": "https://dfm.ru/uploads/favicon.ico",
-        "tags": "ambient, chill, relax, relaxation music"
       }
     ],
     "homepage": "https://dfm.ru/",
@@ -3772,7 +3772,7 @@
       {
         "name": "Deep House Mix",
         "url": "https://listen9.myradio24.com/oldclub",
-        "bitrate": 320,
+        "bitrate": 192,
         "codec": "MP3",
         "favicon": "https://static.tildacdn.com/tild3763-6436-4261-b330-623130393834/Original.png",
         "tags": ""
@@ -3922,7 +3922,7 @@
         "tags": "phonk, rap, witch house"
       }
     ],
-    "homepage": "https://www.radiorecord.fm/m3u/rr320-28kbps.m3u",
+    "homepage": "https://www.radiorecord.ru/",
     "favicon": "https://cdn-profiles.tunein.com/s309967/images/logod.jpg?t=1",
     "tags": "classical"
   },
