@@ -171,7 +171,7 @@
         "url": "https://icecast-vgtrk.cdnvideo.ru/vestifm",
         "bitrate": 320,
         "codec": "MP3",
-        "favicon": "null",
+        "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
         "tags": ""
       },
       {
@@ -200,7 +200,7 @@
       }
     ],
     "homepage": "http://radiovesti.ru/",
-    "favicon": "https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=100045127456557",
+    "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
     "tags": "news, talk"
   },
   {
@@ -1338,24 +1338,32 @@
         "tags": ""
       },
       {
+        "name": "Radio 7",
+        "url": "https://radio7server.streamr.ru:8040/radio7256.mp3",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "https://radio7.ru/favicon.png",
+        "tags": ""
+      },
+      {
+        "name": "Radio 7 Tyumen",
+        "url": "http://live.radio7.su:9000/radio7_128",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "hits, pop"
+      },
+      {
         "name": "Radio 7 Moscow",
         "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
         "bitrate": 320,
         "codec": "MP3",
         "favicon": "",
         "tags": "hits, russian hits"
-      },
-      {
-        "name": "Авторадио 107.7 FM",
-        "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
-        "bitrate": 64,
-        "codec": "AAC+",
-        "favicon": "",
-        "tags": ""
       }
     ],
     "homepage": "https://radio7.ru/",
-    "favicon": "",
+    "favicon": "https://radio7.ru/favicon.png",
     "tags": ""
   },
   {
@@ -2292,7 +2300,7 @@
         "tags": "folk"
       }
     ],
-    "homepage": "https://www.radiopriboy.ru/",
+    "homepage": "http://priboy.news/",
     "favicon": "http://priboy.news/static/favicon_150x150.png",
     "tags": "folk"
   },
@@ -2472,9 +2480,9 @@
         "tags": "music, news, talk"
       }
     ],
-    "homepage": "http://www.radiorus.ru/",
+    "homepage": "https://radiorus.ru/",
     "favicon": "https://vestiorel.ru/favicon.png",
-    "tags": "music, news, talk"
+    "tags": "news, talk"
   },
   {
     "name": "Радио Русские песни",
@@ -2556,9 +2564,9 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://top-volna.ru/channel/russkij-xit",
+    "homepage": "https://ruhit.fm/",
     "favicon": "https://fm-24.ru/assets/image/radio/180/ruhitnew.jpg",
-    "tags": "поп-музыка"
+    "tags": "music, pop, russian"
   },
   {
     "name": "Радио Русь",
@@ -2598,27 +2606,7 @@
   },
   {
     "name": "Радио Си",
-    "streams": [
-      {
-        "name": "Радио Си (Екатеринбург)",
-        "url": "https://online.radioc.ru/radioc_aacplus?v=1702736359326",
-        "bitrate": 64,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Радио СИ - 103.7 FM",
-        "url": "https://online.radioc.ru/radioc",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://www.radioc.ru/online/logo.png",
-        "tags": ""
-      }
-    ],
-    "homepage": "https://m.radioc.ru/",
-    "favicon": "https://www.radioc.ru/online/logo.png",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Радио Сибирь",
@@ -3440,7 +3428,7 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://ruradio.net/ulyanovsk/ulyanovsk-fm-1042-fm-gFeVDpD3oe",
+    "homepage": "https://wwv.zvuch.com/radio-online/ulyanovsk-fm",
     "favicon": "https://ruradio.net/api/img/w150/f7/f77c947c874ac7de2aa19b337a758469.jpeg",
     "tags": "поп-музыка"
   },
@@ -3494,7 +3482,7 @@
     ],
     "homepage": "https://smotri.radio/",
     "favicon": "https://hitfm.ru/favicon.ico",
-    "tags": "pop rock, russian music, top hits"
+    "tags": "chr, dance, hits, international hits, pop"
   },
   {
     "name": "Экспресс Радио",
@@ -3633,14 +3621,6 @@
       },
       {
         "name": "DFM",
-        "url": "https://dfm.hostingradio.ru/dfm96.aacp?5c80d70c",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "DFM",
         "url": "https://hls-01-dfm.hostingradio.ru/dfm/playlist.m3u8",
         "bitrate": 100,
         "codec": "AAC",
@@ -3654,6 +3634,14 @@
         "codec": "AAC+",
         "favicon": "https://dfm.ru/uploads/favicon.ico",
         "tags": "breakbeat"
+      },
+      {
+        "name": "DFM - Chill",
+        "url": "https://dfm-dfmchill.hostingradio.ru/dfmchill96.aacp",
+        "bitrate": 96,
+        "codec": "AAC+",
+        "favicon": "https://dfm.ru/uploads/favicon.ico",
+        "tags": "ambient, chill, relax, relaxation music"
       }
     ],
     "homepage": "https://dfm.ru/",
@@ -3922,7 +3910,7 @@
         "tags": "phonk, rap, witch house"
       }
     ],
-    "homepage": "https://www.radiorecord.ru/",
+    "homepage": "https://www.radiorecord.fm/m3u/rr320-28kbps.m3u",
     "favicon": "https://cdn-profiles.tunein.com/s309967/images/logod.jpg?t=1",
     "tags": "classical"
   },
@@ -3998,12 +3986,12 @@
         "tags": ""
       },
       {
-        "name": "Glam Rock / Metal - Caprice Radio",
-        "url": "http://79.120.39.202:8000/glam",
+        "name": "Arena Rock",
+        "url": "http://79.111.14.76:8000/aor",
         "bitrate": 320,
         "codec": "AAC+",
-        "favicon": "http://radcap.ru/graf2/radcaplogo.png",
-        "tags": "glam metal, glam rock"
+        "favicon": "",
+        "tags": ""
       },
       {
         "name": "Acoustic Rock Radio",
