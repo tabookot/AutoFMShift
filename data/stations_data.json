@@ -2356,8 +2356,8 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд 2step",
-        "url": "http://radiorecord.hostingradio.ru/2step96.aacp",
+        "name": "Радио Рекорд Breaks",
+        "url": "http://radiorecord.hostingradio.ru/brks96.aacp",
         "bitrate": 0,
         "codec": "AAC",
         "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
@@ -2480,9 +2480,9 @@
         "tags": "music, news, talk"
       }
     ],
-    "homepage": "https://radiorus.ru/",
+    "homepage": "http://www.radiorus.ru/",
     "favicon": "https://vestiorel.ru/favicon.png",
-    "tags": "news, talk"
+    "tags": "music, news, talk"
   },
   {
     "name": "Радио Русские песни",
@@ -2564,9 +2564,9 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://ruhit.fm/",
+    "homepage": "https://top-volna.ru/channel/russkij-xit",
     "favicon": "https://fm-24.ru/assets/image/radio/180/ruhitnew.jpg",
-    "tags": "music, pop, russian"
+    "tags": "поп-музыка"
   },
   {
     "name": "Радио Русь",
@@ -2606,7 +2606,19 @@
   },
   {
     "name": "Радио Си",
-    "streams": []
+    "streams": [
+      {
+        "name": "Радио Си (Екатеринбург)",
+        "url": "https://online.radioc.ru/radioc_aacplus?v=1702736359326",
+        "bitrate": 64,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
+      }
+    ],
+    "homepage": "https://m.radioc.ru/",
+    "favicon": "",
+    "tags": ""
   },
   {
     "name": "Радио Сибирь",
@@ -3986,8 +3998,8 @@
         "tags": ""
       },
       {
-        "name": "Arena Rock",
-        "url": "http://79.111.14.76:8000/aor",
+        "name": "Folk Rock",
+        "url": "http://79.111.14.76:8000/folkrock",
         "bitrate": 320,
         "codec": "AAC+",
         "favicon": "",
