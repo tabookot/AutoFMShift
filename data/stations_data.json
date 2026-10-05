@@ -2272,7 +2272,7 @@
         "tags": "folk"
       }
     ],
-    "homepage": "http://priboy.news/",
+    "homepage": "https://www.radiopriboy.ru/",
     "favicon": "http://priboy.news/static/favicon_150x150.png",
     "tags": "folk"
   },
@@ -2328,11 +2328,11 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд 2step",
-        "url": "http://radiorecord.hostingradio.ru/2step96.aacp",
+        "name": "Радио Рекорд Dancecore",
+        "url": "http://radiorecord.hostingradio.ru/dc96.aacp",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
+        "favicon": "http://radiorecord.ru/local/templates/record/assets/build/favicon-set/apple-touch-icon.png",
         "tags": ""
       },
       {
@@ -2342,14 +2342,6 @@
         "codec": "MP3",
         "favicon": "",
         "tags": "rap"
-      },
-      {
-        "name": "рекорд ",
-        "url": "http://online-2.gkvr.ru:8000/record_kra_128.aac",
-        "bitrate": 128,
-        "codec": "AAC+",
-        "favicon": "null",
-        "tags": ""
       }
     ],
     "homepage": "http://radiorecord.ru/",
@@ -2594,18 +2586,10 @@
         "codec": "AAC",
         "favicon": "",
         "tags": ""
-      },
-      {
-        "name": "Радио СИ - 103.7 FM",
-        "url": "https://online.radioc.ru/radioc",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://www.radioc.ru/online/logo.png",
-        "tags": ""
       }
     ],
     "homepage": "https://m.radioc.ru/",
-    "favicon": "https://www.radioc.ru/online/logo.png",
+    "favicon": "",
     "tags": ""
   },
   {
@@ -2964,7 +2948,7 @@
         "url": "http://79.120.77.11:8000/jazz",
         "bitrate": 320,
         "codec": "AAC+",
-        "favicon": "",
+        "favicon": "r",
         "tags": ""
       },
       {
@@ -3420,7 +3404,7 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://ruradio.net/ulyanovsk/ulyanovsk-fm-1042-fm-gFeVDpD3oe",
+    "homepage": "https://wwv.zvuch.com/radio-online/ulyanovsk-fm",
     "favicon": "https://ruradio.net/api/img/w150/f7/f77c947c874ac7de2aa19b337a758469.jpeg",
     "tags": "поп-музыка"
   },
@@ -3540,9 +3524,9 @@
         "tags": "ретро"
       }
     ],
-    "homepage": "https://top-radio.ru/web/yunost",
+    "homepage": "http://radiounost.ru/",
     "favicon": "https://top-radio.ru/assets/image/radio/180/radiounost.png",
-    "tags": "ретро"
+    "tags": "70s, 80s, retro"
   },
   {
     "name": "Business FM",
@@ -3612,20 +3596,28 @@
         "tags": "dfm"
       },
       {
+        "name": "DFM",
+        "url": "https://dfm.hostingradio.ru/dfm96.aacp?5c80d70c",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "DFM",
+        "url": "https://hls-01-dfm.hostingradio.ru/dfm/playlist.m3u8",
+        "bitrate": 100,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": "club, dance, edm, electronic, pop dance"
+      },
+      {
         "name": "DFM - Breakbeat",
         "url": "https://dfm-breakbeat.hostingradio.ru/breakbeat96.aacp",
         "bitrate": 96,
         "codec": "AAC+",
         "favicon": "https://dfm.ru/uploads/favicon.ico",
         "tags": "breakbeat"
-      },
-      {
-        "name": "DFM - Chill",
-        "url": "https://dfm-dfmchill.hostingradio.ru/dfmchill96.aacp",
-        "bitrate": 96,
-        "codec": "AAC+",
-        "favicon": "https://dfm.ru/uploads/favicon.ico",
-        "tags": "ambient, chill, relax, relaxation music"
       }
     ],
     "homepage": "https://dfm.ru/",
@@ -3735,10 +3727,10 @@
       },
       {
         "name": "Deep Mix Moscow Radio",
-        "url": "http://radio.deepmix.ru:7620/;;",
-        "bitrate": 320,
+        "url": "http://deepmix.ru:8520/;",
+        "bitrate": 128,
         "codec": "MP3",
-        "favicon": "https://deepmix.ru/img_pda/logo_1280x320.png",
+        "favicon": "https://deepmix.eu/img_pda/logo_1280x320.png",
         "tags": ""
       },
       {
@@ -3960,14 +3952,6 @@
         "codec": "MP3",
         "favicon": "https://lh3.googleusercontent.com/D3taObR7tfyhwDFY40VS8DIVri7iif5RuzI9C-mXxRwF41vGZ_dO_n6MWM57P-mZczFC=w300",
         "tags": "classic rock, pop rock, rock"
-      },
-      {
-        "name": "Rock FM",
-        "url": "http://nashe2.hostingradio.ru/rock-128.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": ""
       },
       {
         "name": "Folk Rock",
