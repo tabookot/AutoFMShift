@@ -1498,7 +1498,19 @@
   },
   {
     "name": "Радио Вера",
-    "streams": []
+    "streams": [
+      {
+        "name": "Вера",
+        "url": "http://77.39.8.49:8000/vera_air_96",
+        "bitrate": 96,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "96kbps, christian, gospel, orthodox, talk"
+      }
+    ],
+    "homepage": "http://stavropol-eparhia.ru/radio-vera-stavropol/",
+    "favicon": "",
+    "tags": "96kbps, christian, gospel, orthodox, talk"
   },
   {
     "name": "Радио Весна",
