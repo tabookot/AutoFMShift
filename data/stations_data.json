@@ -3564,6 +3564,14 @@
         "tags": ""
       },
       {
+        "name": "Comedy Radio Irkutsk",
+        "url": "https://hls-01-gpm.hostingradio.ru/comedyradio7/playlist.m3u8",
+        "bitrate": 0,
+        "codec": "",
+        "favicon": "https://comedy-radio.ru/design/images/logo/Logo_ComedyRadio.svg",
+        "tags": "comedy"
+      },
+      {
         "name": "Comedy радио Сыктывкар 100.8 FM",
         "url": "https://cast.severmedia.ru:5443/Comedy_11_01",
         "bitrate": 128,
@@ -3572,9 +3580,9 @@
         "tags": "humour, pop music"
       }
     ],
-    "homepage": "https://top-radio.ru/syiktyivkar/comedy",
-    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241022_204929966.jpg?alt=media&token=b32f8438-39b0-4fdd-aff6-96e778cc9bdf",
-    "tags": "humour, pop music"
+    "homepage": "https://comedy-radio.ru/",
+    "favicon": "https://comedy-radio.ru/design/images/logo/Logo_ComedyRadio.svg",
+    "tags": "comedy"
   },
   {
     "name": "DFM",

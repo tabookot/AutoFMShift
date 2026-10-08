@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "0.5.1-github-action",
-  "exportDate": 1791367222921,
+  "exportDate": 1791454358014,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -1576,6 +1576,12 @@
         },
         {
           "name": "Маруся ФМ",
+          "freq": 88.8,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Маруся FM",
           "freq": 88.8,
           "isDeleted": false,
           "deletedAt": null
@@ -12401,6 +12407,12 @@
     }
   },
   "restoredLog": [
+    {
+      "type": "station",
+      "city": "Владимир",
+      "name": "Маруся ФМ",
+      "reason": "glitch_protect"
+    },
     {
       "type": "station",
       "city": "Владимир",
