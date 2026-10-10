@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "0.5.1-github-action",
-  "exportDate": 1791540875542,
+  "exportDate": 1791624903008,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -1033,7 +1033,7 @@
           "deletedAt": null
         },
         {
-          "name": "Новое радио",
+          "name": "Новое Радио",
           "freq": 106,
           "isDeleted": false,
           "deletedAt": null
@@ -6655,12 +6655,6 @@
       "name": "Омск",
       "stations": [
         {
-          "name": "(ПЛАН) Радио Орфей",
-          "freq": 99.7,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
           "name": "(ПЛАН) Радио Sputnik",
           "freq": 98.5,
           "isDeleted": false,
@@ -6697,7 +6691,7 @@
           "deletedAt": null
         },
         {
-          "name": "Новое радио",
+          "name": "Новое Радио",
           "freq": 107.3,
           "isDeleted": false,
           "deletedAt": null
@@ -6759,6 +6753,12 @@
         {
           "name": "Радио Монте-Карло",
           "freq": 106.2,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Радио Орфей",
+          "freq": 99.7,
           "isDeleted": false,
           "deletedAt": null
         },
