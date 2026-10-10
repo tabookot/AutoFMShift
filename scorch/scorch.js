@@ -3,6 +3,7 @@
 // (no collisions with host-page globals like `state`); cross-references
 // between core/world/ui work exactly as in the old single-file IIFE
 (() => {
+  const SC_BUILD = '0.8.0'; // меняет tools/set_version.py
   if (window.Scorch) return; // already loaded
   const base = (document.currentScript && document.currentScript.src || location.href)
     .replace(/[^/]*$/, '');
@@ -11,7 +12,7 @@
   // deploy without it keeps working untouched
   const must = ['scorch.core.js', 'scorch.world.js', 'scorch.ui.js'];
   const opt = ['scorch.music.js'];
-  const get = (u, soft) => fetch(base + u).then(r => {
+  const get = (u, soft) => fetch(base + u + '?v=' + SC_BUILD).then(r => {
     if (!r.ok) { if (soft) return ''; throw new Error(u + ' \u2192 HTTP ' + r.status); }
     return r.text();
   }).catch(e => { if (soft) return ''; throw e; });
