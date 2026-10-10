@@ -1,0 +1,5 @@
+Samples: tonejs-instruments by N.P. Brosowsky
+https://github.com/nbrosowsky/tonejs-instruments
+License: Creative Commons Attribution 3.0 (CC BY 3.0) - https://creativecommons.org/licenses/by/3.0/
+Per-sample origins: see sample-source-info.txt in the repository above.
+If you distribute the game, credit the authors (e.g. in the credits screen or README).
