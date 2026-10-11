@@ -3068,6 +3068,9 @@ function drawCaveShade() {
             <div class="sc-hullgal"></div>
             <h5>Рекорды (топ-10)</h5>
             <table class="sc-rectab sc-rechelp"></table>
+            <h5>Авторы и атрибуции</h5>
+            <div class="sc-credits" style="white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text-dim);font-size:15px"></div>
+            <div style="color:var(--text-dim);font-size:15px;margin-top:8px">Код: tabookot, GLM 5.2; ревью и рефакторинг: Claude (Anthropic)</div>
           </div>
         </div>
         <div class="sc-setup">
@@ -3299,6 +3302,8 @@ function drawCaveShade() {
     const setupEl = overlay.querySelector('.sc-setup');
     const confirmEl = overlay.querySelector('.sc-confirm');
     const refreshHelpRecs = () => fillRecordsTable(helpEl.querySelector('.sc-rechelp'), -1);
+    const credEl = helpEl.querySelector('.sc-credits');
+    if (credEl) credEl.textContent = (typeof SC_CREDITS === 'string') ? SC_CREDITS : '';
     const closeHelp = () => {
       helpEl.classList.remove('show');
       helpOpen = false;

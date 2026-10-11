@@ -2,13 +2,13 @@
 // Fallback (legacy, removed in step 17): fetch the parts and run them
 // as ONE function body (top-level let/const stay private to the game).
 (() => {
-  const SC_BUILD = '0.8.10'; // меняет tools/set_version.py
+  const SC_BUILD = '0.8.11'; // меняет tools/set_version.py
   if (window.Scorch) return; // already loaded
   const base = (document.currentScript && document.currentScript.src || location.href)
     .replace(/[^/]*$/, '');
   // scorch.music.js is OPTIONAL: a missing file only means no chiptune
   const must = ['scorch.core.js', 'scorch.world.js', 'scorch.ui.js'];
-  const opt = ['scorch.music.js'];
+  const opt = ['scorch.music.js', 'scorch.credits.js'];
   function legacyLoad() {
     const get = (u, soft) => fetch(base + u + '?v=' + SC_BUILD).then(r => {
       if (!r.ok) { if (soft) return ''; throw new Error(u + ' \u2192 HTTP ' + r.status); }
@@ -18,7 +18,7 @@
       .then(srcs => {
         // music slots in right after core: same shared scope either way
         new Function('var __scBase = ' + JSON.stringify(base) + ';\n'
-          + [srcs[0], srcs[3], srcs[1], srcs[2]].join('\n;\n'))();
+          + [srcs[0], srcs[3], srcs[4], srcs[1], srcs[2]].join('\n;\n'))();
       })
       .catch(e => console.error('[Scorch] load failed:', e.message));
   }
