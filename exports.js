@@ -1,4 +1,6 @@
 // EXPORT LOGIC
+function isSetupView() { return state.viewMode === 'setup'; }
+
 function getStatusExportData(name) {
     const data = getStationData(name);
     const visible = isPresetVisible(data.presetIndex);
@@ -45,11 +47,11 @@ function generateCanvas() {
     const rowHeight = 28;
     const headerHeight = 35;
     const titleHeightBase = 60;
-    const validStations = state.settingsMode ? state.stations.filter(st => getStationData(st.name).type !== 'trash') : state.stations;
+    const validStations = isSetupView() ? state.stations.filter(st => getStationData(st.name).type !== 'trash') : state.stations;
     const sorted = [...validStations].sort((a, b) => a.freq - b.freq);
     const half = cols === 1 ? sorted.length : Math.ceil(sorted.length / 2);
     const parts = cols === 1 ? [sorted] : [sorted.slice(0, half), sorted.slice(half)];
-    const instructionText = state.settingsMode ? generateSetupInstruction(validStations) : "";
+    const instructionText = isSetupView() ? generateSetupInstruction(validStations) : "";
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
     tempCtx.font = 'bold 12px Arial';
@@ -67,7 +69,7 @@ function generateCanvas() {
         maxFreqWidth = Math.max(maxFreqWidth, tempCtx.measureText(formatFreq(st.freq)).width);
         const shifted = calcShiftedFreq(st.freq);
         maxShiftedWidth = Math.max(maxShiftedWidth, tempCtx.measureText(shifted >= FM_BAND_MIN ? formatFreq(shifted) : '—').width);
-        if (state.settingsMode) {
+        if (isSetupView()) {
             const statusData = getStatusExportData(st.name);
             const text = `${statusData.icon} ${statusData.preset}`.trim();
             maxMarkWidth = Math.max(maxMarkWidth, tempCtx.measureText(text).width);
@@ -75,7 +77,7 @@ function generateCanvas() {
     });
     const isStandard = state.min === RU_MIN && state.max === RU_MAX;
     const padX = 10;
-    const markWidth = state.settingsMode ? Math.max(50, maxMarkWidth + padX * 2) : 0;
+    const markWidth = isSetupView() ? Math.max(50, maxMarkWidth + padX * 2) : 0;
     const colWidth = Math.ceil(markWidth + maxNameWidth + maxFreqWidth + (isStandard ? 0 : maxShiftedWidth) + padX * 4); 
     const canvasWidth = cols * colWidth + (cols - 1) * padding + padding * 2;
     const maxRows = cols === 1 ? sorted.length : half;
@@ -121,7 +123,7 @@ function generateCanvas() {
         ctx.font = 'bold 12px Arial';
         ctx.textAlign = 'left';
         let currentX = xOffset + padX;
-        if (state.settingsMode) { ctx.fillText('Пометки', currentX, y + headerHeight / 2); currentX += markWidth; }
+        if (isSetupView()) { ctx.fillText('Пометки', currentX, y + headerHeight / 2); currentX += markWidth; }
         ctx.fillText('Частота', currentX, y + headerHeight / 2);
         currentX += maxFreqWidth + padX;
         ctx.fillText('Станция', currentX, y + headerHeight / 2);
@@ -139,7 +141,7 @@ function generateCanvas() {
             ctx.stroke();
             ctx.fillStyle = '#212529';
             currentX = xOffset + padX;
-            if (state.settingsMode) {
+            if (isSetupView()) {
                 const statusData = getStatusExportData(st.name);
                 const iconText = statusData.icon;
                 const presetText = statusData.preset;
@@ -226,12 +228,12 @@ function exportPDF() {
         const isStandard = state.min === RU_MIN && state.max === RU_MAX;
         const shiftText = isStandard ? "Стандарт" : `${state.shift} МГц`;
         const title = `Город: ${state.city} | Диапазон: ${state.min} - ${state.max} МГц | Сдвиг: ${shiftText}`;
-        const validStations = state.settingsMode ? state.stations.filter(st => getStationData(st.name).type !== 'trash') : state.stations;
+        const validStations = isSetupView() ? state.stations.filter(st => getStationData(st.name).type !== 'trash') : state.stations;
         const sorted = [...validStations].sort((a, b) => a.freq - b.freq);
         const half = Math.ceil(sorted.length / 2);
         const p1 = sorted.slice(0, half);
         const p2 = sorted.slice(half);
-        const instructionText = state.settingsMode ? generateSetupInstruction(validStations) : "";
+        const instructionText = isSetupView() ? generateSetupInstruction(validStations) : "";
         const headers = isStandard ? ["Пометки", "Частота", "Станция"] : ["Пометки", "Частота", "Станция", "На ГУ"];
         const headerRow = [...headers, '', ...headers];
         const multiBody = [];
@@ -241,7 +243,7 @@ function exportPDF() {
             const row = [];
             if (r1) {
                 let statusText = "";
-                if (state.settingsMode) {
+                if (isSetupView()) {
                     const statusData = getStatusExportData(r1.name);
                     statusText = `${statusData.icon} ${statusData.preset}`.trim();
                 }
@@ -256,7 +258,7 @@ function exportPDF() {
             row.push("");
             if (r2) {
                 let statusText = "";
-                if (state.settingsMode) {
+                if (isSetupView()) {
                     const statusData = getStatusExportData(r2.name);
                     statusText = `${statusData.icon} ${statusData.preset}`.trim();
                 }
@@ -295,9 +297,9 @@ function exportPDF() {
                     const isLeft = colIndex < headers.length;
                     const currentStation = isLeft ? p1[rowIdx] : p2[rowIdx];
                     const colName = headerRow[colIndex];
-                    if (colName === 'Пометки' && state.settingsMode) data.cell.styles.fillColor = [240, 240, 240];
+                    if (colName === 'Пометки' && isSetupView()) data.cell.styles.fillColor = [240, 240, 240];
                     if (currentStation && !isAvailable(currentStation.freq)) data.cell.styles.textColor = [153, 153, 153];
-                    if (colName === 'Пометки' && currentStation && state.settingsMode) {
+                    if (colName === 'Пометки' && currentStation && isSetupView()) {
                         const statusData = getStatusExportData(currentStation.name);
                         data.cell.custom = { icon: statusData.icon, preset: statusData.preset, color: statusData.color };
                         data.cell.text = [];
@@ -353,12 +355,12 @@ async function exportXLSX() {
     const isStandard = state.min === RU_MIN && state.max === RU_MAX;
     const shiftText = isStandard ? "Стандарт" : `${state.shift} МГц`;
     const title = `Город: ${state.city} | Диапазон: ${state.min} - ${state.max} МГц | Сдвиг: ${shiftText}`;
-    const validStations = state.settingsMode ? state.stations.filter(st => getStationData(st.name).type !== 'trash') : state.stations;
+    const validStations = isSetupView() ? state.stations.filter(st => getStationData(st.name).type !== 'trash') : state.stations;
     const sorted = [...validStations].sort((a, b) => a.freq - b.freq);
     const half = Math.ceil(sorted.length / 2);
     const p1 = sorted.slice(0, half);
     const p2 = sorted.slice(half);
-    const instructionText = state.settingsMode ? generateSetupInstruction(validStations) : "";
+    const instructionText = isSetupView() ? generateSetupInstruction(validStations) : "";
     const hasInstruction = instructionText.length > 0;
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet('Stations');
@@ -425,14 +427,14 @@ async function exportXLSX() {
         const r1 = p1[i]; const r2 = p2[i]; const rowValues = [];
         if (r1) {
             let numStr = "";
-            if (state.settingsMode) { const statusData = getStatusExportData(r1.name); numStr = statusData.preset; }
+            if (isSetupView()) { const statusData = getStatusExportData(r1.name); numStr = statusData.preset; }
             rowValues.push(numStr, formatFreq(r1.freq), r1.name);
             if (!isStandard) { const s1 = calcShiftedFreq(r1.freq); rowValues.push(s1 >= FM_BAND_MIN ? formatFreq(s1) : "—"); }
         } else { rowValues.push(...(isStandard ? ["", "", ""] : ["", "", "", ""])); }
         rowValues.push(""); 
         if (r2) {
             let numStr = "";
-            if (state.settingsMode) { const statusData = getStatusExportData(r2.name); numStr = statusData.preset; }
+            if (isSetupView()) { const statusData = getStatusExportData(r2.name); numStr = statusData.preset; }
             rowValues.push(numStr, formatFreq(r2.freq), r2.name);
             if (!isStandard) { const s2 = calcShiftedFreq(r2.freq); rowValues.push(s2 >= FM_BAND_MIN ? formatFreq(s2) : "—"); }
         } else { rowValues.push(...(isStandard ? ["", "", ""] : ["", "", "", ""])); }
