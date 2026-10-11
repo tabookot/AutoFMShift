@@ -37,67 +37,15 @@
   },
   {
     "name": "Авторадио",
-    "streams": [
-      {
-        "name": "Авторадио",
-        "url": "https://cast.mediaonline.net.ua/avtoradio",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "null",
-        "tags": "music"
-      },
-      {
-        "name": "Авторадио 107.7 FM",
-        "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
-        "bitrate": 64,
-        "codec": "AAC+",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Авторадио Вологда 106.1 FM",
-        "url": "http://online-2.gkvr.ru:8000/avtoradio_vld_64.aac",
-        "bitrate": 64,
-        "codec": "AAC+",
-        "favicon": "null",
-        "tags": "music"
-      }
-    ],
-    "homepage": "https://cast.mediaonline.net.ua/avtoradio",
-    "favicon": "",
-    "tags": "music"
+    "streams": []
   },
   {
     "name": "Алания FM",
-    "streams": [
-      {
-        "name": "Алания FM",
-        "url": "http://vgtrk15.hostingradio.ru:8011/vgtrk15128.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": "news, ossetian music, talk"
-      }
-    ],
-    "homepage": "http://alaniatv.ru/alania_fm/",
-    "favicon": "",
-    "tags": "news, ossetian music, talk"
+    "streams": []
   },
   {
     "name": "Алиса FM",
-    "streams": [
-      {
-        "name": "Радио Алиса",
-        "url": "https://listen8.myradio24.com/alisa",
-        "bitrate": 192,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": ""
-      }
-    ],
-    "homepage": "https://listen8.myradio24.com/alisa",
-    "favicon": "",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Апекс-радио",
@@ -113,35 +61,7 @@
   },
   {
     "name": "Бизнес FM",
-    "streams": [
-      {
-        "name": "Бизнес FM",
-        "url": "https://bfm.hostingradio.ru:9075/fm",
-        "bitrate": 256,
-        "codec": "MP3",
-        "favicon": "https://www.bfm.ru/apple-touch-icon.png",
-        "tags": "business, business news, business programs"
-      },
-      {
-        "name": "Бизнес FM —  Business Fm (Moscow)",
-        "url": "https://bfm.hostingradio.ru/bfm256.mp3?radiostatistica=bfmru",
-        "bitrate": 256,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": "news"
-      },
-      {
-        "name": "Бизнес ФМ Краснодар 106.8 FM",
-        "url": "http://195.128.153.153:8005/bfm_tuner",
-        "bitrate": 96,
-        "codec": "MP3",
-        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20240927_221032831.jpg?alt=media&token=0d824763-9ebb-4aa9-aafa-5edcb59303de",
-        "tags": "news, talk"
-      }
-    ],
-    "homepage": "https://www.bfm.ru/",
-    "favicon": "https://www.bfm.ru/apple-touch-icon.png",
-    "tags": "business, business news, business programs"
+    "streams": []
   },
   {
     "name": "БИМ-Радио",
@@ -157,51 +77,7 @@
   },
   {
     "name": "Вести FM",
-    "streams": [
-      {
-        "name": "Вести FM",
-        "url": "http://icecast.vgtrk.cdnvideo.ru/vestifm",
-        "bitrate": 320,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": "news, talk"
-      },
-      {
-        "name": "Вести FM",
-        "url": "https://icecast-vgtrk.cdnvideo.ru/vestifm",
-        "bitrate": 320,
-        "codec": "MP3",
-        "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
-        "tags": ""
-      },
-      {
-        "name": "Вести FM (AAC)",
-        "url": "https://icecast-vgtrk.cdnvideo.ru/vestifm_aac_32kbps",
-        "bitrate": 32,
-        "codec": "AAC+",
-        "favicon": "",
-        "tags": "news, talk"
-      },
-      {
-        "name": "Вести FM (AAC)",
-        "url": "https://icecast-vgtrk.cdnvideo.ru/vestifm_aac_64kbps",
-        "bitrate": 64,
-        "codec": "AAC+",
-        "favicon": "",
-        "tags": "news, talk"
-      },
-      {
-        "name": "Вести FM",
-        "url": "https://qurango.net/radio/mahmoud_khalil_alhussary_warsh",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=100045127456557",
-        "tags": "news, talk"
-      }
-    ],
-    "homepage": "http://radiovesti.ru/",
-    "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
-    "tags": "news, talk"
+    "streams": []
   },
   {
     "name": "Виктория-Саха",
@@ -349,27 +225,7 @@
   },
   {
     "name": "Детское радио",
-    "streams": [
-      {
-        "name": "Детское радио (ДетиFM) - Detskoye Radio",
-        "url": "https://pub0101.101.ru/stream/air/aac/64/199",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "ДЕТСКОЕ РАДИО [DETSKOE RADIO BABY FM",
-        "url": "http://a5.radioheart.ru:8012/nonstop",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": "classical"
-      }
-    ],
-    "homepage": "https://detifm.ru/",
-    "favicon": "",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Джем FM",
@@ -437,43 +293,7 @@
   },
   {
     "name": "Дорожное радио",
-    "streams": [
-      {
-        "name": "дорожное радио (Dorognoe Radio)",
-        "url": "http://dorognoe.hostingradio.ru:8000/dorognoe",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "https://dorognoe.ru/assets/default/i/fav_114x114.png",
-        "tags": "moscow"
-      },
-      {
-        "name": "Дорожное радио",
-        "url": "http://dorognoe.hostingradio.ru:8000/radio",
-        "bitrate": 320,
-        "codec": "MP3",
-        "favicon": "https://dorognoe.ru/assets/default/i/fav_114x114.png",
-        "tags": "dorojnoe"
-      },
-      {
-        "name": "Дорожное радио НН",
-        "url": "https://dorognoe.hostingradio.ru/dorognoe_acc",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": "pop"
-      },
-      {
-        "name": "Дорожное радио Кемерово",
-        "url": "https://online2.gkvr.ru:8001/doroznoe_kem_64.aac",
-        "bitrate": 64,
-        "codec": "AAC+",
-        "favicon": "",
-        "tags": ""
-      }
-    ],
-    "homepage": "https://dorognoe.ru/?region=piter",
-    "favicon": "https://dorognoe.ru/assets/default/i/fav_114x114.png",
-    "tags": "dorojnoe"
+    "streams": []
   },
   {
     "name": "ДРК-Петровск",
