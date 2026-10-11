@@ -20,7 +20,9 @@ let planetMask = null;
 function genSky() {
   stars = [];
   stars.w = Wc;
-  genPlanetMask();
+  const bk = biomeKey();
+  if (bk === 'volcanic' || bk === 'xeno' || bk === 'rust' || bk === 'ashen') genPlanetMask();
+  else planetMask = null;
   genMoonSys();
   for (let i = 0; i < 130; i++) {
     stars.push({

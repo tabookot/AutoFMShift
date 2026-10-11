@@ -2527,13 +2527,18 @@ function drawCaveShade() {
   
   // HUD: fixed bright palette; on narrow screens the LABELS collapse into
   // ICONS and the weapon NAME into its live ICON
+  // пишут в DOM только при изменении значения (кэш на элементе)
+  function setTxt(el, v) { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } }
+  function setHtml(el, v) { if (el._h !== v) { el._h = v; el.innerHTML = v; } }
+  function setCls(el, v) { if (el._cl !== v) { el._cl = v; el.className = v; } }
+  function setClr(el, v) { if (el._col !== v) { el._col = v; el.style.color = v; } }
   function drawHUD() {
     if (!hudRefs) return;
     const H = hudRefs;
     const w = ARSENAL[currentCur()];
-    H.ang.textContent = Math.round(aim.ang);
-    H.pow.textContent = Math.round(aim.pow);
-    H.wname.textContent = w.name;
+    setTxt(H.ang, Math.round(aim.ang));
+    setTxt(H.pow, Math.round(aim.pow));
+    setTxt(H.wname, w.name);
     const wk = turn + '|' + currentCur();
     if (H.wiconCtx && H.wicon && H.wicon._k !== wk) {
       H.wicon._k = wk;
@@ -2546,26 +2551,26 @@ function drawCaveShade() {
       drawProjectileShape(mc, w);
       mc.restore();
     }
-    H.ammo.textContent = w.ammo === Infinity ? '∞' : currentInv()[w.key];
-    H.ammo.className = 'sc-ammo' + (w.ammo === Infinity ? '' : currentInv()[w.key] <= 1 ? ' critical' : ' limited');
-    H.round.textContent = `${round}/${ROUNDS_MAX}`;
-    H.wins.innerHTML = `<b style="color:${players[0].col}">${wins}</b> : <b style="color:${players[1].col}">${wins2}</b>`;
-    H.score.innerHTML = `<b style="color:${players[0].col}">${score}</b> : <b style="color:${players[1].col}">${score2}</b>`;
+    setTxt(H.ammo, w.ammo === Infinity ? '∞' : currentInv()[w.key]);
+    setCls(H.ammo, 'sc-ammo' + (w.ammo === Infinity ? '' : currentInv()[w.key] <= 1 ? ' critical' : ' limited'));
+    setTxt(H.round, `${round}/${ROUNDS_MAX}`);
+    setHtml(H.wins, `<b style="color:${players[0].col}">${wins}</b> : <b style="color:${players[1].col}">${wins2}</b>`);
+    setHtml(H.score, `<b style="color:${players[0].col}">${score}</b> : <b style="color:${players[1].col}">${score2}</b>`);
     const hpCol = 'rgba(250,252,255,0.97)';
     const t0 = tanks[0], t1 = tanks[1];
     const shd = (t) => t && t.shield > 0 ? ' <i class="sc-shd"></i>' : '';
-    H.you.innerHTML = `${biomeLabel()}${UNDER ? ' · пещера' : ''}&nbsp;&nbsp;<span style="color:${players[0].col}">${esc(players[0].name)}</span> <b style="color:${hpCol}">${Math.max(0, Math.round(t0 ? t0.hp : 0))}</b>${shd(t0)}`;
-    H.enemy.innerHTML = `<span style="color:${players[1].col}">${esc(players[1].name)}</span> <b style="color:${hpCol}">${Math.max(0, Math.round(t1 ? t1.hp : 0))}</b>${shd(t1)}`;
-    H.lasthit.textContent = lastHitInfo || '';
+    setHtml(H.you, `${biomeLabel()}${UNDER ? ' · пещера' : ''}&nbsp;&nbsp;<span style="color:${players[0].col}">${esc(players[0].name)}</span> <b style="color:${hpCol}">${Math.max(0, Math.round(t0 ? t0.hp : 0))}</b>${shd(t0)}`);
+    setHtml(H.enemy, `<span style="color:${players[1].col}">${esc(players[1].name)}</span> <b style="color:${hpCol}">${Math.max(0, Math.round(t1 ? t1.hp : 0))}</b>${shd(t1)}`);
+    setTxt(H.lasthit, lastHitInfo || '');
     const strength = Math.round(Math.abs(wind));
     const ch = wind < 0 ? '‹' : '›';
     const daySky = isDayT();
-    H.windarrow.textContent = ch.repeat(Math.max(1, strength));
+    setTxt(H.windarrow, ch.repeat(Math.max(1, strength)));
     const wc = w.wind > 0.45 ? (daySky ? '#a03030' : '#ff6a7a') : w.wind > 0.2 ? (daySky ? '#9a6a00' : '#f1c40f') : (daySky ? '#1b3f8f' : '#00d4ff');
-    H.windarrow.style.color = wc;
-    H.windval.style.color = wc;
-    H.windval.textContent = Math.abs(wind).toFixed(1);
-    H.round.style.color = players[hudSeat()].col;
+    setClr(H.windarrow, wc);
+    setClr(H.windval, wc);
+    setTxt(H.windval, Math.abs(wind).toFixed(1));
+    setClr(H.round, players[hudSeat()].col);
     if (state === 'aim' && isHumanSeat(turn) && turnIntro <= 0) {
       const tleft = Math.ceil(Math.max(0, turnTimer));
       const warn = turnTimer < 10;

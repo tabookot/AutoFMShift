@@ -203,7 +203,11 @@ const M = () => biome.mat;
 const isDayT = () => tod && tod.stars === false;
 const indCol = () => isDayT() ? '#1b3f8f' : '#00d4ff';
 const indColHi = () => isDayT() ? '#b34a00' : '#ffb020';
-const biomeKey = () => Object.keys(BIOMES).find(k => BIOMES[k] === biome);
+let _bkB, _bkK;
+const biomeKey = () => {
+  if (_bkB !== biome) { _bkB = biome; _bkK = Object.keys(BIOMES).find(k => BIOMES[k] === biome); }
+  return _bkK;
+};
 const biomeLabel = () => ({ green: 'Холмы', desert: 'Пустыня', arctic: 'Арктика', volcanic: 'Вулкан', xeno: 'Ксено', rust: 'Ржавые дюны', ashen: 'Пепел' }[biomeKey()] || '');
 const windKind = () => ({ green: 'leaf', desert: 'sand', arctic: 'snow', volcanic: 'ash', xeno: 'dust', rust: 'sand', ashen: 'ash' }[biomeKey()] || 'dust');
 // lava palette of the CURRENT world (volcanic by default)
