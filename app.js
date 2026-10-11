@@ -327,7 +327,7 @@ async function init() {
     vS.value = val;
     if (mVS) mVS.value = val;
     audioPlayer.volume = val;
-    localStorage.setItem('fm_player_volume', val);
+    lsSet('fm_player_volume', val);
     const p = Math.round(val * 100);
     vS.style.background = `linear-gradient(to top, var(--accent) ${p}%, var(--border) ${p}%)`;
     if (mVS) {

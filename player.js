@@ -108,7 +108,7 @@ async function restorePlayback() {
   if (isRestoringPlayback) {
     isRestoringPlayback = false;
     if (r === true) {
-      localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), currentStreamIndex);
+      lsSet('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), currentStreamIndex);
       updatePlayerUI();
       updateUrl();
     } else if (r === 'blocked') {
@@ -164,7 +164,7 @@ function attemptPlay(name, streamIndex, corsRetry) {
       cleanup(); 
       initAudioContext();
       updateMediaSession();
-      localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(name), streamIndex);
+      lsSet('fm_working_stream_' + FMUse.generateCodeName(name), streamIndex);
       resolve(true); 
     };
     
@@ -294,7 +294,7 @@ async function togglePlay(name) {
   const result = await tryPlayStation({ name: name });
   
   if (result === true) {
-    localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(name), currentStreamIndex);
+    lsSet('fm_working_stream_' + FMUse.generateCodeName(name), currentStreamIndex);
     updatePlayerUI();
     updateUrl();
   } else if (result === 'blocked') {
@@ -351,7 +351,7 @@ async function skipStation(dir) {
     const r = await tryPlayStation(st);
     
     if (r === true) {
-      localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(st.name), currentStreamIndex);
+      lsSet('fm_working_stream_' + FMUse.generateCodeName(st.name), currentStreamIndex);
       updatePlayerUI();
       updateUrl();
       return;
@@ -431,7 +431,7 @@ async function skipPreset(dir) {
     const r = await tryPlayStation({ name: sN });
     
     if (r === true) {
-      localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(sN), currentStreamIndex);
+      lsSet('fm_working_stream_' + FMUse.generateCodeName(sN), currentStreamIndex);
       updatePlayerUI();
       updateUrl();
       return;
@@ -663,7 +663,7 @@ async function startTrackMeta(url) {
 }
 
 function updatePlayerUI() {
-  localStorage.setItem('fm_player_playing', (!audioPlayer.paused && currentPlayingStation) ? currentPlayingStation : '');
+  lsSet('fm_player_playing', (!audioPlayer.paused && currentPlayingStation) ? currentPlayingStation : '');
   const pP = document.getElementById('playerPanel');
   const mC = document.getElementById('mobilePlayerControls');
   const mB = document.getElementById('mobilePlayBtn');
@@ -867,7 +867,7 @@ function initMobilePlayerControls() {
           setPlayerLoading(true, 'Подключение...');
           attemptPlay(currentPlayingStation, currentStreamIndex).then((p) => {
             if (p) {
-              localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), currentStreamIndex);
+              lsSet('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), currentStreamIndex);
               updatePlayerUI();
               updateUrl();
             } else {
@@ -987,7 +987,7 @@ function openStreamMenu(btn) {
       closePresetMenu();
       const played = await attemptPlay(currentPlayingStation, i);
       if (played === true) {
-        localStorage.setItem('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), i);
+        lsSet('fm_working_stream_' + FMUse.generateCodeName(currentPlayingStation), i);
         updatePlayerUI();
         updateUrl();
       } else if (!played) {
