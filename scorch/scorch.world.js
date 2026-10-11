@@ -1958,7 +1958,8 @@ function stepPlasmaOrbs(dt) {
 function stepFx(dt) {
   shake = Math.max(0, shake - dt * (4 + shake * 4));
   stepPlasmaOrbs(dt);
-  fx = fx.filter(f => {
+  const fxOld = fx, fxLen0 = fxOld.length;
+  const fxKept = fxOld.filter(f => {
     f.t += dt;
     if (f.k === 'wring') { f.r += f.vr * dt; }
     if (f.k === 'dust') { f.x += f.vx * dt; f.y += f.vy * dt; f.vy *= (1 - dt * 0.6); f.r += 14 * dt; }
@@ -2008,6 +2009,7 @@ function stepFx(dt) {
     }
     return f.t < f.life;
   });
+  fx = fxKept.concat(fxOld.slice(fxLen0));
   debris = debris.filter(d => {
     d.life -= dt;
     if (d.life <= 0) return false;

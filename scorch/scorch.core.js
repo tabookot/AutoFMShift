@@ -125,7 +125,7 @@ let cloudCount = 8;
 let groundPat = null;
 let tod = { stops: ['#7ab3d8', '#a8cde6', '#d8e8f0'], sun: '#fff6d8', sunHalo: 'rgba(255,246,216,0.35)', stars: false, clouds: 0.55, haze: 'rgba(220,235,245,0.25)' };
 let cycleT = 0, dayness = 1, todT = 0;
-let tanks, wind, windDir, aiSkill;
+let tanks, wind = 0, windDir, aiSkill;
 let ammoInv = {}, aiAmmo = {}, cur = 0, cur2 = 0, turn, state, turnOrder = 0;
 let roundOpener = 0;
 let shot = null, subshots = [], liquids = [], debris = [], remains = [], sinkers = [], windParts = [], comets = [], grains = [], wreckBits = [];
@@ -304,7 +304,7 @@ function updateTod() {
 // color helpers used by the turret sprites and the terrain renderer
 function mixColor(h1, h2, k) {
   const a = parseInt(h1.slice(1), 16), b = parseInt(h2.slice(1), 16);
-  return `rgb(${Math.round(((a >> 16) & 255) * (1 - k) + ((b >> 16) & 255) * k)},${Math.round(((a >> 8) & 255) * (1 - k) + ((b >> 8) & 255) * k)},${Math.round((a & 255) * (1 - k) + (a & 255) * k)})`;
+  return `rgb(${Math.round(((a >> 16) & 255) * (1 - k) + ((b >> 16) & 255) * k)},${Math.round(((a >> 8) & 255) * (1 - k) + ((b >> 8) & 255) * k)},${Math.round((a & 255) * (1 - k) + (b & 255) * k)})`;
 }
 function shade(c, k) {
   let r, g, b;
@@ -630,18 +630,33 @@ function ensureAudio() {
   }
   if (AC && AC.state === 'suspended') AC.resume().catch(() => {});
 }
+const sfxNoiseCache = {};
+function sfxNoise(key) {
+  const sr = AC.sampleRate;
+  let c = sfxNoiseCache[key];
+  if (!c || c.sr !== sr) {
+    const len = Math.max(1, Math.floor(sr * key / 10));
+    const b = AC.createBuffer(1, len, sr);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    c = sfxNoiseCache[key] = { sr: sr, b: b };
+  }
+  return c.b;
+}
 function sfx(size) {
   if (!AC) return;
   try {
-    const dur = clamp(0.25 + size * 0.5, 0.2, 1.4);
-    const buf = AC.createBuffer(1, AC.sampleRate * dur, AC.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 1.8);
-    const src = AC.createBufferSource(); src.buffer = buf;
+    const key = Math.round(clamp(0.25 + size * 0.5, 0.2, 1.4) * 10);
+    const dur = key / 10;
+    const src = AC.createBufferSource(); src.buffer = sfxNoise(key);
     const flt = AC.createBiquadFilter(); flt.type = 'lowpass';
     flt.frequency.value = 300 / size + 250;
     const g = AC.createGain();
-    g.gain.value = clamp(0.12 * size, 0.06, 0.5) * sVol;
+    const peak = clamp(0.12 * size, 0.06, 0.5) * sVol;
+    const curve = new Float32Array(32);
+    for (let i = 0; i < 32; i++) curve[i] = peak * Math.pow(1 - i / 31, 1.8);
+    g.gain.value = 0;
+    g.gain.setValueCurveAtTime(curve, AC.currentTime, dur);
     src.connect(flt); flt.connect(g); g.connect(AC.destination);
     src.start();
   } catch (e) {}
@@ -702,6 +717,7 @@ function schedule(fn, delay) { events.push({ at: gt + delay, fn }); }
 
 // ================== LIFECYCLE ==================
 function openGame() {
+  if (state === 'closing') { stopLoop(); overlay.style.opacity = ''; }
   build();
   ensureAudio();
   if (typeof musicStart === 'function') musicStart();
@@ -714,6 +730,12 @@ function openGame() {
 }
 function closeGame(boom) {
   if (typeof musicStop === 'function') musicStop();
+  try {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      const ex = document.exitFullscreen || document.webkitExitFullscreen;
+      if (ex) { const r = ex.call(document); if (r && r.catch) r.catch(() => {}); }
+    }
+  } catch (e) {}
   if (boom) apocalypsis(); else { stopLoop(); overlay.classList.remove('show'); }
 }
 // the closing apocalypse REUSES the NUKE impact package with zero damage;
@@ -751,11 +773,17 @@ function apocalypsis() {
     const left = tEnd - now;
     if (left <= 0) { overlay.style.opacity = ''; stopLoop(); overlay.classList.remove('show'); return; }
     overlay.style.opacity = clamp(left / 250, 0, 1).toFixed(3);
-    requestAnimationFrame(fin);
+    finRaf = requestAnimationFrame(fin);
   };
-  requestAnimationFrame(fin);
+  finRaf = requestAnimationFrame(fin);
 }
-function stopLoop() { if (raf) cancelAnimationFrame(raf); raf = null; events = []; }
+let finRaf = null;
+function stopLoop() {
+  if (raf) cancelAnimationFrame(raf);
+  raf = null;
+  if (finRaf) { cancelAnimationFrame(finRaf); finRaf = null; }
+  events = [];
+}
 
 // boot: dblclick / double-tap / long-press on the host trigger zone
 function boot() {

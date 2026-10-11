@@ -123,20 +123,6 @@ function rrectPath(c, x, y, w, h, r) {
     if (UNDER) drawCaveShade();
     if (shot) drawShot(shot);
     subshots.forEach(drawShot);
-    // beam-lit tank glows ride ABOVE the cave darkness, in each player's
-    // own colour, only while a searchlight touches them
-    tglow.forEach(tg => {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      const g = ctx.createRadialGradient(tg.x, tg.y, 2, tg.x, tg.y, 34);
-      const tc = parseCol(tg.col);
-      g.addColorStop(0, `rgba(${Math.min(255, tc[0] + 90)},${Math.min(255, tc[1] + 90)},${Math.min(255, tc[2] + 90)},${tg.a.toFixed(3)})`);
-      g.addColorStop(0.5, `rgba(${tc[0] | 0},${tc[1] | 0},${tc[2] | 0},${(tg.a * 0.5).toFixed(3)})`);
-      g.addColorStop(1, `rgba(${tc[0] | 0},${tc[1] | 0},${tc[2] | 0},0)`);
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(tg.x, tg.y, 34, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    });
     drawLiquids();
     drawFire();
     drawFx();
@@ -702,11 +688,6 @@ function rrectPath(c, x, y, w, h, r) {
   }
   
 // ============ CAVE LIGHT PASS: darkness + baked static lights ============
-// tglow: tank glows fired this frame by the sweeping beams (drawn after
-// the shots so the turrets light up in their player colour); bwlights:
-// water columns lit by beams (consumed by the water pass)
-let tglow = [];
-let bwlights = [];
 let eclipseF = 0;
 let sunDim = 0;
 // standalone OPTIONS mode: the setup window floats over the splash with
@@ -1618,47 +1599,6 @@ function drawCaveShade() {
     ctx.translate(0, 1.6);
     surfPath(); ctx.stroke();
     ctx.restore();
-    // beam-lit water in caves: the lit column runs from the waterline to
-  // the BED, the whole cone width brightens and gains sun-road-style
-  // glints as if the beam were the luminary
-  if (UNDER && bwlights.length) {
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    bwlights.forEach(B => {
-      const wl = waterAt((B.x0 + B.x1) / 2);
-      if (B.ly > wl - 6) return;
-      const wid = Math.max(B.x1 - B.x0, 14);
-      const g = ctx.createLinearGradient(B.x0 - 0, B.ly, B.x0, Math.min(Hc, wl + (Hc - wl) * 0.85));
-      g.addColorStop(0, `rgba(190,215,235,${(0.16 * B.fl).toFixed(3)})`);
-      g.addColorStop(0.5, `rgba(140,170,200,${(0.10 * B.fl).toFixed(3)})`);
-      g.addColorStop(1, `rgba(80,110,140,0)`);
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.moveTo(B.x0 - 3, B.ly);
-      ctx.lineTo(B.x1 + 3, B.ly);
-      ctx.lineTo(B.x1 + 3 + wid * 0.3, Math.min(Hc, wl + (Hc - wl) * 0.9));
-      ctx.lineTo(B.x0 - 3 - wid * 0.3, Math.min(Hc, wl + (Hc - wl) * 0.9));
-      ctx.closePath(); ctx.fill();
-      // glints like the sun road: flare points along the lit column
-      const cn = Math.round(wid / 4) + 4;
-      for (let q = 0; q < cn; q++) {
-        const gx = R(B.x0, B.x1);
-        const gy = R(B.ly + 4, Math.min(Hc - 4, wl + (Hc - wl) * 0.8));
-        const dw = waterAt(gx) - gy;
-        if (dw < 6) continue;
-        const a = (0.3 + 0.4 * Math.sin(q * 3.7 + gt * 2)) * B.fl * clamp(dw / 40, 0.3, 1);
-        ctx.strokeStyle = `rgba(210,235,250,${a.toFixed(3)})`;
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        const ln = 3 + Math.sin(q * 2.1 + gt) * 1.5;
-        ctx.moveTo(gx - ln, gy);
-        ctx.lineTo(gx + ln, gy + 1);
-        ctx.stroke();
-      }
-      ctx.lineWidth = 1;
-    });
-    ctx.restore();
-  }
   const starA = UNDER ? 0 : clamp(((1 - dayness) - 0.25) / 0.5, 0, 1);
     if (starA > 0.35) {
       ctx.fillStyle = `rgba(230,240,255,${(0.5 * starA).toFixed(3)})`;
@@ -2629,7 +2569,7 @@ function drawCaveShade() {
     if (state === 'aim' && isHumanSeat(turn) && turnIntro <= 0) {
       const tleft = Math.ceil(Math.max(0, turnTimer));
       const warn = turnTimer < 10;
-      const blink = warn && Math.sin(gt * (turnTimer < 5 ? 12 : 7) < 0);
+      const blink = warn && Math.sin(gt * (turnTimer < 5 ? 12 : 7)) < 0;
       // the timer lives UNDER the close button in the right rail on every
       // screen — on narrow ones the fullscreen button stacks in between
       const stack = Wc <= 700;
@@ -3900,7 +3840,7 @@ function drawCaveShade() {
     cv.addEventListener('wheel', (e) => {
       e.preventDefault();
       if (!ctlLive()) return;
-      aim.pow = clamp(aim.pow + (e.deltaY < 0 ? 1 : -1), 10, 100);
+      aim.pow = clamp(aim.pow + (e.deltaY < 0 ? 1 : -1), 5, 100);
       draw();
     }, { passive: false });
     window.addEventListener('keydown', keyH, true);
@@ -4064,8 +4004,8 @@ function drawCaveShade() {
     const ccw = aimDir();
     if (e.key === 'ArrowLeft') aim.ang = clamp(aim.ang + ccw, AIM_MIN, AIM_MAX);
     if (e.key === 'ArrowRight') aim.ang = clamp(aim.ang - ccw, AIM_MIN, AIM_MAX);
-    if (e.key === 'ArrowUp') aim.pow = clamp(aim.pow + 1, 10, 100);
-    if (e.key === 'ArrowDown') aim.pow = clamp(aim.pow - 1, 10, 100);
+    if (e.key === 'ArrowUp') aim.pow = clamp(aim.pow + 1, 5, 100);
+    if (e.key === 'ArrowDown') aim.pow = clamp(aim.pow - 1, 5, 100);
     if (e.key === ' ') {
       if (turnIntro > 0) return;
       if (turn === 0) fire();
