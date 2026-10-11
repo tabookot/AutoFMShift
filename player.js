@@ -123,7 +123,58 @@ async function restorePlayback() {
   }
 }
 
-function attemptPlay(name, streamIndex, corsRetry) {
+let audioHandlers = null;
+
+function bindAudioEvents(el) {
+  const list = [
+    ['playing', startSpectrum],
+    ['playing', () => {
+      setPlayerLoading(false);
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+      if (state.trackMeta) startTrackMeta(el.src);
+      updatePlayerUI();
+    }],
+    ['waiting', () => {
+      setPlayerLoading(true);
+      updatePlayerUI();
+    }],
+    ['pause', () => {
+      setPlayerLoading(false);
+      stopTrackMeta();
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+      updatePlayerUI();
+    }]
+  ];
+  list.forEach((x) => el.addEventListener(x[0], x[1]));
+  el._fmHandlers = list;
+}
+
+// A MediaElementSource cannot be detached from its element, and for a
+// non-CORS resource it outputs silence. So for a plain retry we replace
+// the <audio> element itself and drop the old audio graph.
+function rebuildAudioElement() {
+  const old = audioPlayer;
+  const vol = old.volume;
+  (old._fmHandlers || []).forEach((x) => old.removeEventListener(x[0], x[1]));
+  try { old.pause(); old.removeAttribute('src'); old.load(); } catch (e) {}
+  const el = document.createElement('audio');
+  el.id = 'audioPlayer';
+  el.preload = 'none';
+  if (old.parentNode) old.parentNode.replaceChild(el, old);
+  else document.body.appendChild(el);
+  el.volume = vol;
+  audioPlayer = el;
+  bindAudioEvents(el);
+  try { if (sourceNode) sourceNode.disconnect(); } catch (e) {}
+  try { if (analyser) analyser.disconnect(); } catch (e) {}
+  try { if (audioContext && audioContext.state !== 'closed') audioContext.close(); } catch (e) {}
+  audioContext = null;
+  analyser = null;
+  sourceNode = null;
+  window.scAnalyser = null;
+}
+
+function attemptPlay(name, streamIndex, plain) {
   const myToken = ++playbackToken;
   return new Promise((resolve) => {
     const streamData = stationStreamMap[FMUse.generateCodeName(name)];
@@ -147,6 +198,13 @@ function attemptPlay(name, streamIndex, corsRetry) {
     // is allowed on https pages; real blocks fall through to the retry path.
     
     const origUrl = url; // untouched original for any retry
+    const stream = streamData.streams[streamIndex];
+    const usePlain = plain === true || stream.plain === true;
+    const retryPlain = () => {
+      if (usePlain) return false;
+      resolve(attemptPlay(name, streamIndex, true));
+      return true;
+    };
     let settled = false;
     const cleanup = () => {
       clearTimeout(playTimeout);
@@ -162,7 +220,8 @@ function attemptPlay(name, streamIndex, corsRetry) {
       if (settled) return; 
       settled = true; 
       cleanup(); 
-      initAudioContext();
+      if (!usePlain) initAudioContext();
+      if (plain === true) stream.plain = true;
       updateMediaSession();
       lsSet('fm_working_stream_' + FMUse.generateCodeName(name), streamIndex);
       resolve(true); 
@@ -176,18 +235,12 @@ function attemptPlay(name, streamIndex, corsRetry) {
       if (settled) return; 
       settled = true; 
       cleanup(); 
-      // CORS mode failed -> retry same stream without crossorigin, no spectrum but sound
-      if (corsRetry && audioPlayer.crossOrigin === 'anonymous') {
-        audioPlayer.crossOrigin = null;
-        audioPlayer.src = origUrl; // original protocol preserved
-        audioPlayer.play().catch(() => {});
-        resolve(true);
-        return;
-      }
+      if (retryPlain()) return;
       resolve(false); 
     };
     
-    playTimeout = setTimeout(() => { 
+    playTimeout = setTimeout(() => {
+      if (myToken === playbackToken && !settled && !usePlain) { settled = true; cleanup(); retryPlain(); return; } 
       if (myToken !== playbackToken) { 
         if (!settled) { settled = true; cleanup(); resolve('aborted'); }
         return;
@@ -199,10 +252,11 @@ function attemptPlay(name, streamIndex, corsRetry) {
       resolve(false); 
     }, 5000);
     
+    if (usePlain && sourceNode) rebuildAudioElement();
     audioPlayer.addEventListener('playing', onPlaying);
     audioPlayer.addEventListener('error', onError);
     
-    audioPlayer.crossOrigin = corsRetry === false ? null : 'anonymous';
+    audioPlayer.crossOrigin = usePlain ? null : 'anonymous';
     audioPlayer.src = url;
     const playPromise = audioPlayer.play();
     if (playPromise !== undefined) {
@@ -212,6 +266,7 @@ function attemptPlay(name, streamIndex, corsRetry) {
           return;
         }
         if (settled) return;
+        if (e.name !== 'NotAllowedError' && e.name !== 'AbortError' && !usePlain) { settled = true; cleanup(); retryPlain(); return; }
         if (e.name === 'NotAllowedError') {
           settled = true; cleanup();
           audioPlayer.pause();
@@ -237,10 +292,6 @@ async function tryPlayStation(st) {
   let savedIdx = parseInt(localStorage.getItem('fm_working_stream_' + FMUse.generateCodeName(st.name)));
   if (!isNaN(savedIdx) && savedIdx < streamData.streams.length && !streamData.streams[savedIdx].broken) {
     played = await attemptPlay(st.name, savedIdx);
-    if (played === 'retry-plain') {
-      audioPlayer.pause();
-      played = await attemptPlay(st.name, savedIdx, false);
-    }
     if (played === true || played === 'blocked' || played === 'aborted') return played;
     if (!played) streamData.streams[savedIdx].broken = true;
   }

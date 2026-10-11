@@ -395,23 +395,7 @@ async function init() {
     localStorage.removeItem('fm_player_playing');
   }
 
-  audioPlayer.addEventListener('playing', startSpectrum);
-    audioPlayer.addEventListener('playing', () => {
-    setPlayerLoading(false);
-    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
-    if (state.trackMeta) startTrackMeta(audioPlayer.src);
-    updatePlayerUI();
-  });
-  audioPlayer.addEventListener('waiting', () => {
-    setPlayerLoading(true);
-    updatePlayerUI();
-  });
-  audioPlayer.addEventListener('pause', () => {
-    setPlayerLoading(false);
-    stopTrackMeta();
-    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
-    updatePlayerUI();
-  });
+  bindAudioEvents(audioPlayer);
   document.getElementById('playerPlayBtn').addEventListener('click', () => {
     cancelRestorePlayback();
     if (currentPlayingStation) {
