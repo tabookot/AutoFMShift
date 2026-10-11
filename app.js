@@ -232,7 +232,7 @@ async function init() {
     let isLongPress = false;
     
     const startPress = (e) => {
-      if (e.button !== 0) return; // Только левая кнопка запускает таймер
+      if (e.type === 'mousedown' && e.button !== 0) return; // Только левая кнопка запускает таймер
       isLongPress = false;
       pressTimer = setTimeout(() => {
         isLongPress = true;
@@ -607,7 +607,9 @@ function buildAllCities() {
     updateCityStats(ALL_CITIES);
   }
 
+let loadSeq = 0;
 async function loadCity(city) {
+  const seq = ++loadSeq;
   if (city === ALL_CITIES) {
     state.city = ALL_CITIES;
     Object.values(stationStreamMap).forEach((d) => {
@@ -630,6 +632,7 @@ async function loadCity(city) {
   l.innerHTML = '<div class="loading-msg">Загрузка станций...</div>';
   render();
   const h = await Api.fetchPage(citiesMap[city]);
+  if (seq !== loadSeq) return;
   let nS = [];
   let src = 'cache';
   if (h) {
@@ -796,7 +799,7 @@ function setupWheelInput(id, min, max, step, stateProp) {
       if (stateProp === 'min') state.min = val;
       else state.max = val;
       const m = TEMPLATES.find((t) => t.range[0] === state.min && t.range[1] === state.max);
-      state.template = m ? m.name : 'Свой вариант';
+      state.template = m ? m.name : CUSTOM_TEMPLATE_NAME;
       state.templateShort = m ? m.short : 'свой';
     } else {
       val = Math.round(val);
@@ -877,4 +880,4 @@ document.getElementById('closeHelpBtn').addEventListener('click', () => document
 document.getElementById('helpModal').addEventListener('click', (e) => {
   if (e.target.id === 'helpModal') e.target.classList.remove('show');
 });
-init();
+init().catch(e => { console.error(e); showToast('Ошибка запуска'); });

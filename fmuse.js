@@ -155,7 +155,7 @@ const FMUse = {
       const junkWords = ['радио', 'radio', 'fm', 'фм', 'ам', 'тв', 'tv', 'гтрк', 'трв', 'орр', 'онлайн', 'online', 'прямой', 'эфир'];
       junkWords.forEach((word) => {
         const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        cleaned = cleaned.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escapedWord}(?![\\p{L}\\p{N}])`, 'gu'), ' ');
+        cleaned = cleaned.replace(new RegExp(`(^|[^\\p{L}\\p{N}])${escapedWord}(?![\\p{L}\\p{N}])`, 'gu'), '$1 ');
       });
   
       cleaned = cleaned.replace(/[\[\]\(\)\{\}]/g, ' ');

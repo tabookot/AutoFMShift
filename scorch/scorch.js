@@ -3,7 +3,7 @@
 // (no collisions with host-page globals like `state`); cross-references
 // between core/world/ui work exactly as in the old single-file IIFE
 (() => {
-  const SC_BUILD = '0.8.5'; // меняет tools/set_version.py
+  const SC_BUILD = '0.8.6'; // меняет tools/set_version.py
   if (window.Scorch) return; // already loaded
   const base = (document.currentScript && document.currentScript.src || location.href)
     .replace(/[^/]*$/, '');

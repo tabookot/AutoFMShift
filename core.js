@@ -1,5 +1,5 @@
 // core.js
-const VERSION = '0.8.5';
+const VERSION = '0.8.6';
 const CACHE_VERSION = '4';
 const LS_KEY = 'fm_adapter_calc_v10';
 const LS_THEME_KEY = 'fm_adapter_theme';
@@ -8,6 +8,7 @@ const RU_MAX = 108.0;
 const FM_BAND_MIN = 76.0;
 const FM_BAND_MAX = 108.0;
 const SHIFTS = [0, 10, 12, 14, 16, 18, 20, 24, 28, 30];
+const CUSTOM_TEMPLATE_NAME = 'Свой диапазон';
 const TEMPLATES = [
   { name: 'Россия / Европа', short: 'ru/eu', range: [RU_MIN, RU_MAX] },
   { name: 'Япония (до ~2014)', short: 'jp-old', range: [76.0, 90.0] },
@@ -17,7 +18,7 @@ const TEMPLATES = [
   { name: 'Китай', short: 'cn', range: [87.5, 108.0] },
   { name: 'Корея', short: 'kr', range: [88.0, 108.0] },
   { name: 'OIRT / СССР', short: 'oirt', range: [65.9, 74.0] },
-  { name: 'Свой диапазон', short: 'custom', range: [76.0, 108.0] }
+  { name: CUSTOM_TEMPLATE_NAME, short: 'custom', range: [76.0, 108.0] }
 ];
 const ALL_CITIES = 'Избранное';
 const DEFAULT_STATE = {
@@ -372,7 +373,10 @@ function updateCityStats(city) {
   });
   state.cityData[city].stations = clean;
   state.cityData[city].stats = { total: state.cityData[city].totalStations || 0, fav, cand, trash, statused: fav + cand + trash, presets };
-  state.cityData[city].lastModified = Date.now();
+}
+
+function touchCity(city) {
+  if (state.cityData[city]) state.cityData[city].lastModified = Date.now();
 }
 
 function getStatsTooltip(s) {
@@ -467,7 +471,6 @@ function render() {
   document.getElementById('templatesBtn').textContent = state.templateShort || 'свой';
   
   if (document.getElementById('fmDialWrapper')) {
-    const dT = document.getElementById('dialToggleBtn');
     const dFT = document.getElementById('dialFreqToggleBtn');
     const dCT = document.getElementById('dialControlsToggleBtn');
     if (state.stations.length > 0) {
@@ -538,6 +541,7 @@ function cycleStationStatus(name) {
   else if (d.type === 'fav') d.type = 'cand';
   else if (d.type === 'cand') d.type = 'trash';
   else d.type = 'normal';
+  touchCity(state.city);
   updateCityStats(state.city);
   commitState();
   render();
@@ -564,6 +568,7 @@ function assignPreset(name, pi) {
     });
   }
   d.presetIndex = d.presetIndex === pi ? null : pi;
+  touchCity(state.city);
   updateCityStats(state.city);
   commitState();
   render();
@@ -706,8 +711,11 @@ function loadFromUrl() {
   if (!isNaN(mn) && mn >= 64 && mn <= 110) state.min = mn;
   const mx = parseFloat(p.get('max'));
   if (!isNaN(mx) && mx >= 64 && mx <= 110 && mx > state.min) state.max = mx;
-  const sh = parseInt(p.get('shift'));
-  if (!isNaN(sh) && sh >= 0 && sh <= 30) state.shift = sh;
+  const shRaw = p.get('shift');
+  if (shRaw !== null) {
+    const sh = parseInt(shRaw, 10);
+    state.shift = SHIFTS.indexOf(sh) !== -1 ? sh : 0;
+  }
   const v = p.get('view');
   state.viewMode = v === 'player' ? 'player' : 'setup';
   const d = p.get('dial');
@@ -724,7 +732,7 @@ function loadFromUrl() {
   const ps = parseInt(p.get('presets'));
   if (!isNaN(ps) && ps >= 1 && ps <= 18) state.presets = ps;
   const mt = TEMPLATES.find((t) => t.range[0] === state.min && t.range[1] === state.max);
-  state.template = mt ? mt.name : 'Свой вариант';
+  state.template = mt ? mt.name : CUSTOM_TEMPLATE_NAME;
   state.templateShort = mt ? mt.short : 'свой';
   return true;
 }
@@ -773,7 +781,9 @@ function loadFromLS() {
 }
 
 function resetAll() {
-  ['fm_adapter_calc', 'fm_adapter_calc_v2', 'fm_adapter_calc_v3', 'fm_adapter_calc_v4', 'fm_adapter_calc_v5', 'fm_adapter_calc_v6', 'fm_adapter_calc_v7', 'fm_adapter_calc_v8', 'fm_adapter_calc_v9', LS_KEY, LS_THEME_KEY, 'geo_checked', 'fm_cities_map'].forEach((k) => localStorage.removeItem(k));
+  const LEGACY_LS_KEYS = ['fm_adapter_calc'];
+  for (let i = 2; i <= 9; i++) LEGACY_LS_KEYS.push('fm_adapter_calc_v' + i);
+  LEGACY_LS_KEYS.concat([LS_KEY, LS_THEME_KEY, 'geo_checked', 'fm_cities_map']).forEach((k) => localStorage.removeItem(k));
   lsSet('fm_cache_version', CACHE_VERSION);
   history.replaceState(null, '', window.location.pathname);
   showToast('Полный сброс выполнен');
@@ -912,6 +922,7 @@ function doTransfer() {
       added++;
     });
   }
+  if (added > 0) touchCity(tc);
   updateCityStats(tc);
   commitState();
   render();
@@ -944,7 +955,6 @@ function openExportModal() {
       ip.type = 'checkbox';
       ip.value = c;
       if (c === state.city) ip.checked = true;
-      else if (c === cws.length > 0 && c === cws[0].name) ip.checked = true;
       const cs = document.createElement('span');
       cs.className = 'checkbox-custom';
       const ns = document.createElement('span');
