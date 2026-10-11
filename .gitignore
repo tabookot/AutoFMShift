@@ -1,9 +1,7 @@
 ﻿# Personal/Private folders
 temp/
 tools/
-tests/
 patches/
-REPO_MAP.md
 
 # OS generated files
 .DS_Store
