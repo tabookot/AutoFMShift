@@ -6889,6 +6889,27 @@ function drawCaveShade() {
     // white circle: the lit pixels belong to the surface alone
     const tankGlow = (t, a, lx, ly) => {
         const SZ = 64, C = 32;
+        const gc = drawCaveShade._gc || (drawCaveShade._gc = new Map());
+        const tdir = t === tanks[0] ? playerDir() : (tanks[1].x < tanks[0].x ? 1 : -1);
+        const qang = Math.round((t.dispAng === undefined ? 45 : t.dispAng) / 5) * 5;
+        const QS = Math.PI / 18; // 10 градусов
+        const qa = Math.round(Math.atan2(ly - (t.y - 13), lx - t.x) / QS) * QS;
+        const key = t.hull + '|' + t.col + '|' + tdir + '|' + qang + '|' + Math.round(qa / QS);
+        const TC = parseCol(t.col);
+        const paint = pts => {
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          for (let i = 0; i < pts.length; i++) {
+            const q = pts[i];
+            const aa = a * q.b;
+            if (aa < 0.02) continue;
+            ctx.fillStyle = `rgba(${Math.min(255, TC[0] + 45)},${Math.min(255, TC[1] + 45)},${Math.min(255, TC[2] + 45)},${aa.toFixed(3)})`;
+            ctx.fillRect(t.x + q.dx, t.y + q.dy, 1, 1);
+          }
+          ctx.restore();
+        };
+        const hit = gc.get(key);
+        if (hit) { paint(hit); return; }
         if (!drawCaveShade._cv) {
           drawCaveShade._cv = document.createElement('canvas');
           drawCaveShade._cv.width = SZ; drawCaveShade._cv.height = SZ;
@@ -6901,17 +6922,15 @@ function drawCaveShade() {
         // ~30px silhouette fits — the pixel→world mapping below matches this
         sc.save();
         sc.translate(C, C + 14);
-        drawTurretBody(sc, 0, 0, t.col, { noShadow: true, hull: t.hull, seed: 3, dir: t === tanks[0] ? playerDir() : (tanks[1].x < tanks[0].x ? 1 : -1), ang: t.dispAng === undefined ? 45 : t.dispAng });
+        drawTurretBody(sc, 0, 0, t.col, { noShadow: true, hull: t.hull, seed: 3, dir: tdir, ang: qang });
         sc.restore();
         // the lamp direction, canvas coords (y down), from the body centre
         const ldx = lx - t.x, ldy = ly - (t.y - 13);
         const lLen = Math.hypot(ldx, ldy) || 1;
-        const ux = ldx / lLen, uy = ldy / lLen;
+        const ux = Math.cos(qa), uy = Math.sin(qa);
         const data = sc.getImageData(0, 0, SZ, SZ).data;
         const at = (px, py) => (px >= 0 && px < SZ && py >= 0 && py < SZ && data[((py | 0) * SZ + (px | 0)) * 4 + 3] > 60);
-        const TC = parseCol(t.col);
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
+        const pts = []; // glow points cache
         // every sprite pixel is a surface point: it lights up when it FACES
         // the lamp (cos of the angle between the pixel's outward vector and
         // the lamp direction) and nothing of the hull shades it from the lamp
@@ -6935,14 +6954,14 @@ function drawCaveShade() {
             if (blocked) continue;
             // squarely facing = bright, grazing = dim — a soft sheen ON the
             // surface, in the player's own colour
-            const aa = a * Math.pow((dot - 0.3) / 0.7, 1.25) * 0.34;
-            if (aa < 0.02) continue;
-            const wx = t.x + dx, wy = t.y + dy;
-            ctx.fillStyle = `rgba(${Math.min(255, TC[0] + 45)},${Math.min(255, TC[1] + 45)},${Math.min(255, TC[2] + 45)},${aa.toFixed(3)})`;
-            ctx.fillRect(wx, wy, 1, 1);
+            const b = Math.pow((dot - 0.3) / 0.7, 1.25) * 0.34;
+            if (b < 0.02) continue;
+            pts.push({ dx: dx, dy: dy, b: b });
           }
         }
-        ctx.restore();
+        if (gc.size > 400) gc.clear();
+        gc.set(key, pts);
+        paint(pts);
       };
     tnk.forEach((v, t) => tankGlow(t, clamp(0.85 * (v.n > 1 ? 1.5 : 1), 0, 1), v.lx, v.ly));
     // live fire of the cave feeds its own light into the gloom
