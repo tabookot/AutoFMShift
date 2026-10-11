@@ -369,7 +369,7 @@ async function init() {
   }, { passive: false });
   spectrumCanvas = document.getElementById('spectrumCanvas');
   spectrumCtx = spectrumCanvas.getContext('2d');
-  drawSpectrum();
+  startSpectrum();
 
   const hP = new URLSearchParams(location.hash.slice(1));
   const isS = hP.get('shared') === '1';
@@ -395,7 +395,8 @@ async function init() {
     localStorage.removeItem('fm_player_playing');
   }
 
-  audioPlayer.addEventListener('playing', () => {
+  audioPlayer.addEventListener('playing', startSpectrum);
+    audioPlayer.addEventListener('playing', () => {
     setPlayerLoading(false);
     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
     if (state.trackMeta) startTrackMeta(audioPlayer.src);

@@ -487,46 +487,63 @@ function initAudioContext() {
   }
 }
 
+let spectrumRaf = 0;
+let spectrumBuf = null;
+
+function startSpectrum() {
+  if (spectrumRaf || document.hidden) return;
+  spectrumRaf = requestAnimationFrame(drawSpectrum);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) startSpectrum();
+});
+
 function drawSpectrum() {
-  if (!spectrumCtx) {
-    requestAnimationFrame(drawSpectrum);
-    return;
-  }
-  if (spectrumCanvas.offsetWidth > 0) spectrumCanvas.width = spectrumCanvas.offsetWidth;
-  if (spectrumCanvas.offsetHeight > 0) spectrumCanvas.height = spectrumCanvas.offsetHeight;
-  const w = spectrumCanvas.width;
-  const h = spectrumCanvas.height;
-  if (w === 0 || h === 0) {
-    requestAnimationFrame(drawSpectrum);
-    return;
-  }
-  spectrumCtx.clearRect(0, 0, w, h);
-  if (analyser && !audioPlayer.paused && currentPlayingStation && audioPlayer.crossOrigin === 'anonymous') {
-    const bL = analyser.frequencyBinCount;
-    const dA = new Uint8Array(bL);
-    analyser.getByteFrequencyData(dA);
-    let sum = 0; for (let i = 0; i < bL; i++) sum += dA[i];
-    if (sum === 0) { requestAnimationFrame(drawSpectrum); return; } // non-CORS: silent canvas, no garbage
-    const bW = w / bL;
-    let x = 0;
-    const aC = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#00d4ff';
-    spectrumCtx.shadowBlur = 4;
-    spectrumCtx.shadowColor = aC;
-    for (let i = 0; i < bL; i++) {
-      const bH = (dA[i] / 255) * h * 0.95;
-      const bw = Math.max(1, bW - 2);
-      const g = spectrumCtx.createLinearGradient(0, h, 0, h - bH);
-      g.addColorStop(0, aC);
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      spectrumCtx.fillStyle = g;
-      spectrumCtx.beginPath();
-      if (spectrumCtx.roundRect) spectrumCtx.roundRect(x, h - bH, bw, bH, [2, 2, 0, 0]);
-      else spectrumCtx.rect(x, h - bH, bw, bH);
-      spectrumCtx.fill();
-      x += bW;
+  spectrumRaf = 0;
+  if (!spectrumCtx || document.hidden) return;
+  const playing = !!audioPlayer && !audioPlayer.paused;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = spectrumCanvas.offsetWidth;
+  const h = spectrumCanvas.offsetHeight;
+  if (w > 0 && h > 0) {
+    const cw = Math.round(w * dpr);
+    const ch = Math.round(h * dpr);
+    if (spectrumCanvas.width !== cw || spectrumCanvas.height !== ch) {
+      spectrumCanvas.width = cw;
+      spectrumCanvas.height = ch;
+      spectrumCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    spectrumCtx.clearRect(0, 0, w, h);
+    if (playing && analyser && currentPlayingStation && audioPlayer.crossOrigin === 'anonymous') {
+      const bL = analyser.frequencyBinCount;
+      if (!spectrumBuf || spectrumBuf.length !== bL) spectrumBuf = new Uint8Array(bL);
+      const dA = spectrumBuf;
+      analyser.getByteFrequencyData(dA);
+      let sum = 0; for (let i = 0; i < bL; i++) sum += dA[i];
+      if (sum > 0) { // sum === 0: non-CORS, пустой канвас
+        const bW = w / bL;
+        let x = 0;
+        const aC = (typeof getDialColors === 'function' ? getDialColors().accent : '') || '#00d4ff';
+        const g = spectrumCtx.createLinearGradient(0, h, 0, h - h * 0.95);
+        g.addColorStop(0, aC);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        spectrumCtx.fillStyle = g;
+        spectrumCtx.shadowBlur = 4;
+        spectrumCtx.shadowColor = aC;
+        for (let i = 0; i < bL; i++) {
+          const bH = (dA[i] / 255) * h * 0.95;
+          const bw = Math.max(1, bW - 2);
+          spectrumCtx.beginPath();
+          if (spectrumCtx.roundRect) spectrumCtx.roundRect(x, h - bH, bw, bH, [2, 2, 0, 0]);
+          else spectrumCtx.rect(x, h - bH, bw, bH);
+          spectrumCtx.fill();
+          x += bW;
+        }
+      }
     }
   }
-  requestAnimationFrame(drawSpectrum);
+  if (playing) spectrumRaf = requestAnimationFrame(drawSpectrum);
 }
 
 function updateMediaSession() {

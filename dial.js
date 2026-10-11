@@ -199,11 +199,63 @@ function initDial() {
   document.addEventListener('click', cT);
   document.addEventListener('touchstart', cT, { passive: true });
   window.addEventListener('resize', () => renderDialCanvas());
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((e) => {
+      dialVisible = e[0].isIntersecting;
+      if (dialVisible) dialResume();
+    }, { threshold: 0 }).observe(dialCanvas);
+  }
+  document.addEventListener('visibilitychange', dialResume);
 }
 
+let dialColorCache = null;
+let dialColorsInit = false;
+let dialFreqBuf = null;
+
+function invalidateDialColors() {
+  dialColorCache = null;
+}
+
+function getDialColors() {
+  if (!dialColorsInit) {
+    dialColorsInit = true;
+    window.addEventListener('resize', invalidateDialColors);
+    new MutationObserver(() => {
+      invalidateDialColors();
+      if (dialCanvas) renderDialCanvas();
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style', 'class'] });
+  }
+  if (!dialColorCache) {
+    dialColorCache = {
+      accent: getCSSVar('--accent'),
+      pink: getCSSVar('--pink'),
+      yellow: getCSSVar('--yellow'),
+      textDim: getCSSVar('--text-dim'),
+      trash: getCSSVar('--trash'),
+      text: getCSSVar('--text')
+    };
+  }
+  return dialColorCache;
+}
+
+let dialVisible = true;
+let dialPaused = false;
+
+// dialAnimId истинно = цикл нужен (так его видит core.js). При паузе ставим -1:
+// core.js не перезапускает цикл, но может отменить (cancelAnimationFrame(-1) безвреден).
 function dialLoop() {
+  if (document.hidden || !dialVisible) {
+    dialPaused = true;
+    dialAnimId = -1;
+    return;
+  }
+  dialPaused = false;
   renderDialCanvas();
   dialAnimId = requestAnimationFrame(dialLoop);
+}
+
+function dialResume() {
+  if (dialPaused && dialAnimId && !document.hidden && dialVisible) dialLoop();
 }
 
 function renderDialCanvas() {
@@ -211,9 +263,11 @@ function renderDialCanvas() {
   const ctx = dialCtx;
   const dpr = window.devicePixelRatio || 1;
   const rect = dialCanvas.getBoundingClientRect();
-  if (dialCanvas.width !== rect.width * dpr || dialCanvas.height !== rect.height * dpr) {
-    dialCanvas.width = rect.width * dpr;
-    dialCanvas.height = rect.height * dpr;
+  const cw = Math.round(rect.width * dpr);
+  const ch = Math.round(rect.height * dpr);
+  if (dialCanvas.width !== cw || dialCanvas.height !== ch) {
+    dialCanvas.width = cw;
+    dialCanvas.height = ch;
     ctx.scale(dpr, dpr);
   }
   const W = rect.width;
@@ -227,12 +281,13 @@ function renderDialCanvas() {
   const isS = state.dialFreqView === 'shifted';
   
   ctx.clearRect(0, 0, W, H);
-  const accent = getCSSVar('--accent');
-  const pink = getCSSVar('--pink');
-  const yellow = getCSSVar('--yellow');
-  const textDim = getCSSVar('--text-dim');
-  const trashC = getCSSVar('--trash');
-  const textC = getCSSVar('--text');
+  const dc = getDialColors();
+  const accent = dc.accent;
+  const pink = dc.pink;
+  const yellow = dc.yellow;
+  const textDim = dc.textDim;
+  const trashC = dc.trash;
+  const textC = dc.text;
   
   let aMin, aMax;
   if (isS) {
@@ -267,7 +322,8 @@ function renderDialCanvas() {
   
   if (typeof analyser !== 'undefined' && analyser && currentPlayingStation && !audioPlayer.paused) {
     const bL = analyser.frequencyBinCount;
-    const dA = new Uint8Array(bL);
+    if (!dialFreqBuf || dialFreqBuf.length !== bL) dialFreqBuf = new Uint8Array(bL);
+    const dA = dialFreqBuf;
     analyser.getByteFrequencyData(dA);
     const bW = trackW / bL;
     let x = padX;
@@ -597,6 +653,27 @@ function renderDialControls() {
   c.appendChild(rA);
 }
 
+let knobDraw = null;
+let knobMoveFn = null;
+let knobUpFn = null;
+let knobGlobalsReady = false;
+window.updateDialKnob = () => { if (knobDraw) knobDraw(); };
+
+function knobInstallGlobals() {
+  if (knobGlobalsReady) return;
+  knobGlobalsReady = true;
+  const up = () => { if (knobUpFn) knobUpFn(); };
+  window.addEventListener('mousemove', (e) => { if (knobMoveFn) knobMoveFn(e.clientX, e.clientY, e); });
+  window.addEventListener('mouseup', up);
+  window.addEventListener('touchmove', (e) => {
+    if (knobMoveFn && e.touches[0]) knobMoveFn(e.touches[0].clientX, e.touches[0].clientY, e);
+  }, { passive: false });
+  window.addEventListener('touchend', up);
+  window.addEventListener('touchcancel', up);
+  new MutationObserver(() => { if (knobDraw) knobDraw(); })
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+}
+
 function initDialKnob(canvas) {
   const ctx = canvas.getContext('2d');
   const dK = () => {
@@ -682,13 +759,11 @@ function initDialKnob(canvas) {
   };
   
   dK();
-  window.updateDialKnob = dK;
+  knobDraw = dK;
+  knobInstallGlobals();
   
   // Redraw on theme change
-  const observer = new MutationObserver(() => {
-    if (typeof window.updateDialKnob === 'function') window.updateDialKnob();
-  });
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  // тему отслеживает единый наблюдатель из knobInstallGlobals
   
   const uV = (dY) => {
     let v = audioPlayer.volume;
@@ -752,16 +827,12 @@ function initDialKnob(canvas) {
 
   // События мыши
   canvas.addEventListener('mousedown', (e) => handleDown(e.clientX, e.clientY));
-  window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY, e));
-  window.addEventListener('mouseup', () => { downPos = null; });
+  knobMoveFn = handleMove;
+  knobUpFn = () => { downPos = null; };
 
   // События тача
   canvas.addEventListener('touchstart', (e) => {
     if (e.touches[0]) handleDown(e.touches[0].clientX, e.touches[0].clientY);
   }, { passive: true });
-  window.addEventListener('touchmove', (e) => {
-    if (e.touches[0]) handleMove(e.touches[0].clientX, e.touches[0].clientY, e);
-  }, { passive: false });
-  window.addEventListener('touchend', () => { downPos = null; });
-  window.addEventListener('touchcancel', () => { downPos = null; });
+  // window-слушатели ставятся один раз в knobInstallGlobals
 }

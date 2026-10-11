@@ -1,30 +1,15 @@
-// ---- player.js :: updateMediaSession (строки 532-560)
-function updateMediaSession() {
-  if (!('mediaSession' in navigator) || !currentPlayingStation) return;
-  const sd = stationStreamMap[FMUse.generateCodeName(currentPlayingStation)];
-  if (!sd) return;
-  let iS = state.city;
-  if (sd.streams && sd.streams[currentStreamIndex]) {
-    const s = sd.streams[currentStreamIndex];
-    const iP = [];
-    if (sd.streams.length > 1) iP.push(`Поток ${currentStreamIndex + 1}/${sd.streams.length}`);
-    if (s.bitrate) iP.push(`${s.bitrate}k`);
-    if (s.codec) iP.push(s.codec.toUpperCase());
-    if (iP.length > 0) iS += ` • ${iP.join(' ')}`;
-  }
-  const a = sd.favicon ? [
-    { src: sd.favicon, sizes: '96x96', type: 'image/png' },
-    { src: sd.favicon, sizes: '256x256', type: 'image/png' },
-    { src: sd.favicon, sizes: '512x512', type: 'image/png' }
-  ] : [
-    { src: 'img/logo_100.png', sizes: '96x96', type: 'image/png' },
-    { src: 'img/logo_100.png', sizes: '256x256', type: 'image/png' }
-  ];
-  navigator.mediaSession.metadata = new MediaMetadata({
-    title: currentPlayingStation,
-    artist: iS,
-    album: 'AutoFMShift',
-    artwork: a
-  });
-  navigator.mediaSession.playbackState = audioPlayer.paused ? 'paused' : 'playing';
-}
+core.js:500: if (typeof dialAnimId !== 'undefined' && !dialAnimId && typeof dialLoop !== 'undefined') dialLoop();
+core.js:503: if (typeof dialAnimId !== 'undefined' && dialAnimId) {
+core.js:504: cancelAnimationFrame(dialAnimId);
+core.js:505: dialAnimId = null;
+app.js:186: if (typeof initDial === 'function') initDial();
+dial.js:4: let dialAnimId = null;
+dial.js:132: function initDial() {
+dial.js:201: window.addEventListener('resize', () => renderDialCanvas());
+dial.js:218: if (dialCanvas) renderDialCanvas();
+dial.js:234: function dialLoop() {
+dial.js:235: renderDialCanvas();
+dial.js:236: dialAnimId = requestAnimationFrame(dialLoop);
+dial.js:239: function renderDialCanvas() {
+dial.js:509: initDialKnob(kC);
+dial.js:655: function initDialKnob(canvas) {
