@@ -76,13 +76,33 @@ function handleHover(clientX) {
     if (h) {
       const sd = stationStreamMap[FMUse.generateCodeName(h.name)];
       const df = isS ? FMUse.calcShiftedFreq(h.freq, state, RU_MIN, RU_MAX) : h.freq;
-      let lh = sd && sd.favicon ? `<img src="${sd.favicon}" onerror="this.style.display='none'">` : '';
-      let th = sd && sd.tags ? `<div class="dial-tags">${sd.tags}</div>` : '';
-      let fh = `<div class="dial-freq">${FMUse.formatFreq(df)}</div>`;
-      let nh = `<div class="dial-name">${h.name}</div>`;
-      let html = `${lh}<div>${fh}${nh}${th}</div>`;
+      const fav = sd ? safeUrl(sd.favicon) : '';
       if (tooltip) {
-        tooltip.innerHTML = html;
+        tooltip.textContent = '';
+        if (fav) {
+          const im = document.createElement('img');
+          im.referrerPolicy = 'no-referrer';
+          im.loading = 'lazy';
+          im.onerror = function () { this.style.display = 'none'; };
+          im.src = fav;
+          tooltip.appendChild(im);
+        }
+        const box = document.createElement('div');
+        const fe = document.createElement('div');
+        fe.className = 'dial-freq';
+        fe.textContent = FMUse.formatFreq(df);
+        box.appendChild(fe);
+        const ne = document.createElement('div');
+        ne.className = 'dial-name';
+        ne.textContent = h.name;
+        box.appendChild(ne);
+        if (sd && sd.tags) {
+          const te = document.createElement('div');
+          te.className = 'dial-tags';
+          te.textContent = String(sd.tags);
+          box.appendChild(te);
+        }
+        tooltip.appendChild(box);
         tooltip.style.opacity = '1';
         tooltip.style.pointerEvents = 'auto';
       }

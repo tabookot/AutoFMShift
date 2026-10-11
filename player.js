@@ -542,10 +542,11 @@ function updateMediaSession() {
     if (s.codec) iP.push(s.codec.toUpperCase());
     if (iP.length > 0) iS += ` • ${iP.join(' ')}`;
   }
-  const a = sd.favicon ? [
-    { src: sd.favicon, sizes: '96x96', type: 'image/png' },
-    { src: sd.favicon, sizes: '256x256', type: 'image/png' },
-    { src: sd.favicon, sizes: '512x512', type: 'image/png' }
+  const mf = safeUrl(sd.favicon);
+  const a = mf ? [
+    { src: mf, sizes: '96x96', type: 'image/png' },
+    { src: mf, sizes: '256x256', type: 'image/png' },
+    { src: mf, sizes: '512x512', type: 'image/png' }
   ] : [
     { src: 'img/logo_100.png', sizes: '96x96', type: 'image/png' },
     { src: 'img/logo_100.png', sizes: '256x256', type: 'image/png' }
@@ -687,17 +688,19 @@ function updatePlayerUI() {
         const dF = isSV ? FMUse.calcShiftedFreq(st.freq, state, RU_MIN, RU_MAX) : st.freq;
         if (pF) pF.setAttribute('data-freq', FMUse.formatFreq(dF));
         const cF = (sd.streams[currentStreamIndex] && sd.streams[currentStreamIndex].favicon && sd.streams[currentStreamIndex].favicon !== 'null') ? sd.streams[currentStreamIndex].favicon : (sd.favicon && sd.favicon !== 'null' ? sd.favicon : null);
-        if (cF) {
+        const cFs = safeUrl(cF);
+        if (cFs) {
           const img = new Image();
+          img.referrerPolicy = 'no-referrer';
           img.onload = () => {
-            lB.style.backgroundImage = `url('${cF}')`;
+            lB.style.backgroundImage = cssUrl(cFs);
             pL.style.display = 'none';
           };
           img.onerror = () => {
             lB.style.backgroundImage = `url('${oL}')`;
             pL.style.display = 'none';
           };
-          img.src = cF;
+          img.src = cFs;
         } else {
           lB.style.backgroundImage = `url('${oL}')`;
           pL.style.display = 'none';
@@ -705,7 +708,7 @@ function updatePlayerUI() {
       }
       if (dialPlayerInView) document.getElementById('logoBtn').style.backgroundImage = "url('img/logo_100.png')";
       pN.textContent = currentPlayingStation;
-      pN.href = sd.homepage || '#';
+      pN.href = safeUrl(sd.homepage) || '#';
       if (pN.offsetWidth < pN.scrollWidth) pN.title = currentPlayingStation;
       else pN.removeAttribute('title');
       if (sd.streams && sd.streams[currentStreamIndex]) {
@@ -759,9 +762,11 @@ function updatePlayerUI() {
         const stream = sd.streams[currentStreamIndex];
         const cF = (stream && stream.favicon && stream.favicon !== 'null') ? stream.favicon : (sd.favicon && sd.favicon !== 'null' ? sd.favicon : null);
         
-        if (cF) {
+        const cFd = safeUrl(cF);
+        if (cFd) {
           const img = document.createElement('img');
-          img.src = cF;
+          img.referrerPolicy = 'no-referrer';
+          img.src = cFd;
           img.onerror = () => { dialLogo.textContent = FMUse.formatFreq(st ? st.freq : 0); };
           dialLogo.innerHTML = '';
           dialLogo.appendChild(img);

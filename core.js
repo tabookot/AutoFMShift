@@ -1,5 +1,5 @@
 // core.js
-const VERSION = '0.8.0';
+const VERSION = '0.8.2';
 const CACHE_VERSION = '4';
 const LS_KEY = 'fm_adapter_calc_v10';
 const LS_THEME_KEY = 'fm_adapter_theme';
@@ -214,7 +214,7 @@ function renderStations() {
     logoEl.className = 'station-logo';
     if (streamData && streamData.favicon && streamData.favicon !== 'null' && streamData.favicon !== 'undefined') {
       const img = document.createElement('img');
-      img.src = streamData.favicon;
+      img.referrerPolicy = 'no-referrer'; img.src = safeUrl(streamData.favicon);
       img.alt = '';
       img.onerror = () => img.remove();
       logoEl.appendChild(img);
@@ -628,6 +628,19 @@ function isBadKey(k) { return k === '__proto__' || k === 'constructor' || k === 
 function isPlainObj(o) { return Object.prototype.toString.call(o) === '[object Object]'; }
 
 let _lsToastT = 0;
+function safeUrl(u) {
+  if (typeof u !== 'string') return '';
+  u = u.trim();
+  if (u.length > 500 || !/^https?:\/\//i.test(u)) return '';
+  if (/[<>"'`\\\s]/.test(u)) return '';
+  return u;
+}
+
+function cssUrl(u) {
+  const s = safeUrl(u);
+  return s ? "url('" + s + "')" : '';
+}
+
 function lsSet(k, v) {
   try {
     localStorage.setItem(k, v);
