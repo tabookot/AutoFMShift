@@ -2,7 +2,7 @@
 // Fallback (legacy, removed in step 17): fetch the parts and run them
 // as ONE function body (top-level let/const stay private to the game).
 (() => {
-  const SC_BUILD = '0.8.13'; // меняет tools/set_version.py
+  const SC_BUILD = '0.8.14'; // меняет tools/set_version.py
   if (window.Scorch) return; // already loaded
   const base = (document.currentScript && document.currentScript.src || location.href)
     .replace(/[^/]*$/, '');

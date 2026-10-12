@@ -102,9 +102,20 @@ function rrectPath(c, x, y, w, h, r) {
   if (window.Scorch) window.Scorch.help = openHelpUI;
   
   // ================= RENDER =================
+  // user options (localStorage, try/catch): shake 0..100 %, trajectory assist
+  function scOptGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function scOptSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  const scReduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const scFlashK = scReduced ? 0.3 : 1;
+  let scShakeK = (function () {
+    const s = scOptGet('scorch_shake');
+    const n = s === null ? NaN : parseFloat(s);
+    return isFinite(n) ? clamp(n, 0, 100) / 100 : (scReduced ? 0 : 1);
+  })();
+  let scAssist = scOptGet('scorch_assist') !== '0';
   function draw() {
     if (!ctx || !Wc || !cols) return;
-    const sh = shake > 0.3 ? shake : 0;
+    const sh = shake > 0.3 ? shake * scShakeK : 0;
     const shx = sh ? (noise(gt * 61) - 0.5) * 2 * sh : 0;
     const shy = sh ? (noise(gt * 47 + 9.7) - 0.5) * 2 * sh : 0;
     ctx.save();
@@ -165,7 +176,102 @@ function rrectPath(c, x, y, w, h, r) {
     }
     return Math.min(1, 0.5 * t + 0.32 * t * rg + 0.2 * Math.sin(Math.PI * t) * (0.6 + 0.4 * rg));
   }
+  const FAR_ST2 = {
+    arctic:   { sh: 'ice',   amp: 1.0,  fqm: 1.2, tc: 1.15, rav: 1.0, hat: 0.15, gul: 0.3, hd: 1,  ps: [2, 2, 1], cap: { c: [246, 249, 255], k: 1 }, str: 0,   spk: 0, glw: null },
+    green:    { sh: 'round', amp: 1.1,  fqm: 1.5, tc: 1.35, rav: 0.3, hat: 0.9,  gul: 0.8, hd: 1,  ps: [2, 2, 2], cap: null, str: 0,   spk: 1, glw: null },
+    desert:   { sh: 'round', amp: 1.0,  fqm: 1.2, tc: 1.25, rav: 0.2, hat: 0.8,  gul: 0.6, hd: -1, ps: [3, 3, 2], cap: null, str: 1,   spk: 0, glw: null },
+    volcanic: { sh: 'jag',   amp: 1.0,  fqm: 1.0, tc: 1.1,  rav: 0.9, hat: 0.4,  gul: 0.5, hd: 1,  ps: [1, 1, 0], cap: { c: [150, 146, 150], k: 0.55 }, str: 0, spk: 0, glw: { c: [255, 110, 36], k: 0.9 } },
+    ashen:    { sh: 'jag',   amp: 0.95, fqm: 1.2, tc: 1.1,  rav: 0.6, hat: 0.7,  gul: 0.7, hd: -1, ps: [1, 1, 1], cap: { c: [196, 192, 206], k: 0.6 }, str: 0, spk: 0, glw: null },
+    rust:     { sh: 'mesa',  amp: 0.95, fqm: 0.9, tc: 1.1,  rav: 0.7, hat: 0.6,  gul: 0.7, hd: 1,  ps: [1, 1, 1], cap: null, str: 1.6, spk: 0, glw: null },
+    xeno:     { sh: 'spire', amp: 1.0,  fqm: 1.3, tc: 1.1,  rav: 0.5, hat: 0.5,  gul: 0.6, hd: -1, ps: [0, 1, 0], cap: { c: [130, 255, 226], k: 0.8, lum: true }, str: 0, spk: 0, glw: null }
+  };
   function bakeFarGeo(W, H) {
+    const bk = biomeKey();
+    const st = FAR_ST2[bk] || FAR_ST2.green;
+    const TW = W + 60;
+    let base = 0;
+    for (let i = 0; i < cols.length; i++) base += cols[i].top;
+    base /= cols.length;
+    const allowed = Math.max(base - H * 0.5, H * 0.14);
+    const kcap = Math.min(1, allowed / (H * 0.375));
+    const yOrg = Math.max(0, Math.floor(base - allowed) - 8);
+    const CH = H - yOrg + 2;
+    const P = [
+      { off: 0.10, amp: 0.22, fq: 1.6, sc: 0.22, fog: 0.70, soft: 5, ff: 1.6, tx: 0.5 },
+      { off: 0.06, amp: 0.19, fq: 2.6, sc: 0.30, fog: 0.45, soft: 3, ff: 1.2, tx: 0.8 },
+      { off: 0.025, amp: 0.15, fq: 4.0, sc: 0.40, fog: 0.20, soft: 1.5, ff: 0.9, tx: 1.0 }
+    ];
+    const snowK = st.cap ? st.cap.k : 0;
+    const snk = Math.max(kcap, 0.5);
+    const rid = [];
+    for (let r = 0; r < 3; r++) {
+      const q = P[r], sc = q.sc, qf = q.fq * st.fqm;
+      const lw = Math.ceil(TW * sc), lh = Math.ceil(CH * sc);
+      let hy = new Float32Array(lw);
+      for (let ix = 0; ix < lw; ix++) {
+        const u = (ix / sc) / TW;
+        const t = clamp((fbm(u * qf + 17 + r * 31, 4) - 0.5) * st.tc / 0.56 + 0.5, 0, 1);
+        const rg = 1 - Math.abs(2 * fbm(u * qf * 2.1 + 53 + r * 17, 3) - 1);
+        hy[ix] = base - H * (q.off + q.amp * st.amp * farShape(st.sh, t, rg) * 1.25) * kcap - yOrg;
+      }
+      for (let pass = 0; pass < st.ps[r]; pass++) {
+        const h2 = new Float32Array(lw);
+        for (let ix = 0; ix < lw; ix++) {
+          let s = 0;
+          for (let k = -2; k <= 2; k++) s += hy[Math.min(lw - 1, Math.max(0, ix + k))];
+          h2[ix] = s / 5;
+        }
+        hy = h2;
+      }
+      const n = lw * lh;
+      const cov = new Uint8Array(n), tex = new Int8Array(n), gxa = new Int8Array(n), dep = new Uint8Array(n), snw = new Uint8Array(n);
+      const stra = st.str > 0 ? new Int8Array(n) : null, glwA = st.glw ? new Uint8Array(n) : null;
+      const snowLine = H * (q.off + q.amp * 0.62) * kcap;
+      const o1 = 11 + r * 29, o2 = 71 + r * 13, f1 = 0.018 * q.ff, f2 = 0.055 * q.ff;
+      const rf = u => 0.65 * (1 - Math.abs(2 * fbm(u * f1 + o1, 2) - 1)) + 0.35 * (1 - Math.abs(2 * fbm(u * f2 + o2, 2) - 1));
+      for (let ix = 0; ix < lw; ix++) {
+        const x = ix / sc;
+        const xs = st.hd > 0 ? x : TW - x;
+        const top = hy[ix];
+        const slv = clamp((hy[Math.min(lw - 1, ix + 1)] - hy[Math.max(0, ix - 1)]) * sc / 2 * 1.3, -1, 1);
+        const peakH = (base - yOrg) - top;
+        const capK = snowK * clamp((peakH - snowLine) / (H * 0.07 * snk), 0, 1);
+        const capD = capK * H * 0.10 * snk * (0.7 + noise(x * 0.013 + r * 9) * 0.6);
+        const kx = 0.5 * slv;
+        const gul = noise(x * 0.05 * (1 + r * 0.5) + r * 7.3) - 0.5;
+        const wob = noise(x * 0.008 + r * 5) * 4;
+        for (let iy = 0; iy < lh; iy++) {
+          const y = iy / sc;
+          const d = y - top;
+          const c = clamp(d / q.soft + 0.5, 0, 1);
+          if (c <= 0) continue;
+          const o = iy * lw + ix;
+          cov[o] = c * 255;
+          const dn = clamp(d / (H * 0.30), 0, 1);
+          dep[o] = dn * 255;
+          const u = x - d * kx + 600;
+          const rvA = rf(u - 2), rvB = rf(u + 2), rvC = (rvA + rvB) / 2;
+          const rim = slv * clamp(1 - d / (H * 0.09), 0, 1) * 0.6;
+          gxa[o] = clamp(-(rvB - rvA) * 5.5 * 0.9 * st.rav + rim, -1, 1) * 127;
+          const hv = 0.6 * (noise(xs * 0.11 + y * 0.43 + r * 3.1) - 0.5) + 0.4 * (noise(xs * 0.07 - y * 0.31 + r * 5.7 + 40) - 0.5);
+          const spk = st.spk ? (noise(x * 0.22 + y * 0.31 + 77 + r * 9) - 0.5) * 1.3 * dn * st.spk : 0;
+          tex[o] = clamp((rvC - 0.45) * 1.8 * (0.3 + 0.7 * dn) * st.rav + (gul * 1.6 * dn * st.gul + hv * 0.8) * q.tx * st.hat + spk, -1, 1) * 127;
+          if (capD > 0) snw[o] = clamp((capD + (rvC - 0.5) * H * 0.07 - d) / 7, 0, 1) * 255;
+          if (stra) {
+            const ya = y + yOrg + wob;
+            stra[o] = clamp(Math.sin(ya * 0.09) * 0.7 + Math.sin(ya * 0.23 + 1.7) * 0.4, -1, 1) * 127;
+          }
+          if (glwA) glwA[o] = clamp((0.42 - rvC) * 4, 0, 1) * clamp(d / (H * 0.06), 0, 1) * 255;
+        }
+      }
+      const cv = document.createElement('canvas'); cv.width = TW; cv.height = CH;
+      const lo = document.createElement('canvas'); lo.width = lw; lo.height = lh;
+      const lctx = lo.getContext('2d');
+      rid.push({ cv: cv, lo: lo, lctx: lctx, img: lctx.createImageData(lw, lh), lw: lw, lh: lh, fog: q.fog, cov: cov, tex: tex, gx: gxa, dep: dep, snw: snw, str: stra, glw: glwA });
+    }
+    return { w: W, h: H, nz: noise, bm: biome, yOrg: yOrg, rid: rid, key: null, t: 0 };
+  }
+  function bakeFarGeoV3(W, H) {
     const bk = biomeKey();
     const st = FAR_STY[bk] || FAR_STY.green;
     const TW = W + 60;
@@ -388,6 +494,57 @@ function rrectPath(c, x, y, w, h, r) {
     return { w: W, h: H, nz: noise, bm: biome, yOrg: yOrg, rid: rid, key: null, t: 0 };
   }
   function composeFar(fr, hzc, lv, lk) {
+    const st = FAR_ST2[biomeKey()] || FAR_ST2.green;
+    const sRGB = parseCol(biome.surf), hRGB = parseCol(biome.surfHi);
+    const nt0 = 1 - clamp(dayness, 0, 1), nt = nt0 * nt0 * (3 - 2 * nt0);
+    const dk = [10, 14, 32], shd = [22, 28, 52], warm = [255, 246, 220];
+    const cap = st.cap, lum = !!(cap && cap.lum), glow = st.glw;
+    for (let r = 0; r < 3; r++) {
+      const g = fr.rid[r], fog = g.fog;
+      const body = mixColA(sRGB, hzc, fog * 0.8);
+      const lit = mixColA(mixColA(hRGB, warm, 0.3), hzc, fog * 0.85);
+      const sh = mixColA(mixColA(sRGB, shd, 0.5), hzc, fog * 0.9);
+      const snow = cap ? mixColA(cap.c, hzc, lum ? fog * 0.5 : fog * 0.85) : null;
+      const d8 = g.img.data, nk = nt * 0.55 * (1 - fog * 0.3);
+      const aoK = r === 2 ? 0.18 : (r === 1 ? 0.08 : 0);
+      const gA = glow ? glow.k * (0.35 + 0.65 * nt) * (1 - fog * 0.5) : 0;
+      for (let o = 0, n = g.lw * g.lh; o < n; o++) {
+        const a = g.cov[o];
+        if (!a) continue;
+        const dn = g.dep[o] / 255;
+        const L = clamp(0.5 + g.tex[o] / 127 * 0.24 + g.gx[o] / 127 * lv * 0.45 * lk + (g.str ? g.str[o] / 127 * 0.16 * st.str : 0), 0, 1);
+        const isLo = L < 0.5, k = isLo ? L * 2 : L * 2 - 1, A = isLo ? sh : body, B = isLo ? body : lit;
+        let cr = A[0] + (B[0] - A[0]) * k, cg = A[1] + (B[1] - A[1]) * k, cb = A[2] + (B[2] - A[2]) * k;
+        const s = g.snw[o] / 255;
+        if (s > 0 && snow && !lum) {
+          const sk = s * (0.6 + 0.4 * L);
+          cr += (snow[0] - cr) * sk; cg += (snow[1] - cg) * sk; cb += (snow[2] - cb) * sk;
+        }
+        const fh = Math.min(0.7, dn * dn * 0.5 * fog);
+        cr += (hzc[0] - cr) * fh; cg += (hzc[1] - cg) * fh; cb += (hzc[2] - cb) * fh;
+        const ao = 1 - aoK * dn;
+        cr *= ao; cg *= ao; cb *= ao;
+        cr += (dk[0] - cr) * nk; cg += (dk[1] - cg) * nk; cb += (dk[2] - cb) * nk;
+        if (s > 0 && snow && lum) {
+          const sk = s * (0.55 + 0.4 * nt);
+          cr += (snow[0] - cr) * sk; cg += (snow[1] - cg) * sk; cb += (snow[2] - cb) * sk;
+        }
+        if (g.glw && g.glw[o]) {
+          const ga = g.glw[o] / 255 * gA;
+          cr += (glow.c[0] - cr) * ga; cg += (glow.c[1] - cg) * ga; cb += (glow.c[2] - cb) * ga;
+        }
+        const p4 = o * 4;
+        d8[p4] = cr; d8[p4 + 1] = cg; d8[p4 + 2] = cb; d8[p4 + 3] = a;
+      }
+      g.lctx.putImageData(g.img, 0, 0);
+      const c2 = g.cv.getContext('2d');
+      c2.clearRect(0, 0, g.cv.width, g.cv.height);
+      c2.imageSmoothingEnabled = true;
+      if ('imageSmoothingQuality' in c2) c2.imageSmoothingQuality = 'high';
+      c2.drawImage(g.lo, 0, 0, g.cv.width, g.cv.height);
+    }
+  }
+  function composeFarV2(fr, hzc, lv, lk) {
     const sRGB = parseCol(biome.surf), hRGB = parseCol(biome.surfHi);
     const nt0 = 1 - clamp(dayness, 0, 1), nt = nt0 * nt0 * (3 - 2 * nt0);
     const dk = [10, 14, 32], shd = [22, 28, 52], warm = [255, 246, 220], snowC = [246, 249, 255];
@@ -2326,7 +2483,7 @@ function drawCaveShade() {
         ctx.beginPath(); ctx.arc(f.x, f.y, f.r * 0.3 * (0.6 + p * 0.6), 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
       } else if (f.k === 'skyflash') {
-        ctx.fillStyle = f.col + (f.a * (1 - p) * (1 - p)).toFixed(3) + ')';
+        ctx.fillStyle = f.col + (f.a * scFlashK * (1 - p) * (1 - p)).toFixed(3) + ')';
         ctx.fillRect(-40, -40, Wc + 80, Hc + 80);
       } else if (f.k === 'star') {
         const rad = f.r * (0.35 + ease(p) * 1.2);
@@ -3028,7 +3185,7 @@ function drawCaveShade() {
     let apex = null;
     let hit = null;
     const pts = [];
-    for (let i = 0; i < 140; i++) {
+    for (let i = 0; scAssist && i < 140; i++) {
       integrate(pos, vel, 0, dt);
       pts.push({ x: pos.x, y: pos.y });
       if (!apex || pos.y < apex.y) apex = { x: pos.x, y: pos.y };
@@ -3311,13 +3468,17 @@ function drawCaveShade() {
       .sc-windbar { position: absolute; right: 14px; bottom: 12px; z-index: 4; pointer-events: none; display: flex; align-items: center; gap: 10px; font-family: 'Orbitron', monospace; font-size: 28px; color: rgba(212,222,238,0.92); text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.7); }
       .sc-windarrow { font-size: 40px; letter-spacing: -4px; }
       .sc-mediabar { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 4; display: none; gap: 6px; pointer-events: auto; }
-      .sc-mb { width: 34px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: rgba(6,10,18,0.72); color: #cdd9e8; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+      .sc-mb { width: 44px; height: 44px; border-radius: 8px; border: 1px solid var(--border); background: rgba(6,10,18,0.72); color: #cdd9e8; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
       .sc-mb:hover { border-color: rgba(150,190,235,0.55); color: #fff; }
       .sc-mb:active { background: #ffb020; color: #10131a; }
       .sc-overlay.sc-light .sc-mb { background: rgba(244, 247, 250, 0.82); color: #2a3a4e; border-color: #c4cdd9; }
       .sc-overlay.sc-light .sc-mb:hover { border-color: rgba(31, 127, 208, 0.6); color: #1f7fd0; }
       .sc-overlay.sc-light .sc-mb:active { background: #ffb020; color: #10131a; }
-      @media (max-width: 640px) { .sc-mediabar { bottom: 48px; } .sc-mb { width: 30px; height: 27px; } }
+      .sc-mediabar { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+            @media (max-width: 640px) { .sc-mediabar { bottom: calc(48px + env(safe-area-inset-bottom, 0px)); } }
+            .sc-helpbtn { position: relative; }
+            .sc-helpbtn::after { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }
+            .sc-mb:focus-visible, .sc-tb:focus-visible, .sc-sndico:focus-visible, .sc-pvpbtn:focus-visible, .sc-vol:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       .sc-overlay.sc-opts .sc-hud, .sc-overlay.sc-opts .sc-lives, .sc-overlay.sc-opts .sc-windbar, .sc-overlay.sc-opts .sc-mediabar, .sc-overlay.sc-opts .sc-fs, .sc-overlay.sc-opts .sc-close { display: none !important; }
       .sc-tctl { position: absolute; left: 50%; transform: translateX(-50%); bottom: 62px; z-index: 5; display: none; flex-direction: column; gap: 5px; width: calc(100% - 20px); background: rgba(6,10,18,0.86); border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px; font-family: 'Orbitron', monospace; pointer-events: auto; }
       .sc-tctl.show { display: flex; }
@@ -3325,7 +3486,7 @@ function drawCaveShade() {
       .sc-tctl .sc-tl { width: 46px; flex-shrink: 0; color: #9fb2cc; font-size: 10px; letter-spacing: 1px; }
       .sc-tctl input { flex: 1; min-width: 0; accent-color: #ffb020; cursor: pointer; }
       .sc-tctl .sc-tv { min-width: 40px; text-align: right; color: #ffd23f; font-weight: 700; font-size: 13px; }
-      .sc-tb { width: 42px; height: 42px; flex-shrink: 0; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-light); color: #e8eef8; font-size: 20px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+      .sc-tb { width: 44px; height: 44px; flex-shrink: 0; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-light); color: #e8eef8; font-size: 20px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
       .sc-tb:active { background: #ffb020; color: #10131a; }
       .sc-over { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 8; background: var(--panel); border: 1px solid var(--accent); border-radius: 10px; padding: 24px 28px; min-width: 320px; max-width: 90%; max-height: 85vh; overflow-y: auto; display: none; text-align: center; }
       .sc-over.show { display: block; }
@@ -3651,6 +3812,17 @@ function drawCaveShade() {
                   <span class="sc-sndlab">МУЗЫКА</span>
                   <input class="sc-vol" id="scVolMus" type="range" min="0" max="100" step="0.1">
                   <b class="sc-sndval" id="scValMus"></b>
+                </div>
+                <div class="sc-sndtitle" style="margin-top:4px">ИГРА</div>
+                <div class="sc-sndrow" id="scRowSh" title="Тряска экрана: ползунок или колесо мыши (шаг 5%)">
+                  <span class="sc-sndlab">ТРЯСКА</span>
+                  <input class="sc-vol" id="scVolSh" type="range" min="0" max="100" step="1">
+                  <b class="sc-sndval" id="scValSh"></b>
+                </div>
+                <div class="sc-sndrow" id="scRowAs" title="Подсказка траектории выстрела">
+                  <button class="sc-sndico" id="scBtnAs" type="button"></button>
+                  <span class="sc-sndlab">ПРИЦЕЛ</span>
+                  <b class="sc-sndval" id="scValAs" style="margin-left:auto"></b>
                 </div>
               </div>
               <button class="sc-go sc-sym" title="В бой!">&#x25B6;</button>
@@ -4255,6 +4427,45 @@ function drawCaveShade() {
       if (v > 0) { musLast = v; setMus(0, true); }
       else setMus(musLast || 0.005);
     };
+    const optShRow = overlay.querySelector('#scRowSh');
+    const optShRange = overlay.querySelector('#scVolSh');
+    const optShVal = overlay.querySelector('#scValSh');
+    const optAsRow = overlay.querySelector('#scRowAs');
+    const optAsBtn = overlay.querySelector('#scBtnAs');
+    const optAsVal = overlay.querySelector('#scValAs');
+    const IC_AS1 = '<svg width="18" height="18" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="currentColor"/></svg>';
+    const IC_AS0 = '<svg width="18" height="18" viewBox="0 0 16 16"><circle cx="8" cy="8" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+    const paintSh = () => {
+      const v = Math.round(scShakeK * 100);
+      if (optShRange) optShRange.value = v;
+      if (optShVal) optShVal.textContent = v + '%';
+    };
+    const setSh = (pct) => {
+      scShakeK = clamp(pct, 0, 100) / 100;
+      scOptSet('scorch_shake', String(Math.round(scShakeK * 100)));
+      paintSh();
+    };
+    const paintAs = () => {
+      if (optAsBtn) optAsBtn.innerHTML = scAssist ? IC_AS1 : IC_AS0;
+      if (optAsVal) optAsVal.textContent = scAssist ? 'ВКЛ' : 'ВЫКЛ';
+    };
+    const setAs = (on) => {
+      scAssist = !!on;
+      scOptSet('scorch_assist', scAssist ? '1' : '0');
+      paintAs();
+    };
+    if (optShRow && optShRange) {
+      optShRow.addEventListener('pointerdown', (e) => e.stopPropagation());
+      optShRow.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        setSh(+optShRange.value + (e.deltaY < 0 ? 5 : -5));
+      }, { passive: false });
+      optShRange.addEventListener('input', () => setSh(+optShRange.value));
+    }
+    if (optAsRow) optAsRow.addEventListener('pointerdown', (e) => e.stopPropagation());
+    if (optAsBtn) optAsBtn.onclick = (e) => { e.stopPropagation(); setAs(!scAssist); };
+    paintSh();
+    paintAs();
     // the media bar: system-media-style control over the external stream
     // (play/pause/stop on its element; next/prev via the host's optional
     // window.scMedia = {next, prev} hooks, else synthetic media-key events
