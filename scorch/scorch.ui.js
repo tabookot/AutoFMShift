@@ -110,6 +110,8 @@ function rrectPath(c, x, y, w, h, r) {
     ctx.save();
     if (sh) ctx.translate(shx, shy);
     drawSky();
+    drawFarHills();
+    drawNearClouds();
     drawTerrain();
     drawRemains();
     drawDebris();
@@ -142,6 +144,519 @@ function rrectPath(c, x, y, w, h, r) {
     updateTctl();
   }
   
+  let farRidges = null, cloudDraw = null;
+  let farSzK = '', farSzT = 0;
+  const FAR_STY = {
+    arctic:   { sh: 'ice',   rav: 1.0,  hat: 0.0,  hd: 1,  amp: 1.0,  fqm: 1.0, ps: [2, 2, 1] },
+    green:    { sh: 'round', rav: 0.35, hat: 1.0,  hd: 1,  amp: 0.85, fqm: 1.0, ps: [2, 2, 2] },
+    desert:   { sh: 'round', rav: 0.2,  hat: 0.85, hd: -1, amp: 0.65, fqm: 0.6, ps: [3, 3, 2] },
+    volcanic: { sh: 'jag',   rav: 0.8,  hat: 0.35, hd: 1,  amp: 1.0,  fqm: 1.0, ps: [1, 1, 0] },
+    ashen:    { sh: 'jag',   rav: 0.55, hat: 0.7,  hd: -1, amp: 0.9,  fqm: 1.2, ps: [1, 1, 1] },
+    rust:     { sh: 'mesa',  rav: 0.7,  hat: 0.7,  hd: 1,  amp: 0.9,  fqm: 0.9, ps: [1, 1, 1] },
+    xeno:     { sh: 'spire', rav: 0.5,  hat: 0.5,  hd: -1, amp: 1.0,  fqm: 1.3, ps: [0, 1, 0] }
+  };
+  function farShape(sh, t, rg) {
+    if (sh === 'round') return 0.6 * t + 0.4 * Math.sin(Math.PI * t);
+    if (sh === 'jag') return Math.min(1, 0.3 * t + 0.85 * rg * rg);
+    if (sh === 'spire') return Math.min(1, 0.2 * t + 0.95 * rg * rg * rg);
+    if (sh === 'mesa') {
+      const s = t * 3, fl = Math.floor(s), sm = clamp((s - fl - 0.35) / 0.3, 0, 1);
+      return Math.min(1, (fl + sm * sm * (3 - 2 * sm)) / 3 + rg * 0.05);
+    }
+    return Math.min(1, 0.5 * t + 0.32 * t * rg + 0.2 * Math.sin(Math.PI * t) * (0.6 + 0.4 * rg));
+  }
+  function bakeFarGeo(W, H) {
+    const bk = biomeKey();
+    const st = FAR_STY[bk] || FAR_STY.green;
+    const TW = W + 60;
+    let base = 0;
+    for (let i = 0; i < cols.length; i++) base += cols[i].top;
+    base /= cols.length;
+    const allowed = Math.max(base - H * 0.5, H * 0.14);
+    const kcap = Math.min(1, allowed / (H * 0.375));
+    const yOrg = Math.max(0, Math.floor(base - allowed) - 8);
+    const CH = H - yOrg + 2;
+    const P = [
+      { off: 0.10, amp: 0.22, fq: 1.6, sc: 0.22, fog: 0.70, soft: 5, ff: 1.6, tx: 0.5 },
+      { off: 0.06, amp: 0.19, fq: 2.6, sc: 0.30, fog: 0.45, soft: 3, ff: 1.2, tx: 0.8 },
+      { off: 0.025, amp: 0.15, fq: 4.0, sc: 0.40, fog: 0.20, soft: 1.5, ff: 0.9, tx: 1.0 }
+    ];
+    const snowK = bk === 'arctic' ? 1 : (bk === 'green' || bk === 'desert' ? 0.55 : 0.3);
+    const snk = Math.max(kcap, 0.5);
+    const rid = [];
+    for (let r = 0; r < 3; r++) {
+      const q = P[r], sc = q.sc, qf = q.fq * st.fqm;
+      const lw = Math.ceil(TW * sc), lh = Math.ceil(CH * sc);
+      let hy = new Float32Array(lw);
+      for (let ix = 0; ix < lw; ix++) {
+        const u = (ix / sc) / TW;
+        const t = clamp((fbm(u * qf + 17 + r * 31, 4) - 0.22) / 0.56, 0, 1);
+        const rg = 1 - Math.abs(2 * fbm(u * qf * 2.1 + 53 + r * 17, 3) - 1);
+        hy[ix] = base - H * (q.off + q.amp * st.amp * farShape(st.sh, t, rg) * 1.25) * kcap - yOrg;
+      }
+      for (let pass = 0; pass < st.ps[r]; pass++) {
+        const h2 = new Float32Array(lw);
+        for (let ix = 0; ix < lw; ix++) {
+          let s = 0;
+          for (let k = -2; k <= 2; k++) s += hy[Math.min(lw - 1, Math.max(0, ix + k))];
+          h2[ix] = s / 5;
+        }
+        hy = h2;
+      }
+      const n = lw * lh;
+      const cov = new Uint8Array(n), tex = new Int8Array(n), gxa = new Int8Array(n), dep = new Uint8Array(n), snw = new Uint8Array(n);
+      const snowLine = H * (q.off + q.amp * 0.62) * kcap;
+      const o1 = 11 + r * 29, o2 = 71 + r * 13, f1 = 0.018 * q.ff, f2 = 0.055 * q.ff;
+      const rf = u => 0.65 * (1 - Math.abs(2 * fbm(u * f1 + o1, 2) - 1)) + 0.35 * (1 - Math.abs(2 * fbm(u * f2 + o2, 2) - 1));
+      for (let ix = 0; ix < lw; ix++) {
+        const x = ix / sc;
+        const xs = st.hd > 0 ? x : TW - x;
+        const top = hy[ix];
+        const slv = clamp((hy[Math.min(lw - 1, ix + 1)] - hy[Math.max(0, ix - 1)]) * sc / 2 * 1.3, -1, 1);
+        const peakH = (base - yOrg) - top;
+        const capK = snowK * clamp((peakH - snowLine) / (H * 0.07 * snk), 0, 1);
+        const capD = capK * H * 0.10 * snk * (0.7 + noise(x * 0.013 + r * 9) * 0.6);
+        const kx = 0.5 * slv;
+        for (let iy = 0; iy < lh; iy++) {
+          const y = iy / sc;
+          const d = y - top;
+          const c = clamp(d / q.soft + 0.5, 0, 1);
+          if (c <= 0) continue;
+          const o = iy * lw + ix;
+          cov[o] = c * 255;
+          const dn = clamp(d / (H * 0.30), 0, 1);
+          dep[o] = dn * 255;
+          const u = x - d * kx + 600;
+          const rvA = rf(u - 2), rvB = rf(u + 2), rvC = (rvA + rvB) / 2;
+          const rim = slv * clamp(1 - d / (H * 0.09), 0, 1) * 0.6;
+          gxa[o] = clamp(-(rvB - rvA) * 5.5 * 0.9 * st.rav + rim, -1, 1) * 127;
+          const hv = noise(xs * 0.11 + y * 0.43 + r * 3.1) - 0.5;
+          tex[o] = clamp((rvC - 0.45) * 1.8 * (0.3 + 0.7 * dn) * st.rav + hv * 0.7 * q.tx * st.hat, -1, 1) * 127;
+          if (capD > 0) snw[o] = clamp((capD + (rvC - 0.5) * H * 0.07 - d) / 7, 0, 1) * 255;
+        }
+      }
+      const cv = document.createElement('canvas'); cv.width = TW; cv.height = CH;
+      const lo = document.createElement('canvas'); lo.width = lw; lo.height = lh;
+      const lctx = lo.getContext('2d');
+      rid.push({ cv: cv, lo: lo, lctx: lctx, img: lctx.createImageData(lw, lh), lw: lw, lh: lh, fog: q.fog, cov: cov, tex: tex, gx: gxa, dep: dep, snw: snw });
+    }
+    return { w: W, h: H, nz: noise, bm: biome, yOrg: yOrg, rid: rid, key: null, t: 0 };
+  }
+  function bakeFarGeoV2(W, H) {
+    const bk = biomeKey();
+    const TW = W + 60;
+    let base = 0;
+    for (let i = 0; i < cols.length; i++) base += cols[i].top;
+    base /= cols.length;
+    // peaks stay below ~half of the screen height (never less than 0.14H of room)
+    const allowed = Math.max(base - H * 0.5, H * 0.14);
+    const kcap = Math.min(1, allowed / (H * 0.375));
+    const yOrg = Math.max(0, Math.floor(base - allowed) - 8);
+    const CH = H - yOrg + 2;
+    const P = [
+      { off: 0.10, amp: 0.22, fq: 1.6, sc: 0.22, fog: 0.70, soft: 5, ff: 1.6 },
+      { off: 0.06, amp: 0.19, fq: 2.6, sc: 0.30, fog: 0.45, soft: 3, ff: 1.2 },
+      { off: 0.025, amp: 0.15, fq: 4.0, sc: 0.40, fog: 0.20, soft: 1.5, ff: 0.9 }
+    ];
+    const snowK = bk === 'arctic' ? 1 : (bk === 'green' || bk === 'desert' ? 0.55 : 0.3);
+    const snk = Math.max(kcap, 0.5);
+    const rid = [];
+    for (let r = 0; r < 3; r++) {
+      const q = P[r], sc = q.sc;
+      const lw = Math.ceil(TW * sc), lh = Math.ceil(CH * sc);
+      let hy = new Float32Array(lw);
+      for (let ix = 0; ix < lw; ix++) {
+        const u = (ix / sc) / TW;
+        const t = clamp((fbm(u * q.fq + 17 + r * 31, 4) - 0.22) / 0.56, 0, 1);
+        const rg = 1 - Math.abs(2 * fbm(u * q.fq * 2.1 + 53 + r * 17, 3) - 1);
+        const f = Math.min(1, 0.5 * t + 0.32 * t * rg + 0.2 * Math.sin(Math.PI * t) * (0.6 + 0.4 * rg));
+        hy[ix] = base - H * (q.off + q.amp * f * 1.25) * kcap - yOrg;
+      }
+      const passes = r === 2 ? 1 : 2;
+      for (let pass = 0; pass < passes; pass++) {
+        const h2 = new Float32Array(lw);
+        for (let ix = 0; ix < lw; ix++) {
+          let s = 0;
+          for (let k = -2; k <= 2; k++) s += hy[Math.min(lw - 1, Math.max(0, ix + k))];
+          h2[ix] = s / 5;
+        }
+        hy = h2;
+      }
+      const n = lw * lh;
+      const cov = new Uint8Array(n), tex = new Int8Array(n), gxa = new Int8Array(n), dep = new Uint8Array(n), snw = new Uint8Array(n);
+      const snowLine = H * (q.off + q.amp * 0.62) * kcap;
+      const o1 = 11 + r * 29, o2 = 71 + r * 13, f1 = 0.018 * q.ff, f2 = 0.055 * q.ff;
+      const rf = u => 0.65 * (1 - Math.abs(2 * fbm(u * f1 + o1, 2) - 1)) + 0.35 * (1 - Math.abs(2 * fbm(u * f2 + o2, 2) - 1));
+      for (let ix = 0; ix < lw; ix++) {
+        const x = ix / sc;
+        const top = hy[ix];
+        const slv = clamp((hy[Math.min(lw - 1, ix + 1)] - hy[Math.max(0, ix - 1)]) * sc / 2 * 1.3, -1, 1);
+        const peakH = (base - yOrg) - top;
+        const capK = snowK * clamp((peakH - snowLine) / (H * 0.07 * snk), 0, 1);
+        const capD = capK * H * 0.10 * snk * (0.7 + noise(x * 0.013 + r * 9) * 0.6);
+        const kx = 0.5 * slv;
+        for (let iy = 0; iy < lh; iy++) {
+          const y = iy / sc;
+          const d = y - top;
+          const c = clamp(d / q.soft + 0.5, 0, 1);
+          if (c <= 0) continue;
+          const o = iy * lw + ix;
+          cov[o] = c * 255;
+          const dn = clamp(d / (H * 0.30), 0, 1);
+          dep[o] = dn * 255;
+          const u = x - d * kx;
+          const rvA = rf(u - 2), rvB = rf(u + 2), rvC = (rvA + rvB) / 2;
+          const rim = slv * clamp(1 - d / (H * 0.09), 0, 1) * 0.6;
+          gxa[o] = clamp(-(rvB - rvA) * 5.5 * 0.9 + rim, -1, 1) * 127;
+          tex[o] = clamp((rvC - 0.45) * 1.8 * (0.3 + 0.7 * dn), -1, 1) * 127;
+          if (capD > 0) snw[o] = clamp((capD + (rvC - 0.5) * H * 0.07 - d) / 7, 0, 1) * 255;
+        }
+      }
+      const cv = document.createElement('canvas'); cv.width = TW; cv.height = CH;
+      const lo = document.createElement('canvas'); lo.width = lw; lo.height = lh;
+      const lctx = lo.getContext('2d');
+      rid.push({ cv: cv, lo: lo, lctx: lctx, img: lctx.createImageData(lw, lh), lw: lw, lh: lh, fog: q.fog, cov: cov, tex: tex, gx: gxa, dep: dep, snw: snw });
+    }
+    return { w: W, h: H, nz: noise, bm: biome, yOrg: yOrg, rid: rid, key: null, t: 0 };
+  }
+  function bakeFarGeoV1(W, H) {
+    const bk = biomeKey();
+    const TW = W + 60;
+    let base = 0;
+    for (let i = 0; i < cols.length; i++) base += cols[i].top;
+    base /= cols.length;
+    const yOrg = Math.max(0, Math.floor(base - H * 0.36));
+    const CH = H - yOrg + 2;
+    const P = [
+      { off: 0.10, amp: 0.22, fq: 1.6, sc: 0.25, fog: 0.70, tx: 0.5, soft: 5 },
+      { off: 0.06, amp: 0.19, fq: 2.6, sc: 0.33, fog: 0.45, tx: 0.8, soft: 3 },
+      { off: 0.025, amp: 0.15, fq: 4.0, sc: 0.5, fog: 0.20, tx: 1.0, soft: 1.5 }
+    ];
+    const snowK = bk === 'arctic' ? 1 : (bk === 'green' || bk === 'desert' ? 0.55 : 0.3);
+    const rid = [];
+    for (let r = 0; r < 3; r++) {
+      const q = P[r], sc = q.sc;
+      const lw = Math.ceil(TW * sc), lh = Math.ceil(CH * sc);
+      let hy = new Float32Array(lw);
+      for (let ix = 0; ix < lw; ix++) {
+        const u = (ix / sc) / TW;
+        const t = clamp((fbm(u * q.fq + 17 + r * 31, 3) - 0.22) / 0.56, 0, 1);
+        const f = 0.6 * t + 0.4 * Math.sin(Math.PI * t);
+        hy[ix] = base - H * (q.off + q.amp * f * 1.25) - yOrg;
+      }
+      for (let pass = 0; pass < 2; pass++) {
+        const h2 = new Float32Array(lw);
+        for (let ix = 0; ix < lw; ix++) {
+          let s = 0;
+          for (let k = -2; k <= 2; k++) s += hy[Math.min(lw - 1, Math.max(0, ix + k))];
+          h2[ix] = s / 5;
+        }
+        hy = h2;
+      }
+      const n = lw * lh;
+      const cov = new Uint8Array(n), tex = new Int8Array(n), sl = new Int8Array(n), dep = new Uint8Array(n), snw = new Uint8Array(n);
+      const snowLine = H * (q.off + q.amp * 0.62);
+      for (let ix = 0; ix < lw; ix++) {
+        const x = ix / sc;
+        const top = hy[ix];
+        const sg = (hy[Math.min(lw - 1, ix + 1)] - hy[Math.max(0, ix - 1)]) * sc / 2;
+        const slv = clamp(sg * 1.3, -1, 1);
+        const peakH = (base - yOrg) - top;
+        const capK = snowK * clamp((peakH - snowLine) / (H * 0.07), 0, 1);
+        const capD = capK * H * 0.10 * (0.7 + noise(x * 0.013 + r * 9) * 0.6);
+        const gul = noise(x * 0.05 * (1 + r * 0.5) + r * 7.3) - 0.5;
+        for (let iy = 0; iy < lh; iy++) {
+          const y = iy / sc;
+          const d = y - top;
+          const c = clamp(d / q.soft + 0.5, 0, 1);
+          if (c <= 0) continue;
+          const o = iy * lw + ix;
+          cov[o] = c * 255;
+          const dn = clamp(d / (H * 0.32), 0, 1);
+          dep[o] = dn * 255;
+          const gr = noise(x * 0.11 + y * 0.43 + r * 3.1) - 0.5;
+          tex[o] = clamp((gul * 1.6 * dn + gr * 0.7) * q.tx, -1, 1) * 127;
+          sl[o] = slv * (1 - dn * 0.55) * 127;
+          if (capD > 0) snw[o] = clamp((capD + gr * 1.2 * H * 0.02 - d) / 7, 0, 1) * 255;
+        }
+      }
+      const cv = document.createElement('canvas'); cv.width = TW; cv.height = CH;
+      const lo = document.createElement('canvas'); lo.width = lw; lo.height = lh;
+      const lctx = lo.getContext('2d');
+      rid.push({ cv: cv, lo: lo, lctx: lctx, img: lctx.createImageData(lw, lh), lw: lw, lh: lh, fog: q.fog, cov: cov, tex: tex, sl: sl, dep: dep, snw: snw });
+    }
+    return { w: W, h: H, nz: noise, bm: biome, yOrg: yOrg, rid: rid, key: null, t: 0 };
+  }
+  function composeFar(fr, hzc, lv, lk) {
+    const sRGB = parseCol(biome.surf), hRGB = parseCol(biome.surfHi);
+    const nt0 = 1 - clamp(dayness, 0, 1), nt = nt0 * nt0 * (3 - 2 * nt0);
+    const dk = [10, 14, 32], shd = [22, 28, 52], warm = [255, 246, 220], snowC = [246, 249, 255];
+    for (let r = 0; r < 3; r++) {
+      const g = fr.rid[r], fog = g.fog;
+      const body = mixColA(sRGB, hzc, fog * 0.8);
+      const lit = mixColA(mixColA(hRGB, warm, 0.3), hzc, fog * 0.85);
+      const sh = mixColA(mixColA(sRGB, shd, 0.5), hzc, fog * 0.9);
+      const snow = mixColA(snowC, hzc, fog * 0.85);
+      const d8 = g.img.data, nk = nt * 0.55 * (1 - fog * 0.3);
+      const aoK = r === 2 ? 0.18 : (r === 1 ? 0.08 : 0);
+      for (let o = 0, n = g.lw * g.lh; o < n; o++) {
+        const a = g.cov[o];
+        if (!a) continue;
+        const dn = g.dep[o] / 255;
+        const L = clamp(0.5 + g.tex[o] / 127 * 0.22 + g.gx[o] / 127 * lv * 0.45 * lk, 0, 1);
+        const isLo = L < 0.5, k = isLo ? L * 2 : L * 2 - 1, A = isLo ? sh : body, B = isLo ? body : lit;
+        let cr = A[0] + (B[0] - A[0]) * k, cg = A[1] + (B[1] - A[1]) * k, cb = A[2] + (B[2] - A[2]) * k;
+        const s = g.snw[o] / 255;
+        if (s > 0) {
+          const sk = s * (0.6 + 0.4 * L);
+          cr += (snow[0] - cr) * sk; cg += (snow[1] - cg) * sk; cb += (snow[2] - cb) * sk;
+        }
+        const fh = Math.min(0.7, dn * dn * 0.5 * fog);
+        cr += (hzc[0] - cr) * fh; cg += (hzc[1] - cg) * fh; cb += (hzc[2] - cb) * fh;
+        const ao = 1 - aoK * dn;
+        cr *= ao; cg *= ao; cb *= ao;
+        cr += (dk[0] - cr) * nk; cg += (dk[1] - cg) * nk; cb += (dk[2] - cb) * nk;
+        const p4 = o * 4;
+        d8[p4] = cr; d8[p4 + 1] = cg; d8[p4 + 2] = cb; d8[p4 + 3] = a;
+      }
+      g.lctx.putImageData(g.img, 0, 0);
+      const c2 = g.cv.getContext('2d');
+      c2.clearRect(0, 0, g.cv.width, g.cv.height);
+      c2.imageSmoothingEnabled = true;
+      if ('imageSmoothingQuality' in c2) c2.imageSmoothingQuality = 'high';
+      c2.drawImage(g.lo, 0, 0, g.cv.width, g.cv.height);
+    }
+  }
+  function composeFarV1(fr, hzc, lv, lk) {
+    const sRGB = parseCol(biome.surf), hRGB = parseCol(biome.surfHi);
+    const nt0 = 1 - clamp(dayness, 0, 1), nt = nt0 * nt0 * (3 - 2 * nt0);
+    const dk = [10, 14, 32], shd = [22, 28, 52], warm = [255, 246, 220], snowC = [246, 249, 255];
+    for (let r = 0; r < 3; r++) {
+      const g = fr.rid[r], fog = g.fog;
+      const body = mixColA(sRGB, hzc, fog * 0.8);
+      const lit = mixColA(mixColA(hRGB, warm, 0.3), hzc, fog * 0.85);
+      const sh = mixColA(mixColA(sRGB, shd, 0.5), hzc, fog * 0.9);
+      const snow = mixColA(snowC, hzc, fog * 0.85);
+      const d8 = g.img.data, nk = nt * 0.55 * (1 - fog * 0.3);
+      for (let o = 0, n = g.lw * g.lh; o < n; o++) {
+        const a = g.cov[o];
+        if (!a) continue;
+        const dn = g.dep[o] / 255;
+        const L = clamp(0.5 + g.tex[o] / 127 * 0.22 + g.sl[o] / 127 * lv * 0.4 * lk, 0, 1);
+        const isLo = L < 0.5, k = isLo ? L * 2 : L * 2 - 1, A = isLo ? sh : body, B = isLo ? body : lit;
+        let cr = A[0] + (B[0] - A[0]) * k, cg = A[1] + (B[1] - A[1]) * k, cb = A[2] + (B[2] - A[2]) * k;
+        const s = g.snw[o] / 255;
+        if (s > 0) {
+          const sk = s * (0.6 + 0.4 * L);
+          cr += (snow[0] - cr) * sk; cg += (snow[1] - cg) * sk; cb += (snow[2] - cb) * sk;
+        }
+        const fh = Math.min(0.9, dn * dn * 0.8 * (0.35 + fog));
+        cr += (hzc[0] - cr) * fh; cg += (hzc[1] - cg) * fh; cb += (hzc[2] - cb) * fh;
+        cr += (dk[0] - cr) * nk; cg += (dk[1] - cg) * nk; cb += (dk[2] - cb) * nk;
+        const p4 = o * 4;
+        d8[p4] = cr; d8[p4 + 1] = cg; d8[p4 + 2] = cb; d8[p4 + 3] = a;
+      }
+      g.lctx.putImageData(g.img, 0, 0);
+      const c2 = g.cv.getContext('2d');
+      c2.clearRect(0, 0, g.cv.width, g.cv.height);
+      c2.imageSmoothingEnabled = true;
+      if ('imageSmoothingQuality' in c2) c2.imageSmoothingQuality = 'high';
+      c2.drawImage(g.lo, 0, 0, g.cv.width, g.cv.height);
+    }
+  }
+  function bakeFarRidgesV1(W, H, lv, lk, key, prev) {
+    const bk = biomeKey();
+    const pal = biome.pal;
+    const rgb = c => 'rgb(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ')';
+    const rgba = (c, a) => 'rgba(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ',' + a.toFixed(3) + ')';
+    const sRGB = parseCol(biome.surf), hRGB = parseCol(biome.surfHi);
+    const nc = sampleStops(tod.stops, 0.85);
+    const hzc = (pal && pal.day) ? mixColA(nc, sampleStops(pal.day, 0.85), dayness) : nc;
+    const night = 1 - clamp(dayness, 0, 1);
+    const dark = [8, 12, 26, 1];
+    let base = 0;
+    for (let i = 0; i < cols.length; i++) base += cols[i].top;
+    base /= cols.length;
+    const yOrg = Math.max(0, Math.floor(base - H * 0.36));
+    const CH = H - yOrg + 2;
+    const snowW = bk === 'arctic' ? 0.9 : (bk === 'green' || bk === 'desert' ? 0.6 : 0.3);
+    const fk = lk > 0 ? lk : 0.35;
+    const sd = lv >= 0 ? -1 : 1;
+    const L = [
+      { off: 0.07, amp: 0.27, fq: 2.0, fog: 0.62, step: 8 },
+      { off: 0.04, amp: 0.20, fq: 3.3, fog: 0.38, step: 6 },
+      { off: 0.012, amp: 0.13, fq: 5.2, fog: 0.17, step: 5 }
+    ];
+    const rid = [];
+    for (let r = 0; r < 3; r++) {
+      const P = L[r];
+      const cv = (prev && prev[r]) ? prev[r] : document.createElement('canvas');
+      cv.width = W; cv.height = CH;
+      const c2 = cv.getContext('2d');
+      const n = Math.ceil(W / P.step);
+      const pts = [];
+      let ymin = 1e9;
+      for (let j = 0; j <= n; j++) {
+        const x = Math.min(W, j * P.step);
+        const u = x / W;
+        const f1 = fbm(u * P.fq + 17 + r * 31, 4), f2 = fbm((u - 1) * P.fq + 17 + r * 31, 4);
+        const t = clamp((f1 * (1 - u) + f2 * u - 0.22) / 0.56, 0, 1);
+        const f = 0.55 * t + 0.45 * (1 - Math.abs(2 * t - 1));
+        const y = base - H * (P.off + P.amp * Math.min(1, f * 1.3)) - yOrg;
+        pts.push([x, y]);
+        if (y < ymin) ymin = y;
+      }
+      const yb = base - yOrg + H * 0.05;
+      let body = mixColA(mixColA(sRGB, [0, 0, 0, 1], 0.22), hzc, P.fog);
+      body = mixColA(body, dark, night * 0.6 * (1 - P.fog * 0.5));
+      const top = mixColA(body, mixColA(hRGB, hzc, P.fog), 0.35 + 0.25 * lk);
+      const foot = mixColA(body, hzc, 0.55);
+      const g = c2.createLinearGradient(0, ymin, 0, yb);
+      g.addColorStop(0, rgb(top)); g.addColorStop(0.5, rgb(body)); g.addColorStop(1, rgb(foot));
+      const path = () => {
+        c2.beginPath();
+        c2.moveTo(0, CH + 2);
+        for (let j = 0; j < pts.length; j++) c2.lineTo(pts[j][0], pts[j][1]);
+        c2.lineTo(W, CH + 2);
+        c2.closePath();
+      };
+      path(); c2.fillStyle = g; c2.fill();
+      c2.save();
+      path(); c2.clip();
+      // snow / ash caps: only the peaks above the snow line
+      const capH = (yb - ymin) * 0.3;
+      const capBase = mixColA(mixColA(hRGB, [255, 255, 255, 1], snowW), hzc, P.fog * 0.8);
+      const capCol = mixColA(capBase, dark, night * 0.55);
+      const cg = c2.createLinearGradient(0, ymin, 0, ymin + capH);
+      cg.addColorStop(0, rgba(capCol, 0.95)); cg.addColorStop(0.6, rgba(capCol, 0.85)); cg.addColorStop(1, rgba(capCol, 0));
+      c2.fillStyle = cg;
+      c2.fillRect(0, ymin, W, capH + 1);
+      // faceted slopes: a shaded and a lit face under every real peak
+      const win = 3, fa = 1 - P.fog * 0.6;
+      for (let j = win; j < pts.length - win; j++) {
+        const px = pts[j][0], py = pts[j][1];
+        let isP = true;
+        for (let k = 1; k <= win; k++) if (pts[j - k][1] < py || pts[j + k][1] < py) { isP = false; break; }
+        if (!isP || yb - py < H * 0.05) continue;
+        const pw = (yb - py) * 0.85 * (0.7 + noise(j * 3.7 + r * 11) * 0.6);
+        const ax = px + sd * pw * 0.18;
+        const gd = c2.createLinearGradient(0, py, 0, yb);
+        gd.addColorStop(0, 'rgba(0,0,0,' + (0.30 * fk * fa).toFixed(3) + ')'); gd.addColorStop(1, 'rgba(0,0,0,0)');
+        c2.fillStyle = gd;
+        c2.beginPath(); c2.moveTo(px, py); c2.lineTo(px + sd * pw, CH); c2.lineTo(ax, CH); c2.closePath(); c2.fill();
+        const gl = c2.createLinearGradient(0, py, 0, yb);
+        gl.addColorStop(0, 'rgba(255,244,214,' + (0.18 * fk * fa).toFixed(3) + ')'); gl.addColorStop(1, 'rgba(255,244,214,0)');
+        c2.fillStyle = gl;
+        c2.beginPath(); c2.moveTo(px, py); c2.lineTo(ax, CH); c2.lineTo(px - sd * pw, CH); c2.closePath(); c2.fill();
+      }
+      // crest: light rim on the sunward slopes, dark rim on the far ones
+      if (lk > 0 && lv !== 0) {
+        c2.lineCap = 'round';
+        for (let j = 1; j < pts.length; j++) {
+          const dy = pts[j][1] - pts[j - 1][1];
+          const fc = (lv > 0 ? dy : -dy) / P.step;
+          if (Math.abs(fc) < 0.12) continue;
+          const a = clamp(Math.abs(fc) * 0.9, 0, 1) * lk * (1 - P.fog * 0.5);
+          c2.strokeStyle = fc > 0 ? 'rgba(255,246,220,' + (a * 0.85).toFixed(3) + ')' : 'rgba(0,0,0,' + (a * 0.5).toFixed(3) + ')';
+          c2.lineWidth = fc > 0 ? 6 : 10;
+          c2.beginPath(); c2.moveTo(pts[j - 1][0], pts[j - 1][1]); c2.lineTo(pts[j][0], pts[j][1]); c2.stroke();
+        }
+      }
+      c2.restore();
+      rid.push(cv);
+    }
+    return { w: W, h: H, key: key, nz: noise, bm: biome, yOrg: yOrg, rid: rid };
+  }
+  function drawFarHills() {
+    if (UNDER || !cols || !cols.length) return;
+    const W = Math.ceil(Wc), H = Math.ceil(Hc);
+    if (W < 60 || H < 60) return;
+    let fr = farRidges;
+    if (!fr || fr.nz !== noise || fr.bm !== biome || fr.w !== W || fr.h !== H) {
+      const sk = W + 'x' + H, now0 = Date.now();
+      if (sk !== farSzK) { farSzK = sk; farSzT = now0; }
+      if (!fr || fr.nz !== noise || fr.bm !== biome || now0 - farSzT > 250) fr = farRidges = bakeFarGeo(W, H);
+    }
+    const pal = biome.pal;
+    const nc = sampleStops(tod.stops, 0.85);
+    const hzc = (pal && pal.day) ? mixColA(nc, sampleStops(pal.day, 0.85), dayness) : nc;
+    const has = skyLight && skyLight.x > -900;
+    const lv = has ? Math.round(clamp((skyLight.x - Wc / 2) / (Wc / 2), -1, 1) * 8) / 8 : 0;
+    const lk = has ? Math.round(clamp(0.4 + (skyLight.a || 0), 0, 1) * 8) / 8 : 0;
+    const key = [Math.round(dayness * 48), Math.round(hzc[0] / 3), Math.round(hzc[1] / 3), Math.round(hzc[2] / 3), lv * 8, lk * 8].join('|');
+    const now = Date.now();
+    if (fr.key !== key && now - fr.t > 300) { composeFar(fr, hzc, lv, lk); fr.key = key; fr.t = now; }
+    if (fr.key === null) return;
+    for (let r = 0; r < 3; r++) ctx.drawImage(fr.rid[r].cv, -30, fr.yOrg);
+  }
+  function drawFarHillsV1() {
+    if (UNDER || !cols || !cols.length) return;
+    const W = Math.ceil(Wc), H = Math.ceil(Hc);
+    if (W < 60 || H < 60) return;
+    const hz = String((biome.pal && biome.pal.haze) || tod.haze);
+    const hk = (hz.match(/[\d.]+/g) || []).map((v, i) => i === 3 ? Math.round(v * 6) : Math.round(v / 16)).join(',');
+    const has = skyLight && skyLight.x > -900;
+    const lv = has ? Math.round(clamp(((skyLight.x - Wc / 2) / Wc) * 2.2, -1, 1) * 4) / 4 : 0;
+    const lk = has ? Math.round(clamp(0.4 + (skyLight.a || 0), 0, 1) * 4) / 4 : 0;
+    const key = hk + '|' + lv + '|' + lk + '|' + Math.round(dayness * 8);
+    let fr = farRidges;
+    if (!fr || fr.nz !== noise || fr.bm !== biome || fr.w !== W || fr.h !== H || fr.key !== key) {
+      fr = farRidges = bakeFarRidges(W, H, lv, lk, key, fr && fr.rid);
+    }
+    const SP = [0.04, 0.09, 0.15];
+    for (let r = 0; r < 3; r++) {
+      const sh = Math.floor((((cloudOff * SP[r]) % W) + W) % W);
+      const x0 = -30 - sh;
+      for (let k = 0; k < 3; k++) {
+        const dx = x0 + k * W;
+        if (dx > Wc + 30 || dx + W < -30) continue;
+        ctx.drawImage(fr.rid[r], dx, fr.yOrg);
+      }
+    }
+  }
+  function drawNearClouds() {
+    if (UNDER || !cloudDraw) return;
+    cloudDraw(true);
+  }
+  let farHills = null;
+  function drawFarHillsOld() {
+    if (UNDER || !cols || !cols.length) return;
+    const W = Math.ceil(Wc), H = Math.ceil(Hc);
+    if (W < 8 || H < 8) return;
+    const hz = String((biome.pal && biome.pal.haze) || tod.haze);
+    const hk = (hz.match(/[\d.]+/g) || []).map((v, i) => i === 3 ? Math.round(v * 6) : Math.round(v / 16)).join(',');
+    const fh = farHills;
+    if (!fh || fh.nz !== noise || fh.bm !== biome || fh.w !== W || fh.h !== H || fh.hk !== hk) {
+      const cv = (fh && fh.w === W && fh.h === H) ? fh.cv : document.createElement('canvas');
+      cv.width = 2 * W + 60; cv.height = H;
+      const c2 = cv.getContext('2d');
+      let base = 0;
+      for (let i = 0; i < cols.length; i++) base += cols[i].top;
+      base /= cols.length;
+      c2.beginPath();
+      const TW = 2 * W + 60;
+      const hy = x => {
+        const u = ((((x - 30) % W) + W) % W) / W;
+        const hh = fbm(u * 3 + 17, 4) * (1 - u) + fbm((u - 1) * 3 + 17, 4) * u;
+        return base - H * (0.03 + 0.2 * clamp(hh, 0, 1));
+      };
+      c2.moveTo(0, H);
+      for (let x = 0; x < TW; x += 6) c2.lineTo(x, hy(x));
+      c2.lineTo(TW, hy(TW));
+      c2.lineTo(TW, H);
+      c2.closePath();
+      c2.fillStyle = biome.sub[2];
+      c2.fill();
+      c2.globalCompositeOperation = 'source-atop';
+      c2.fillStyle = hz;
+      c2.fillRect(0, 0, TW, H);
+      c2.fillRect(0, 0, TW, H);
+      farHills = { cv: cv, nz: noise, bm: biome, w: W, h: H, hk: hk };
+    }
+    const sh = (((cloudOff * 0.15) % W) + W) % W;
+    ctx.drawImage(farHills.cv, Math.floor(sh), 0, W + 60, H, -30, 0, W + 60, H);
+  }
+
   function drawSky() {
     // UNDERGROUND: no sky, no luminary, no reflections — rock backdrop
     if (UNDER) { drawCaveBG(); return; }
@@ -595,8 +1110,10 @@ function rrectPath(c, x, y, w, h, r) {
       ctx.beginPath(); ctx.ellipse(0, 0, gr * 1.45, gr * 0.26, 0, 0, Math.PI); ctx.stroke();
       ctx.restore();
     }
+    const drawClouds = (nearPass) => {
     for (let c = 0; c < cloudCount; c++) {
       const depth = 0.4 + noise(c * 1.7) * 0.65;
+      if ((depth > 0.8) !== nearPass) continue;
       const cy = Hc * (0.04 + noise(c * 7.7) * 0.26);
       const cw = 110 + noise(c * 3.1) * 150;
       const cx = (((cloudOff * depth) + noise(c * 13) * Wc * 1.4) % (Wc + 420) + (Wc + 420)) % (Wc + 420) - 210;
@@ -624,6 +1141,9 @@ function rrectPath(c, x, y, w, h, r) {
       for (let b = 0; b < lobes; b++) { const [lx, ly, lr] = lob(b, 0, 0); ctx.moveTo(lx + lr * 0.92, ly + lr * 0.3); ctx.arc(lx, ly + lr * 0.3, lr * 0.92, 0, Math.PI); }
       ctx.fill();
     }
+    };
+    drawClouds(false);
+    cloudDraw = drawClouds;
     const hz = ctx.createLinearGradient(0, Hc * 0.45, 0, Hc * 0.75);
     hz.addColorStop(0, 'rgba(0,0,0,0)');
     hz.addColorStop(1, (pal && pal.haze) || tod.haze);
@@ -1201,6 +1721,8 @@ function drawCaveShade() {
     });
     ctx.restore();
     // surface strip + burn + melt + LIQUID LAVA POOLS, per column
+    const sunDir = (skyLight && skyLight.x > -900) ? (skyLight.x > Wc / 2 ? 1 : -1) : 0;
+    const sunK = sunDir ? clamp(0.4 + (skyLight.a || 0), 0, 1) : 0;
     for (let i = 0; i < N; i++) {
       const c = cols[i];
       const x = i * cols.step, w = cols.step + 0.5;
@@ -1210,10 +1732,17 @@ function drawCaveShade() {
       if (c.surf > 0 && !mouth) {
         ctx.fillStyle = biome.surf;
         ctx.fillRect(x, c.top, w, c.surf);
+        const ls = sunDir * sl;
         ctx.fillStyle = biome.surfHi;
-        ctx.fillRect(x, c.top, w, 1.5);
-        ctx.fillStyle = sl > 1 ? 'rgba(0,0,0,0.16)' : 'rgba(255,255,255,0.1)';
+        ctx.fillRect(x, c.top, w, ls > 0.3 ? 4 : (ls < -0.3 ? 1 : 1.5));
+        ctx.fillStyle = ls < -0.3 ? 'rgba(0,0,0,' + (0.16 + 0.24 * sunK).toFixed(3) + ')'
+          : (ls > 0.3 ? 'rgba(255,240,200,' + (0.1 + 0.2 * sunK).toFixed(3) + ')'
+          : (sl > 1 ? 'rgba(0,0,0,0.16)' : 'rgba(255,255,255,0.1)'));
         ctx.fillRect(x, c.top + 1.5, w, Math.max(0, c.surf - 1.5));
+        if (sunK > 0 && (ls > 0.3 || ls < -0.3)) {
+          ctx.fillStyle = ls > 0 ? 'rgba(255,240,200,' + (0.14 * sunK).toFixed(3) + ')' : 'rgba(0,0,0,' + (0.2 * sunK).toFixed(3) + ')';
+          ctx.fillRect(x, c.top + c.surf, w, 7);
+        }
       } else {
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.fillRect(x, c.top, w, 2.5);

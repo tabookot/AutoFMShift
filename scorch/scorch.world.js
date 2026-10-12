@@ -2012,6 +2012,16 @@ function stepFx(dt) {
     return f.t < f.life;
   });
   fx = fxKept.concat(fxOld.slice(fxLen0));
+  if (fx.length > 600) {
+    let over = fx.length - 600;
+    const fxCap = [];
+    for (let i = 0; i < fx.length; i++) {
+      const f = fx[i];
+      if (over > 0 && (f.k === 'dust' || f.k === 'smoke' || f.k === 'vsmoke' || f.k === 'wisp' || f.k === 'sed' || f.k === 'bubble' || f.k === 'drop' || f.k === 'splash' || f.k === 'wring')) { over--; continue; }
+      fxCap.push(f);
+    }
+    fx = fxCap;
+  }
   debris = debris.filter(d => {
     d.life -= dt;
     if (d.life <= 0) return false;
