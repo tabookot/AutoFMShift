@@ -1642,7 +1642,27 @@ function drawCaveShade() {
     }
   }
   
+  function drawTankTags() {
+    if (typeof tanks === 'undefined' || !tanks || tanks.length < 2) return;
+    ctx.save();
+    ctx.font = '700 10px Orbitron, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 3;
+    tanks.forEach((t, i) => {
+      if (!t || t.dead || t.dying) return;
+      const dir = i === 0 ? playerDir() : (tanks[1].x < tanks[0].x ? 1 : -1);
+      const tx = t.x - dir * 14, ty = t.y - 30;
+      ctx.strokeStyle = 'rgba(10,8,6,0.9)';
+      ctx.strokeText(String(i + 1), tx, ty);
+      ctx.fillStyle = t.col;
+      ctx.fillText(String(i + 1), tx, ty);
+    });
+    ctx.restore();
+  }
   function drawHpLate() {
+    drawTankTags();
     fx.forEach(f => {
       if (f.k !== 'hp') return;
       const p = f.t / f.life;
@@ -2153,7 +2173,7 @@ function drawCaveShade() {
       drawTurretBody(ctx, t.x, t.y, t.col, {
         dir: i === 0 ? playerDir() : (tanks[1].x < tanks[0].x ? 1 : -1),
         ang: t.dispAng === undefined ? 45 : t.dispAng,
-        hpF, recoil: t.recoil || 0, seed: i * 7 + 3, hull: t.hull
+        hpF, recoil: t.recoil || 0, seed: i * 7 + 3, hull: t.hull, cache: true
       });
       ctx.restore();
       if (t.dying) {
