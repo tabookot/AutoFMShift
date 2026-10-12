@@ -8,7 +8,6 @@ async function init() {
   }
 
   initTheme();
-  await loadCyrillicFont();
   document.getElementById('appVersion').textContent = 'v' + VERSION;
   document.getElementById('headerVersion').textContent = 'v' + VERSION;
   document.getElementById('logoBtn').title = `AutoFMShift v${VERSION}`;

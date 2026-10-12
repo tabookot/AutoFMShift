@@ -198,6 +198,51 @@ function exportPNG() {
 }
 
 let _cyrillicFontB64 = null;
+const LAZY_JSPDF = { url: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', sri: 'sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk' };
+const LAZY_AUTOTABLE = { url: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js', sri: 'sha384-vuyrTV5nkscLp1knFvt+FIHfKKzmROBq5reruhMRslauj54mW+l2B8b6szMN6lCL' };
+const LAZY_EXCELJS = { url: 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js', sri: 'sha384-Pqp51FUN2/qzfxZxBCtF0stpc9ONI6MYZpVqmo8m20SoaQCzf+arZvACkLkirlPz' };
+const _scriptPromises = {};
+
+function loadScript(url, integrity) {
+  if (_scriptPromises[url]) return _scriptPromises[url];
+  const pr = new Promise(function (resolve, reject) {
+    const s = document.createElement('script');
+    s.src = url;
+    if (integrity) s.integrity = integrity;
+    s.crossOrigin = 'anonymous';
+    s.onload = function () { resolve(); };
+    s.onerror = function () { s.remove(); reject(new Error('load failed: ' + url)); };
+    document.head.appendChild(s);
+  });
+  _scriptPromises[url] = pr;
+  pr.catch(function () { delete _scriptPromises[url]; });
+  return pr;
+}
+
+async function ensurePdfLibs() {
+  if (!(window.jspdf && _cyrillicFontB64)) showToast("Загрузка библиотек PDF…");
+  try {
+    await loadScript(LAZY_JSPDF.url, LAZY_JSPDF.sri);
+    await loadScript(LAZY_AUTOTABLE.url, LAZY_AUTOTABLE.sri);
+    if (!(await loadCyrillicFont())) throw new Error('font');
+    return true;
+  } catch (e) {
+    showToast("Не удалось загрузить библиотеки PDF (нужен интернет)");
+    return false;
+  }
+}
+
+async function ensureExcelJS() {
+  if (!window.ExcelJS) showToast("Загрузка библиотеки XLSX…");
+  try {
+    await loadScript(LAZY_EXCELJS.url, LAZY_EXCELJS.sri);
+    return true;
+  } catch (e) {
+    showToast("Не удалось загрузить библиотеку XLSX (нужен интернет)");
+    return false;
+  }
+}
+
 async function loadCyrillicFont() {
   if (_cyrillicFontB64) return _cyrillicFontB64;
   try {
@@ -215,9 +260,9 @@ async function loadCyrillicFont() {
 }
 
 // PDF
-function exportPDF() {
+async function exportPDF() {
     if (state.stations.length === 0) return showToast("Нет данных для экспорта");
-    if (!_cyrillicFontB64) return showToast("Шрифт еще загружается, попробуйте через секунду");
+    if (!(await ensurePdfLibs())) return;
     try {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -362,6 +407,7 @@ async function exportXLSX() {
     const p2 = sorted.slice(half);
     const instructionText = isSetupView() ? generateSetupInstruction(validStations) : "";
     const hasInstruction = instructionText.length > 0;
+    if (!(await ensureExcelJS())) return;
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet('Stations');
     ws.pageSetup = { orientation: 'landscape', paperSize: 9, fitToWidth: 1, fitToHeight: 1, margins: { left: 0.2, right: 0.2, top: 0.1, bottom: 0.1, header: 0.0, footer: 0.0 } };

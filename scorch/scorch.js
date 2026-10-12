@@ -1,6 +1,6 @@
 // scorch.js - loader: one generated bundle (scorch.bundle.js).
 (() => {
-  const SC_BUILD = '0.8.15'; // меняет tools/set_version.py
+  const SC_BUILD = '0.8.16'; // меняет tools/set_version.py
   if (window.Scorch) return; // already loaded
   const base = (document.currentScript && document.currentScript.src || location.href)
     .replace(/[^/]*$/, '');
