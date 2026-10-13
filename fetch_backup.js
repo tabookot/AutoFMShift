@@ -7,6 +7,10 @@ if (typeof require !== 'undefined') {
     global.Api = Api;
 }
 
+// D3: перенесено из конца файла (должно быть объявлено до вызова run())
+const SCORE_OVERRIDES = {};
+const RB_CACHE = {};
+
 // --- ПОРОГИ СРАВНЕНИЯ И ГРУППИРОВКИ ДАННЫХ API FANDOM ---
 // Отвечает за определение переименования города в compareData и mergeData (если score > порога, считаем что это переименование, а не удаление).
 const SCORE_THRESHOLD_CITY_RENAME = 0.65; // 0.65 рекомендуется
@@ -40,6 +44,11 @@ const SCORE_THRESHOLD_STREAMS = 0.1; // 0.40 рекомендуется
 // Алгоритм compareSets("красноярск", "новое радио красноярск") = 1/3 = 0.33.
 // Строгий порог 0.60 надежно отсекает такие прилипания, оставляя только прямые совпадения.
 const SCORE_THRESHOLD_STREAMS_STRICT = 0.51; // 0.60 рекомендуется
+
+// Группа риска по названию города: true = имена городов (ключи citiesMap),
+// false = старое поведение (полные заголовки страниц, фактически не срабатывало).
+// Меняет выдачу потоков: проверять в data/sandbox.html (шаги 3->4).
+const CITY_RISK_BY_NAME = true;
 
 // --- МАГИЧЕСКИЕ ПАРАМЕТРЫ АЛГОРИТМА ЗАЩИТЫ ОТ СБОЕВ API ---
 // Рассчитывают, было ли удаление штатным или это сбой парсера/API.
@@ -96,7 +105,7 @@ async function run() {
     }
 
     console.log(`Найдено городов: ${Object.keys(citiesMap).length}. Начинаем сбор станций...`);
-    const apiData = await Api.generateApiBackup(citiesMap, "0.5.1-github-action", () => false);
+    const apiData = await Api.generateApiBackup(citiesMap, "github-action", () => false);
     apiData.exportDate = Date.now();
 
     // Сливаем старые и новые данные, защищаясь от сбоев
@@ -400,7 +409,7 @@ async function enrichStationsData(groups, oldEnrichedList = [], onProgress = nul
         shortHard: SCORE_OVERRIDES.shortHard ?? 0.75
     };
     const oldStreamsMap = new Map(oldList.map(s => [s.name, s]));
-    const cityNames = Object.values(citiesMap).map(c => c.toLowerCase());
+    const cityNames = (CITY_RISK_BY_NAME ? Object.keys(citiesMap) : Object.values(citiesMap)).map(c => c.toLowerCase());
 
     const enrichedList = [];
     const baseUrl = "https://de1.api.radio-browser.info/json/stations/search";
@@ -622,10 +631,27 @@ function readHistory() {
     } catch (e) { return null; }
 }
 
+// Есть ли в отчёте что-то, что стоит хранить в истории
+function historyWorthy(report) {
+    if (!report || !report.changes) return true;
+    if (report.status !== 'success' || report.requiresAttention) return true;
+    const n = (v) => Array.isArray(v) ? v.length : (Number(v) || 0);
+    for (const g of ['cities', 'stations']) {
+        const o = report.changes[g] || {};
+        for (const k in o) if (n(o[k]) > 0) return true;
+    }
+    const rb = report.radioBrowser || {};
+    for (const k of ['new', 'changed', 'deleted', 'streamsAdded', 'streamsRemoved']) {
+        if (n(rb[k]) > 0) return true;
+    }
+    return n(report.restored) > 0;
+}
+
 function saveHistory(oldHistory, report) {
     // Append-only, unlimited: falls back to file on disk when oldHistory is not passed
     let history = oldHistory && Array.isArray(oldHistory.sessions) ? oldHistory : readHistory() || { sessions: [] };
-    history.sessions.push(report);
+    history.lastRun = { timestamp: report.timestamp, status: report.status, recorded: historyWorthy(report) };
+    if (history.lastRun.recorded) history.sessions.push(report);
     
     if (fs) {
         fs.writeFileSync('data/backup-api.history.json', JSON.stringify(history, null, 2));
@@ -671,9 +697,9 @@ if (typeof require !== 'undefined' && require.main === module) {
     });
 }
 
-// Sandbox tuning: runtime score overrides + raw radio-browser cache for instant re-runs
-const SCORE_OVERRIDES = {};
-const RB_CACHE = {};
+// Sandbox tuning: SCORE_OVERRIDES / RB_CACHE объявлены в начале файла (до run()).
+
+
 
 if (typeof window !== 'undefined') {
     window.FetchBackup = { generateLists, enrichStationsData, compareData, saveHistory, mergeData,

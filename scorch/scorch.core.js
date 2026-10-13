@@ -125,7 +125,7 @@ let cloudCount = 8;
 let groundPat = null;
 let tod = { stops: ['#7ab3d8', '#a8cde6', '#d8e8f0'], sun: '#fff6d8', sunHalo: 'rgba(255,246,216,0.35)', stars: false, clouds: 0.55, haze: 'rgba(220,235,245,0.25)' };
 let cycleT = 0, dayness = 1, todT = 0;
-let tanks, wind, windDir, aiSkill;
+let tanks, wind = 0, windDir, aiSkill;
 let ammoInv = {}, aiAmmo = {}, cur = 0, cur2 = 0, turn, state, turnOrder = 0;
 let roundOpener = 0;
 let shot = null, subshots = [], liquids = [], debris = [], remains = [], sinkers = [], windParts = [], comets = [], grains = [], wreckBits = [];
@@ -203,7 +203,11 @@ const M = () => biome.mat;
 const isDayT = () => tod && tod.stars === false;
 const indCol = () => isDayT() ? '#1b3f8f' : '#00d4ff';
 const indColHi = () => isDayT() ? '#b34a00' : '#ffb020';
-const biomeKey = () => Object.keys(BIOMES).find(k => BIOMES[k] === biome);
+let _bkB, _bkK;
+const biomeKey = () => {
+  if (_bkB !== biome) { _bkB = biome; _bkK = Object.keys(BIOMES).find(k => BIOMES[k] === biome); }
+  return _bkK;
+};
 const biomeLabel = () => ({ green: 'Холмы', desert: 'Пустыня', arctic: 'Арктика', volcanic: 'Вулкан', xeno: 'Ксено', rust: 'Ржавые дюны', ashen: 'Пепел' }[biomeKey()] || '');
 const windKind = () => ({ green: 'leaf', desert: 'sand', arctic: 'snow', volcanic: 'ash', xeno: 'dust', rust: 'sand', ashen: 'ash' }[biomeKey()] || 'dust');
 // lava palette of the CURRENT world (volcanic by default)
@@ -304,7 +308,7 @@ function updateTod() {
 // color helpers used by the turret sprites and the terrain renderer
 function mixColor(h1, h2, k) {
   const a = parseInt(h1.slice(1), 16), b = parseInt(h2.slice(1), 16);
-  return `rgb(${Math.round(((a >> 16) & 255) * (1 - k) + ((b >> 16) & 255) * k)},${Math.round(((a >> 8) & 255) * (1 - k) + ((b >> 8) & 255) * k)},${Math.round((a & 255) * (1 - k) + (a & 255) * k)})`;
+  return `rgb(${Math.round(((a >> 16) & 255) * (1 - k) + ((b >> 16) & 255) * k)},${Math.round(((a >> 8) & 255) * (1 - k) + ((b >> 8) & 255) * k)},${Math.round((a & 255) * (1 - k) + (b & 255) * k)})`;
 }
 function shade(c, k) {
   let r, g, b;
@@ -314,8 +318,57 @@ function shade(c, k) {
 }
 
 // ============ TURRET BODIES: eight silhouettes, equal iron ============
+// tank hull sprite cache (outline + body), see patch 14
+let hullSprites = Object.create(null), hullSpriteN = 0;
+function tankShadow(c) {
+  const d = UNDER ? 0.45 : clamp(typeof dayness === 'number' ? dayness : 1, 0, 1);
+  c.fillStyle = 'rgba(0,0,0,' + (0.07 + 0.33 * d).toFixed(3) + ')';
+  c.beginPath(); c.ellipse(0, 1, 13 - 1.5 * d, 3.2 - 0.6 * d, 0, 0, Math.PI * 2); c.fill();
+}
+function buildHullSprite(col, hull, hq, wreck, sd, k) {
+  const w = Math.ceil(32 * k), h = Math.ceil(36 * k);
+  const b = document.createElement('canvas'); b.width = w; b.height = h;
+  const bc = b.getContext('2d');
+  bc.scale(k, k);
+  drawTurretBody(bc, 16, 31, col, { hull: hull, hpF: hq, wreck: wreck, seed: sd, part: 'body', noShadow: true });
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const oc = cv.getContext('2d');
+  [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]].forEach(d => oc.drawImage(b, d[0] * k, d[1] * k));
+  oc.globalCompositeOperation = 'source-in';
+  oc.fillStyle = 'rgba(10,8,6,0.85)';
+  oc.fillRect(0, 0, w, h);
+  oc.globalCompositeOperation = 'source-over';
+  oc.drawImage(b, 0, 0);
+  return cv;
+}
+function drawTurretCached(c, x, y, col, o) {
+  const hull = o.hull || 'classic';
+  const wreck = !!o.wreck;
+  const hq = Math.round(clamp(o.hpF || 0, 0, 1) * 10) / 10;
+  const sd = o.seed || 0;
+  let k = 1;
+  try { const m = c.getTransform(); k = Math.round(Math.sqrt(m.a * m.a + m.b * m.b) * 4) / 4; } catch (e) { k = 1; }
+  if (!(k >= 0.5)) k = 1;
+  if (k > 4) k = 4;
+  const key = hull + '|' + col + '|' + hq + '|' + (wreck ? 1 : 0) + '|' + sd + '|' + k;
+  let sp = hullSprites[key];
+  if (!sp) {
+    if (hullSpriteN > 160) { hullSprites = Object.create(null); hullSpriteN = 0; }
+    sp = hullSprites[key] = buildHullSprite(col, hull, hq, wreck, sd, k);
+    hullSpriteN++;
+  }
+  c.save();
+  if (o.alpha !== undefined) c.globalAlpha = o.alpha;
+  c.translate(Math.round(x), Math.round(y));
+  if (o.tilt) c.rotate(o.tilt);
+  if (!o.noShadow) tankShadow(c);
+  c.drawImage(sp, -16, -31, 32, 36);
+  c.restore();
+  drawTurretBody(c, x, y, col, Object.assign({}, o, { part: 'top', cache: false }));
+}
 function drawTurretBody(c, x, y, col, o) {
   o = o || {};
+  if (o.cache && !o.part) { drawTurretCached(c, x, y, col, o); return; }
   const dir = o.dir || 1;
   const ang = o.ang === undefined ? 45 : o.ang;
   const hpF = clamp(o.hpF || 0, 0, 1);
@@ -330,10 +383,8 @@ function drawTurretBody(c, x, y, col, o) {
   if (tilt) c.rotate(tilt);
   const base = wreck ? '#2a251d' : mixColor(col, '#241a10', hpF * 0.7);
   const P = (dx, dy, w, h, colr) => { c.fillStyle = colr; c.fillRect(Math.round(dx), Math.round(dy), w, h); };
-  if (!o.noShadow) {
-    c.fillStyle = 'rgba(0,0,0,0.3)';
-    c.beginPath(); c.ellipse(0, 1, 13, 3.2, 0, 0, Math.PI * 2); c.fill();
-  }
+  if (!o.noShadow && !o.part) tankShadow(c);
+  if (o.part !== 'top') {
   P(-12, -5, 24, 5, shade(base, 0.5));
   P(-12, -5, 24, 1, shade(base, 0.78));
   [-9, 0, 9].forEach(bx => P(bx, -3, 1, 1, shade(base, 0.35)));
@@ -441,10 +492,14 @@ function drawTurretBody(c, x, y, col, o) {
     else { [-5, 0, 5].forEach(rx => P(rx, -19, 1, 1, shade(base, 0.4))); }
     c.restore();
   }
+  }
   const topY = hull === 'stealth' ? -19 : hull === 'heavy' ? -18 : hull === 'retro' ? -25 : hull === 'howitzer' ? -23 : (hull === 'rail' || hull === 'bunker') ? -17 : -24;
+  if (o.part !== 'top') {
   P(-3, topY, 6, 3, shade(base, 0.95));
   P(-3, topY, 6, 1, shade(base, 1.25));
   P(-1, topY - 2, 3, 2, '#4d545c');
+  }
+  if (o.part !== 'body') {
   if (!wreck) {
     // the lamp glows by night on the surface, ALWAYS in the caves
     const glow = UNDER ? 0.8 : clamp((1 - dayness) * 0.9, 0, 0.9);
@@ -525,8 +580,9 @@ function drawTurretBody(c, x, y, col, o) {
     c.beginPath();
     c.moveTo(-6, -13); c.lineTo(-7, -17); c.stroke();
   }
+  }
   const dmg = wreck ? 1 : hpF;
-  if (dmg > 0.3) {
+  if (o.part !== 'top' && dmg > 0.3) {
     c.strokeStyle = 'rgba(20,16,10,0.6)';
     c.lineWidth = 1;
     const nCr = Math.round(dmg * 3);
@@ -538,7 +594,7 @@ function drawTurretBody(c, x, y, col, o) {
       c.stroke();
     }
   }
-  if (dmg > 0.55) {
+  if (o.part !== 'top' && dmg > 0.55) {
     P(-5, -18, 4, 3, 'rgba(15,12,8,0.45)');
     P(2, -11, 5, 3, 'rgba(15,12,8,0.4)');
   }
@@ -630,18 +686,33 @@ function ensureAudio() {
   }
   if (AC && AC.state === 'suspended') AC.resume().catch(() => {});
 }
+const sfxNoiseCache = {};
+function sfxNoise(key) {
+  const sr = AC.sampleRate;
+  let c = sfxNoiseCache[key];
+  if (!c || c.sr !== sr) {
+    const len = Math.max(1, Math.floor(sr * key / 10));
+    const b = AC.createBuffer(1, len, sr);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    c = sfxNoiseCache[key] = { sr: sr, b: b };
+  }
+  return c.b;
+}
 function sfx(size) {
   if (!AC) return;
   try {
-    const dur = clamp(0.25 + size * 0.5, 0.2, 1.4);
-    const buf = AC.createBuffer(1, AC.sampleRate * dur, AC.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 1.8);
-    const src = AC.createBufferSource(); src.buffer = buf;
+    const key = Math.round(clamp(0.25 + size * 0.5, 0.2, 1.4) * 10);
+    const dur = key / 10;
+    const src = AC.createBufferSource(); src.buffer = sfxNoise(key);
     const flt = AC.createBiquadFilter(); flt.type = 'lowpass';
     flt.frequency.value = 300 / size + 250;
     const g = AC.createGain();
-    g.gain.value = clamp(0.12 * size, 0.06, 0.5) * sVol;
+    const peak = clamp(0.12 * size, 0.06, 0.5) * sVol;
+    const curve = new Float32Array(32);
+    for (let i = 0; i < 32; i++) curve[i] = peak * Math.pow(1 - i / 31, 1.8);
+    g.gain.value = 0;
+    g.gain.setValueCurveAtTime(curve, AC.currentTime, dur);
     src.connect(flt); flt.connect(g); g.connect(AC.destination);
     src.start();
   } catch (e) {}
@@ -702,6 +773,7 @@ function schedule(fn, delay) { events.push({ at: gt + delay, fn }); }
 
 // ================== LIFECYCLE ==================
 function openGame() {
+  if (state === 'closing') { stopLoop(); overlay.style.opacity = ''; }
   build();
   ensureAudio();
   if (typeof musicStart === 'function') musicStart();
@@ -714,6 +786,12 @@ function openGame() {
 }
 function closeGame(boom) {
   if (typeof musicStop === 'function') musicStop();
+  try {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      const ex = document.exitFullscreen || document.webkitExitFullscreen;
+      if (ex) { const r = ex.call(document); if (r && r.catch) r.catch(() => {}); }
+    }
+  } catch (e) {}
   if (boom) apocalypsis(); else { stopLoop(); overlay.classList.remove('show'); }
 }
 // the closing apocalypse REUSES the NUKE impact package with zero damage;
@@ -751,11 +829,17 @@ function apocalypsis() {
     const left = tEnd - now;
     if (left <= 0) { overlay.style.opacity = ''; stopLoop(); overlay.classList.remove('show'); return; }
     overlay.style.opacity = clamp(left / 250, 0, 1).toFixed(3);
-    requestAnimationFrame(fin);
+    finRaf = requestAnimationFrame(fin);
   };
-  requestAnimationFrame(fin);
+  finRaf = requestAnimationFrame(fin);
 }
-function stopLoop() { if (raf) cancelAnimationFrame(raf); raf = null; events = []; }
+let finRaf = null;
+function stopLoop() {
+  if (raf) cancelAnimationFrame(raf);
+  raf = null;
+  if (finRaf) { cancelAnimationFrame(finRaf); finRaf = null; }
+  events = [];
+}
 
 // boot: dblclick / double-tap / long-press on the host trigger zone
 function boot() {

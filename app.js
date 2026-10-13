@@ -8,7 +8,6 @@ async function init() {
   }
 
   initTheme();
-  await loadCyrillicFont();
   document.getElementById('appVersion').textContent = 'v' + VERSION;
   document.getElementById('headerVersion').textContent = 'v' + VERSION;
   document.getElementById('logoBtn').title = `AutoFMShift v${VERSION}`;
@@ -232,7 +231,7 @@ async function init() {
     let isLongPress = false;
     
     const startPress = (e) => {
-      if (e.button !== 0) return; // Только левая кнопка запускает таймер
+      if (e.type === 'mousedown' && e.button !== 0) return; // Только левая кнопка запускает таймер
       isLongPress = false;
       pressTimer = setTimeout(() => {
         isLongPress = true;
@@ -327,7 +326,7 @@ async function init() {
     vS.value = val;
     if (mVS) mVS.value = val;
     audioPlayer.volume = val;
-    localStorage.setItem('fm_player_volume', val);
+    lsSet('fm_player_volume', val);
     const p = Math.round(val * 100);
     vS.style.background = `linear-gradient(to top, var(--accent) ${p}%, var(--border) ${p}%)`;
     if (mVS) {
@@ -369,7 +368,7 @@ async function init() {
   }, { passive: false });
   spectrumCanvas = document.getElementById('spectrumCanvas');
   spectrumCtx = spectrumCanvas.getContext('2d');
-  drawSpectrum();
+  startSpectrum();
 
   const hP = new URLSearchParams(location.hash.slice(1));
   const isS = hP.get('shared') === '1';
@@ -395,22 +394,7 @@ async function init() {
     localStorage.removeItem('fm_player_playing');
   }
 
-  audioPlayer.addEventListener('playing', () => {
-    setPlayerLoading(false);
-    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
-    if (state.trackMeta) startTrackMeta(audioPlayer.src);
-    updatePlayerUI();
-  });
-  audioPlayer.addEventListener('waiting', () => {
-    setPlayerLoading(true);
-    updatePlayerUI();
-  });
-  audioPlayer.addEventListener('pause', () => {
-    setPlayerLoading(false);
-    stopTrackMeta();
-    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
-    updatePlayerUI();
-  });
+  bindAudioEvents(audioPlayer);
   document.getElementById('playerPlayBtn').addEventListener('click', () => {
     cancelRestorePlayback();
     if (currentPlayingStation) {
@@ -622,7 +606,9 @@ function buildAllCities() {
     updateCityStats(ALL_CITIES);
   }
 
+let loadSeq = 0;
 async function loadCity(city) {
+  const seq = ++loadSeq;
   if (city === ALL_CITIES) {
     state.city = ALL_CITIES;
     Object.values(stationStreamMap).forEach((d) => {
@@ -645,6 +631,7 @@ async function loadCity(city) {
   l.innerHTML = '<div class="loading-msg">Загрузка станций...</div>';
   render();
   const h = await Api.fetchPage(citiesMap[city]);
+  if (seq !== loadSeq) return;
   let nS = [];
   let src = 'cache';
   if (h) {
@@ -811,7 +798,7 @@ function setupWheelInput(id, min, max, step, stateProp) {
       if (stateProp === 'min') state.min = val;
       else state.max = val;
       const m = TEMPLATES.find((t) => t.range[0] === state.min && t.range[1] === state.max);
-      state.template = m ? m.name : 'Свой вариант';
+      state.template = m ? m.name : CUSTOM_TEMPLATE_NAME;
       state.templateShort = m ? m.short : 'свой';
     } else {
       val = Math.round(val);
@@ -892,4 +879,4 @@ document.getElementById('closeHelpBtn').addEventListener('click', () => document
 document.getElementById('helpModal').addEventListener('click', (e) => {
   if (e.target.id === 'helpModal') e.target.classList.remove('show');
 });
-init();
+init().catch(e => { console.error(e); showToast('Ошибка запуска'); });

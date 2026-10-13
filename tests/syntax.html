@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>syntax: …</title>
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; background: #0f1115; color: #e4e6eb; margin: 20px; }
+  table { border-collapse: collapse; }
+  td, th { padding: 4px 12px; border-bottom: 1px solid #2a2f38; text-align: left; }
+  .ok { color: #2ecc71; } .err { color: #ff4757; font-weight: bold; } .skip { color: #8b909a; }
+</style>
+</head>
+<body>
+<h3>Проверка синтаксиса JS (парсинг без выполнения)</h3>
+<p>Открывать через <code>http://localhost:8000/tests/syntax.html</code> (не file://). Запускай после каждого патча.</p>
+<table id="t"><tr><th>файл</th><th>результат</th></tr></table>
+<script>
+// Список правь здесь: добавил файл в проект — добавь строку.
+var FILES = [
+  'cities.js', 'api.js', 'fmuse.js', 'core.js', 'exports.js', 'dial.js', 'player.js', 'app.js',
+  'fetch_backup.js',
+  'scorch/scorch.js', 'scorch/scorch.core.js', 'scorch/scorch.music.js', 'scorch/scorch.credits.js',
+  'scorch/scorch.world.js', 'scorch/scorch.ui.js', 'scorch/scorch.bundle.js'
+];
+var bad = 0, done = 0;
+var tbl = document.getElementById('t');
+
+function row(name, cls, text) {
+  var tr = document.createElement('tr');
+  var a = document.createElement('td'), b = document.createElement('td');
+  a.textContent = name; b.textContent = text; b.className = cls;
+  tr.appendChild(a); tr.appendChild(b); tbl.appendChild(tr);
+}
+
+function check(name) {
+  return fetch('../' + name + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) {
+    if (r.status === 404) { row(name, 'skip', 'нет файла (пропуск)'); return; }
+    return r.text().then(function (src) {
+      try {
+        new Function(src); // компилируется, но НЕ запускается
+        row(name, 'ok', 'OK (' + src.length + ' байт)');
+      } catch (e) {
+        bad++;
+        row(name, 'err', 'ОШИБКА: ' + e.message + (e.lineNumber ? ' (строка ' + e.lineNumber + ')' : ''));
+      }
+    });
+  }).catch(function (e) { bad++; row(name, 'err', 'не загрузился: ' + e.message); });
+}
+
+FILES.reduce(function (p, f) { return p.then(function () { return check(f); }); }, Promise.resolve())
+  .then(function () { document.title = 'syntax: ' + (bad ? bad + ' ОШИБОК' : 'всё OK'); });
+</script>
+</body>
+</html>

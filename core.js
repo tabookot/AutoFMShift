@@ -1,5 +1,5 @@
 // core.js
-const VERSION = '0.7.99';
+const VERSION = '0.9.0';
 const CACHE_VERSION = '4';
 const LS_KEY = 'fm_adapter_calc_v10';
 const LS_THEME_KEY = 'fm_adapter_theme';
@@ -8,6 +8,7 @@ const RU_MAX = 108.0;
 const FM_BAND_MIN = 76.0;
 const FM_BAND_MAX = 108.0;
 const SHIFTS = [0, 10, 12, 14, 16, 18, 20, 24, 28, 30];
+const CUSTOM_TEMPLATE_NAME = 'Свой диапазон';
 const TEMPLATES = [
   { name: 'Россия / Европа', short: 'ru/eu', range: [RU_MIN, RU_MAX] },
   { name: 'Япония (до ~2014)', short: 'jp-old', range: [76.0, 90.0] },
@@ -17,7 +18,7 @@ const TEMPLATES = [
   { name: 'Китай', short: 'cn', range: [87.5, 108.0] },
   { name: 'Корея', short: 'kr', range: [88.0, 108.0] },
   { name: 'OIRT / СССР', short: 'oirt', range: [65.9, 74.0] },
-  { name: 'Свой диапазон', short: 'custom', range: [76.0, 108.0] }
+  { name: CUSTOM_TEMPLATE_NAME, short: 'custom', range: [76.0, 108.0] }
 ];
 const ALL_CITIES = 'Избранное';
 const DEFAULT_STATE = {
@@ -126,7 +127,7 @@ function toggleTheme() {
   const ct = document.documentElement.getAttribute('data-theme') || 'dark';
   const nt = ct === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', nt);
-  localStorage.setItem(LS_THEME_KEY, nt);
+  lsSet(LS_THEME_KEY, nt);
   updateThemeIcon();
 }
 
@@ -214,7 +215,7 @@ function renderStations() {
     logoEl.className = 'station-logo';
     if (streamData && streamData.favicon && streamData.favicon !== 'null' && streamData.favicon !== 'undefined') {
       const img = document.createElement('img');
-      img.src = streamData.favicon;
+      img.referrerPolicy = 'no-referrer'; img.src = safeUrl(streamData.favicon);
       img.alt = '';
       img.onerror = () => img.remove();
       logoEl.appendChild(img);
@@ -372,7 +373,10 @@ function updateCityStats(city) {
   });
   state.cityData[city].stations = clean;
   state.cityData[city].stats = { total: state.cityData[city].totalStations || 0, fav, cand, trash, statused: fav + cand + trash, presets };
-  state.cityData[city].lastModified = Date.now();
+}
+
+function touchCity(city) {
+  if (state.cityData[city]) state.cityData[city].lastModified = Date.now();
 }
 
 function getStatsTooltip(s) {
@@ -467,7 +471,6 @@ function render() {
   document.getElementById('templatesBtn').textContent = state.templateShort || 'свой';
   
   if (document.getElementById('fmDialWrapper')) {
-    const dT = document.getElementById('dialToggleBtn');
     const dFT = document.getElementById('dialFreqToggleBtn');
     const dCT = document.getElementById('dialControlsToggleBtn');
     if (state.stations.length > 0) {
@@ -538,6 +541,7 @@ function cycleStationStatus(name) {
   else if (d.type === 'fav') d.type = 'cand';
   else if (d.type === 'cand') d.type = 'trash';
   else d.type = 'normal';
+  touchCity(state.city);
   updateCityStats(state.city);
   commitState();
   render();
@@ -564,6 +568,7 @@ function assignPreset(name, pi) {
     });
   }
   d.presetIndex = d.presetIndex === pi ? null : pi;
+  touchCity(state.city);
   updateCityStats(state.city);
   commitState();
   render();
@@ -624,6 +629,45 @@ function closePresetMenu() {
   }
 }
 
+function isBadKey(k) { return k === '__proto__' || k === 'constructor' || k === 'prototype'; }
+function isPlainObj(o) { return Object.prototype.toString.call(o) === '[object Object]'; }
+
+let _lsToastT = 0;
+function safeUrl(u) {
+  if (typeof u !== 'string') return '';
+  u = u.trim();
+  if (u.length > 500 || !/^https?:\/\//i.test(u)) return '';
+  if (/[<>"'`\\\s]/.test(u)) return '';
+  return u;
+}
+
+function cssUrl(u) {
+  const s = safeUrl(u);
+  return s ? "url('" + s + "')" : '';
+}
+
+function lsSet(k, v) {
+  try {
+    localStorage.setItem(k, v);
+    return true;
+  } catch (e) {
+    const now = Date.now();
+    if (now - _lsToastT > 10000 && typeof showToast === 'function') {
+      _lsToastT = now;
+      showToast('Не удалось сохранить настройки');
+    }
+    return false;
+  }
+}
+function lsGet(k, fb) {
+  try {
+    const v = localStorage.getItem(k);
+    return v === null ? fb : v;
+  } catch (e) {
+    return fb;
+  }
+}
+
 function commitState() {
   state.lastModified = Date.now();
   const ccd = {};
@@ -634,14 +678,7 @@ function commitState() {
     if (hd || hs) ccd[c] = state.cityData[c];
   });
   state.cityData = ccd;
-  const sts = JSON.parse(JSON.stringify(state));
-  if (sts.streamsData) {
-    Object.values(sts.streamsData).forEach((d) => {
-      d.broken = false;
-      if (d.streams) d.streams.forEach((s) => s.broken = false);
-    });
-  }
-  localStorage.setItem(LS_KEY, JSON.stringify(sts));
+  lsSet(LS_KEY, JSON.stringify(state, (k, v) => k === 'broken' ? undefined : v));
   updateUrl();
 }
 
@@ -674,8 +711,11 @@ function loadFromUrl() {
   if (!isNaN(mn) && mn >= 64 && mn <= 110) state.min = mn;
   const mx = parseFloat(p.get('max'));
   if (!isNaN(mx) && mx >= 64 && mx <= 110 && mx > state.min) state.max = mx;
-  const sh = parseInt(p.get('shift'));
-  if (!isNaN(sh) && sh >= 0 && sh <= 30) state.shift = sh;
+  const shRaw = p.get('shift');
+  if (shRaw !== null) {
+    const sh = parseInt(shRaw, 10);
+    state.shift = SHIFTS.indexOf(sh) !== -1 ? sh : 0;
+  }
   const v = p.get('view');
   state.viewMode = v === 'player' ? 'player' : 'setup';
   const d = p.get('dial');
@@ -692,7 +732,7 @@ function loadFromUrl() {
   const ps = parseInt(p.get('presets'));
   if (!isNaN(ps) && ps >= 1 && ps <= 18) state.presets = ps;
   const mt = TEMPLATES.find((t) => t.range[0] === state.min && t.range[1] === state.max);
-  state.template = mt ? mt.name : 'Свой вариант';
+  state.template = mt ? mt.name : CUSTOM_TEMPLATE_NAME;
   state.templateShort = mt ? mt.short : 'свой';
   return true;
 }
@@ -701,7 +741,27 @@ function loadFromLS() {
   const ls = localStorage.getItem(LS_KEY);
   if (!ls) return false;
   try {
-    state = { ...state, ...JSON.parse(ls) };
+    const parsed = JSON.parse(ls);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
+    const ns = { ...state, ...parsed };
+    if (parsed.cityData && isPlainObj(parsed.cityData)) {
+      const cd = {};
+      Object.keys(parsed.cityData).forEach((k) => {
+        const c = parsed.cityData[k];
+        if (isBadKey(k) || !isPlainObj(c)) return;
+        if (isPlainObj(c.stations)) {
+          const st = {};
+          Object.keys(c.stations).forEach((sk) => { if (!isBadKey(sk)) st[sk] = c.stations[sk]; });
+          cd[k] = { ...c, stations: st };
+        } else {
+          cd[k] = c;
+        }
+      });
+      ns.cityData = cd;
+    } else {
+      ns.cityData = state.cityData;
+    }
+    state = ns;
     // Migrate pre-rename pseudo-city, keeping custom statuses/presets
     const oldFav = state.cityData['Все города'];
     if (oldFav) {
@@ -721,8 +781,10 @@ function loadFromLS() {
 }
 
 function resetAll() {
-  ['fm_adapter_calc', 'fm_adapter_calc_v2', 'fm_adapter_calc_v3', 'fm_adapter_calc_v4', 'fm_adapter_calc_v5', 'fm_adapter_calc_v6', 'fm_adapter_calc_v7', 'fm_adapter_calc_v8', 'fm_adapter_calc_v9', LS_KEY, LS_THEME_KEY, 'geo_checked', 'fm_cities_map'].forEach((k) => localStorage.removeItem(k));
-  localStorage.setItem('fm_cache_version', CACHE_VERSION);
+  const LEGACY_LS_KEYS = ['fm_adapter_calc'];
+  for (let i = 2; i <= 9; i++) LEGACY_LS_KEYS.push('fm_adapter_calc_v' + i);
+  LEGACY_LS_KEYS.concat([LS_KEY, LS_THEME_KEY, 'geo_checked', 'fm_cities_map']).forEach((k) => localStorage.removeItem(k));
+  lsSet('fm_cache_version', CACHE_VERSION);
   history.replaceState(null, '', window.location.pathname);
   showToast('Полный сброс выполнен');
   setTimeout(() => window.location.reload(), 600);
@@ -860,6 +922,7 @@ function doTransfer() {
       added++;
     });
   }
+  if (added > 0) touchCity(tc);
   updateCityStats(tc);
   commitState();
   render();
@@ -892,7 +955,6 @@ function openExportModal() {
       ip.type = 'checkbox';
       ip.value = c;
       if (c === state.city) ip.checked = true;
-      else if (c === cws.length > 0 && c === cws[0].name) ip.checked = true;
       const cs = document.createElement('span');
       cs.className = 'checkbox-custom';
       const ns = document.createElement('span');
@@ -939,18 +1001,102 @@ function doExport() {
   showToast('Экспорт завершен');
 }
 
+function impUrl(v) {
+  if (typeof v !== 'string' || v.length > 500) return '';
+  return /^https?:\/\//i.test(v) ? v : '';
+}
+
+function apiImportOk(d) {
+  if (!isPlainObj(d.cities)) return false;
+  const ks = Object.keys(d.cities);
+  return ks.length <= 500 && !ks.some(isBadKey);
+}
+
+function sanitizeImport(d) {
+  const bad = () => { throw new Error('bad import'); };
+  const str = (v, n) => { if (typeof v !== 'string' || v.length > n) bad(); return v; };
+  try {
+    if (!isPlainObj(d) || !isPlainObj(d.cities)) bad();
+    const keys = Object.keys(d.cities);
+    if (keys.length > 500) bad();
+    const out = { type: typeof d.type === 'string' ? d.type.slice(0, 40) : '', cities: {} };
+    keys.forEach((cs) => {
+      if (isBadKey(cs) || cs.length > 120) bad();
+      const ic = d.cities[cs];
+      if (!isPlainObj(ic)) bad();
+      const name = ic.name ? str(ic.name, 120) : cs;
+      if (isBadKey(name)) bad();
+      let raw = ic.stations;
+      if (isPlainObj(raw)) raw = Object.values(raw);
+      if (!Array.isArray(raw) || raw.length > 5000) bad();
+      const sts = raw.map((st) => {
+        if (!isPlainObj(st)) bad();
+        const nm = str(st.name, 120);
+        if (!nm || isBadKey(nm)) bad();
+        let freq = 0;
+        if (st.freq) {
+          if (typeof st.freq !== 'number' || !(st.freq >= 60 && st.freq <= 120)) bad();
+          freq = st.freq;
+        }
+        const type = (st.type === undefined || st.type === null) ? 'normal' : st.type;
+        if (['normal', 'fav', 'cand', 'trash'].indexOf(type) < 0) bad();
+        let pi = null;
+        if (st.presetIndex) {
+          if (!Number.isInteger(st.presetIndex) || st.presetIndex < 1 || st.presetIndex > 90) bad();
+          pi = st.presetIndex;
+        }
+        const streams = [];
+        if (st.streams !== undefined && st.streams !== null) {
+          if (!Array.isArray(st.streams) || st.streams.length > 20) bad();
+          st.streams.forEach((s) => {
+            if (!isPlainObj(s)) bad();
+            const o = {};
+            Object.keys(s).forEach((k) => {
+              const v = s[k];
+              if (isBadKey(k) || k === 'broken') return;
+              if (typeof v === 'string') o[k] = v.slice(0, 500);
+              else if (v === null || typeof v === 'number' || typeof v === 'boolean') o[k] = v;
+            });
+            const u = impUrl(o.url);
+            if (!u) bad();
+            o.url = u;
+            streams.push(o);
+          });
+        }
+        return {
+          name: nm, freq: freq, type: type, presetIndex: pi, streams: streams,
+          favicon: impUrl(st.favicon),
+          tags: typeof st.tags === 'string' ? st.tags.slice(0, 500) : '',
+          homepage: impUrl(st.homepage)
+        };
+      });
+      const lm = (typeof ic.lastModified === 'number' && isFinite(ic.lastModified)) ? ic.lastModified : 0;
+      out.cities[cs] = { name: name, lastModified: lm, stations: sts };
+    });
+    return out;
+  } catch (e) {
+    return null;
+  }
+}
+
 async function handleFileImport(event) {
   const f = event.target.files[0];
   if (!f) return;
   const r = new FileReader();
   r.onload = async function (e) {
     try {
-      const d = JSON.parse(e.target.result);
+      let d = JSON.parse(e.target.result);
       if (!d.cities) throw new Error('Invalid format');
+      if (d.type === 'api-cache') {
+        if (!apiImportOk(d)) { showToast('Файл повреждён'); return; }
+      } else {
+        d = sanitizeImport(d);
+        if (!d) { showToast('Файл повреждён'); return; }
+      }
       if (d.type === 'api-cache') {
         if (!confirm('Импортировать бэкап API?')) return;
         await Api.importApiBackup(d, state, citiesMap, FMUse, true);
-        localStorage.setItem('fm_cities_map', JSON.stringify(citiesMap));
+        lsSet('fm_cities_map', JSON.stringify(citiesMap));
         commitState();
         renderCitySelectMenu();
         await loadCity(state.city);
@@ -964,7 +1110,7 @@ async function handleFileImport(event) {
       Object.keys(d.cities).forEach((cs) => {
         const ic = d.cities[cs];
         const cn = ic.name || cs;
-        if (!state.cityData[cn]) state.cityData[cn] = { stations: {} };
+        if (!Object.prototype.hasOwnProperty.call(state.cityData, cn)) state.cityData[cn] = { stations: {} };
         const ns = {};
         const na = [];
         const iss = Array.isArray(ic.stations) ? ic.stations : Object.values(ic.stations);
@@ -986,9 +1132,9 @@ async function handleFileImport(event) {
       Object.keys(d.cities).forEach((cs) => {
         const ic = d.cities[cs];
         const cn = ic.name || cs;
-        if (!citiesMap[cn]) citiesMap[cn] = cn;
+        if (!Object.prototype.hasOwnProperty.call(citiesMap, cn)) citiesMap[cn] = cn;
       });
-      localStorage.setItem('fm_cities_map', JSON.stringify(citiesMap));
+      lsSet('fm_cities_map', JSON.stringify(citiesMap));
       document.getElementById('errorMsg').style.display = 'none';
       if (!state.cityData[state.city]) {
         const fcs = Object.keys(d.cities)[0];

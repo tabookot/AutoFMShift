@@ -7445,5 +7445,10 @@
         }
       ]
     }
-  ]
+  ],
+  "lastRun": {
+    "timestamp": "2026-10-13T08:16:05.903Z",
+    "status": "success",
+    "recorded": true
+  }
 }

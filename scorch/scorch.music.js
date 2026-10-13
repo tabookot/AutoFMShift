@@ -323,7 +323,7 @@ function mParse(pat, div) {
 let mNoiseBuf = null;
 
 // сэмплы лежат в папке samples/ рядом с этим файлом
-const MSAMP_BASE = (typeof document !== 'undefined' && document.currentScript && document.currentScript.src)
+const MSAMP_BASE = (typeof __scBase === 'string' && __scBase) ? __scBase + 'samples/' : (typeof document !== 'undefined' && document.currentScript && document.currentScript.src)
   ? document.currentScript.src.replace(/[^\/]*$/, '') + 'samples/' : 'samples/';
 
 // быстрый баланс громкости по группам (1 = как есть)
@@ -676,6 +676,7 @@ let mSampTried = false;
 
 function mSampLoad() {
   if (mSampTried || !AC || typeof fetch !== 'function') return;
+  if (navigator.connection && navigator.connection.saveData) return;
   mSampTried = true;
   fetch(MSAMP_BASE + 'manifest.json').then(r => (r.ok ? r.json() : null)).then(man => {
     if (!man) return;

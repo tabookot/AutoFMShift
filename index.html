@@ -3,52 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="tabookot; GLM; Claude (Anthropic)">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src * data: blob:; media-src * blob:; connect-src https: http:; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>AutoFMShift</title>
-    <link rel="icon" type="image/png" href="img/logo_100.png">
+    <link rel="icon" type="image/png" href="img/logo_100.png?v=0.9.0">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cstyle%3E:root{--plate-bg:%23f8f9fa;--plate-border:%23adb5bd;--track:%23212529;--knob:%2300b4d8}@media(prefers-color-scheme:dark){:root{--plate-bg:%23212529;--plate-border:%23495057;--track:%23f8f9fa;--knob:%2300d4ff}}.plate{fill:var(--plate-bg);stroke:var(--plate-border);stroke-width:2}.track{stroke:var(--track);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;fill:none}.knob{fill:var(--knob)}%3C/style%3E%3Crect class='plate' x='2' y='2' width='28' height='28' rx='6'/%3E%3Cpath class='track' d='M10 8v16 M22 8v16 M10 16 l4-5 l4 10 l4-5'/%3E%3Ccircle class='knob' cx='22' cy='8' r='4' style='fill:var(--knob)'/%3E%3C/svg%3E">
-    <link rel="apple-touch-icon" href="img/logo_100.png">
+    <link rel="apple-touch-icon" href="img/logo_100.png?v=0.9.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=0.9.0">
     
-    <!-- ES5 Compatibility Guard for IE11 and older -->
-    <script>
-        (function() {
-            var isCompatible = true;
-            if (!window.fetch || !window.Promise || !window.URLSearchParams) {
-                isCompatible = false;
-            }
-            try {
-                var el = document.createElement('div');
-                el.style.setProperty('--test', '1');
-                if (el.style.getPropertyValue('--test') !== '1') {
-                    isCompatible = false;
-                }
-            } catch (e) {
-                isCompatible = false;
-            }
-
-            if (!isCompatible) {
-                var blocker = document.createElement('div');
-                blocker.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#1a1a1a;color:#f1f1f1;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:20px;text-align:center;';
-                
-                var container = document.createElement('div');
-                container.style.cssText = 'max-width:500px;line-height:1.6;';
-                
-                container.innerHTML = 
-                    '<h2 style="color:#ff4757;margin-bottom:20px;font-size:24px;">Браузер не поддерживается</h2>' +
-                    '<p style="font-size:16px;margin-bottom:20px;">Ваш браузер устарел и не поддерживает технологии, необходимые для работы этого приложения.</p>' +
-                    '<p style="font-size:16px;margin-bottom:30px;">Пожалуйста, обновите ваш браузер до последней версии (Chrome, Firefox, Safari, Edge) или используйте современное устройство.</p>' +
-                    '<a href="https://www.google.com/chrome/" target="_blank" rel="noopener" style="background:#0096c7;color:#fff;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">Скачать Chrome</a>';
-                
-                blocker.appendChild(container);
-                document.documentElement.appendChild(blocker);
-                
-                throw new Error("Browser not supported. Stopping execution.");
-            }
-        })();
-    </script>
+    <script src="compat.js?v=0.9.0"></script>
 </head>
 <body>
     <div class="app-container">
@@ -168,9 +134,9 @@
                     <li><b>Копирование настроек:</b> Перенос из другого города в текущий (включая Избранное в обе стороны) без удаления существующих настроек: статусы (♥, ★) добавляются только станциям без пометок, номера кнопок переносятся, только если в городе-цели ещё нет ни одной назначенной. Для Избранного дополнительно вносятся ♥/★-станции города-источника, которых в нём ещё не было.</li>
                     <li><b>Экспорт / Импорт (JSON) и Офлайн-режим:</b> Позволяет сделать резервную копию ваших настроек и списка станций для всех городов в один файл. Списки кэшируются, позволяя работать с приложением даже при падении API или отсутствии интернета.</li>
                     <li><b>Подсказка для ввода:</b> Чтобы изменить число в полях ввода, прокручивайте колесо мыши вверх или вниз, а на мобильных — касайтесь поля и ведите палец вверх или вниз.</li>
-                    <li><b>🔄 Смена потока:</b> Кнопка со стрелками рядом со шкалой. Одинарный клик переключает потоки станции по кругу, долгий клик или правая кнопка мыши открывает список всех потоков с битрейтом и кодеком.</li>
                     <li style="font-size: 11px; color: var(--text-dim); list-style: none;">Источники данных: <span style="color: var(--accent); font-weight: bold;">■ API</span>, <span style="color: var(--green); font-weight: bold;">■ Бэкап</span>, <span style="color: var(--text-dim); font-weight: bold;">■ Кэш</span>. Плейлист и метаданные: <span style="color: var(--text-dim); font-weight: bold;">■ radio-browser.info</span>.</li>
                 </ol>
+                <p class="authors" style="font-size: 12px; color: var(--text-dim);">Авторы: tabookot, GLM, Claude (Anthropic) — <a href="https://github.com/tabookot/AutoFMShift/blob/main/AUTHORS.md" target="_blank" rel="noopener">AUTHORS.md</a></p>
                 <div class="repo-link">
                     <a href="https://github.com/tabookot/AutoFMShift" target="_blank" rel="noopener">GitHub репозиторий</a>
                 </div>
@@ -325,22 +291,19 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <audio id="audioPlayer" preload="none"></audio>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" crossorigin="anonymous"></script>
-    <script src="cities.js"></script>
-    <script src="api.js"></script>
-    <script src="fmuse.js"></script>
-    <script src="core.js"></script>
-    <script src="exports.js"></script>
-    <script src="dial.js"></script>
-    <script src="player.js"></script>
     
-    <!-- 
-    <script src="scorch.js"></script>
-     -->
-    <script src="scorch/scorch.js"></script>
+    
+    
+    <script src="cities.js?v=0.9.0"></script>
+    <script src="api.js?v=0.9.0"></script>
+    <script src="fmuse.js?v=0.9.0"></script>
+    <script src="core.js?v=0.9.0"></script>
+    <script src="exports.js?v=0.9.0"></script>
+    <script src="dial.js?v=0.9.0"></script>
+    <script src="player.js?v=0.9.0"></script>
+    
+    <script src="scorch/scorch.js?v=0.9.0"></script>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=0.9.0"></script>
 </body>
 </html>

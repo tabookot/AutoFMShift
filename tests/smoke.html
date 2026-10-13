@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>smoke…</title>
+<style>
+  body { font: 14px/1.4 Consolas, monospace; margin: 16px; background: #fff; color: #111; }
+  table { border-collapse: collapse; margin-bottom: 24px; }
+  td, th { border: 1px solid #999; padding: 3px 8px; text-align: left; }
+  .pass { background: #cfc; } .fail { background: #fcc; }
+  h2 { margin: 12px 0 6px; }
+</style>
+</head>
+<body>
+<h2 id="sum">…</h2>
+<table id="res"><tr><th>Группа</th><th>Проверка</th><th>Итог</th><th>Детали</th></tr></table>
+<h2>Функция → что проверено</h2>
+<table id="cov"><tr><th>Функция</th><th>Что проверено</th></tr></table>
+<script src="../fmuse.js"></script>
+<script>
+// Копия констант из core.js (если там изменятся — обнови здесь)
+const RU_MIN = 87.5, RU_MAX = 108.0;
+const SHIFTS = [0, 10, 12, 14, 16, 18, 20, 24, 28, 30];
+
+const rows = [];
+function add(group, name, pass, detail) { rows.push({ group: group, name: name, pass: pass, detail: detail || '' }); }
+function eq(group, name, actual, expected) {
+  let pass = false;
+  try { pass = JSON.stringify(actual) === JSON.stringify(expected); } catch (e) {}
+  add(group, name, pass, pass ? '' : 'получено ' + JSON.stringify(actual) + ', ждали ' + JSON.stringify(expected));
+}
+function near(group, name, actual, expected) {
+  const pass = typeof actual === 'number' && Math.abs(actual - expected) < 1e-9;
+  add(group, name, pass, pass ? '' : 'получено ' + actual + ', ждали ' + expected);
+}
+function safe(group, name, fn) {
+  try { fn(); } catch (e) { add(group, name, false, 'исключение: ' + e.message); }
+}
+
+const jp = function (shift, stations) { return { min: 76, max: 90, shift: shift, stations: stations || [] }; };
+const ruSt = function (shift) { return { min: RU_MIN, max: RU_MAX, shift: shift, stations: [] }; };
+const fr = function (arr) { return arr.map(function (f) { return { freq: f }; }); };
+
+// ---- calcShiftedFreq
+safe('calcShiftedFreq', 'группа', function () {
+  near('calcShiftedFreq', 'shift 0: 90 -> 90', FMUse.calcShiftedFreq(90, jp(0), RU_MIN, RU_MAX), 90);
+  near('calcShiftedFreq', 'JP shift 12: 100.1 -> 88.1', FMUse.calcShiftedFreq(100.1, jp(12), RU_MIN, RU_MAX), 88.1);
+  near('calcShiftedFreq', 'диапазон RU: сдвиг игнорируется', FMUse.calcShiftedFreq(95.5, ruSt(12), RU_MIN, RU_MAX), 95.5);
+});
+
+// ---- isAvailable
+safe('isAvailable', 'группа', function () {
+  const a = function (f, s) { return FMUse.isAvailable(f, jp(s), RU_MIN, RU_MAX); };
+  eq('isAvailable', 'JP 76–90, shift 0: 76.0 (min)', a(76.0, 0), true);
+  eq('isAvailable', 'JP shift 0: 90.0 (max)', a(90.0, 0), true);
+  eq('isAvailable', 'JP shift 0: 75.9 (min-0.1)', a(75.9, 0), false);
+  eq('isAvailable', 'JP shift 0: 90.1 (max+0.1)', a(90.1, 0), false);
+  eq('isAvailable', 'JP shift 0: 76.1 / 89.9', [a(76.1, 0), a(89.9, 0)], [true, true]);
+  eq('isAvailable', 'JP shift 12: 88.0 -> 76.0 (min)', a(88.0, 12), true);
+  eq('isAvailable', 'JP shift 12: 102.0 -> 90.0 (max)', a(102.0, 12), true);
+  eq('isAvailable', 'JP shift 12: 87.9 -> 75.9', a(87.9, 12), false);
+  eq('isAvailable', 'JP shift 12: 102.1 -> 90.1', a(102.1, 12), false);
+  eq('isAvailable', 'JP shift 12: 88.1 / 101.9', [a(88.1, 12), a(101.9, 12)], [true, true]);
+});
+
+// ---- evaluateShifts
+safe('evaluateShifts', 'группа', function () {
+  const ev = function (fs) { return FMUse.evaluateShifts(jp(0, fr(fs)), SHIFTS, RU_MIN, RU_MAX); };
+  eq('evaluateShifts', 'нет станций', FMUse.evaluateShifts(jp(0, []), SHIFTS, RU_MIN, RU_MAX), { statuses: {}, best: 0 });
+  eq('evaluateShifts', 'диапазон RU', FMUse.evaluateShifts({ min: RU_MIN, max: RU_MAX, shift: 0, stations: fr([100]) }, SHIFTS, RU_MIN, RU_MAX), { statuses: {}, best: 0 });
+
+  let r = ev([88, 90]);
+  eq('evaluateShifts', '[88,90]: best 0, shift 0 = full', [r.best, r.statuses[0].type], [0, 'full']);
+
+  r = ev([100, 102]);
+  eq('evaluateShifts', '[100,102]: best 20', r.best, 20);
+  eq('evaluateShifts', '[100,102]: 0 none, 10 partial 0.5, 12 full, 28 none',
+    [r.statuses[0].type, r.statuses[10].type, r.statuses[10].ratio, r.statuses[12].type, r.statuses[28].type],
+    ['none', 'partial', 0.5, 'full', 'none']);
+
+  r = ev([80, 100]);
+  const fulls = SHIFTS.filter(function (s) { return r.statuses[s].type === 'full'; });
+  eq('evaluateShifts', '[80,100]: нет full, best 0, shift 0 partial', [fulls.length, r.best, r.statuses[0].type], [0, 0, 'partial']);
+
+  r = ev([150]);
+  eq('evaluateShifts', '[150]: все none, best 0',
+    [SHIFTS.every(function (s) { return r.statuses[s].type === 'none'; }), r.best], [true, 0]);
+
+  r = ev([110, 112]);
+  eq('evaluateShifts', '[110,112]: best 30', r.best, 30);
+  eq('evaluateShifts', '[110,112]: 18 none, 20 partial, 24 full',
+    [r.statuses[18].type, r.statuses[20].type, r.statuses[24].type], ['none', 'partial', 'full']);
+});
+
+// ---- formatFreq
+safe('formatFreq', 'группа', function () {
+  eq('formatFreq', '101.7 -> "101,7"', FMUse.formatFreq(101.7), '101,7');
+  eq('formatFreq', '88 -> "88,0"', FMUse.formatFreq(88), '88,0');
+  eq('formatFreq', '76 -> "76,0"', FMUse.formatFreq(76), '76,0');
+  eq('formatFreq', 'NaN / null / строка -> "—"', [FMUse.formatFreq(NaN), FMUse.formatFreq(null), FMUse.formatFreq('88')], ['—', '—', '—']);
+});
+
+// ---- normalizeName
+safe('normalizeName', 'группа', function () {
+  eq('normalizeName', 'пустое / null не падает', [FMUse.normalizeName(''), FMUse.normalizeName(null)], ['', '']);
+  eq('normalizeName', '"Радио Рекорд" -> "рекорд"', FMUse.normalizeName('Радио Рекорд'), 'рекорд');
+  eq('normalizeName', '"Europa Plus FM" -> "europa plus"', FMUse.normalizeName('Europa Plus FM'), 'europa plus');
+  ['Радио Рекорд', 'Europa Plus FM', 'Радио «Маяк» (план)', 'Ретро FM / Москва', '   ', 'Европа Плюс'].forEach(function (s) {
+    const a = FMUse.normalizeName(s);
+    eq('normalizeName', 'идемпотентность: ' + JSON.stringify(s), FMUse.normalizeName(a), a);
+  });
+});
+
+// ---- generateCodeName
+safe('generateCodeName', 'группа', function () {
+  eq('generateCodeName', 'пустое / null не падает', [FMUse.generateCodeName(''), FMUse.generateCodeName(null)], ['', '']);
+  eq('generateCodeName', '"Радио Рекорд" -> "рекорд"', FMUse.generateCodeName('Радио Рекорд'), 'рекорд');
+  eq('generateCodeName', '"Европа Плюс" -> "европа_плюс"', FMUse.generateCodeName('Европа Плюс'), 'европа_плюс');
+  eq('generateCodeName', 'длинное имя обрезано до 25', FMUse.generateCodeName('Очень длинное название станции'), 'очень_длинное_название_ст');
+  eq('generateCodeName', '"!!!" -> "station"', FMUse.generateCodeName('!!!'), 'station');
+  ['Радио Рекорд', 'Европа Плюс', 'Очень длинное название станции', '!!!'].forEach(function (s) {
+    const a = FMUse.generateCodeName(s);
+    eq('generateCodeName', 'идемпотентность: ' + JSON.stringify(s), FMUse.generateCodeName(a), a);
+  });
+});
+
+// ---- matchArrays
+safe('matchArrays', 'группа', function () {
+  const arr = ['Европа Плюс', 'Радио Рекорд', 'Маяк'];
+  const m = FMUse.matchArrays(arr, arr.slice());
+  eq('matchArrays', 'одинаковые массивы: 3 пары 1:1',
+    m.map(function (p) { return [p.sourceIdx, p.targetIdx]; }).sort(),
+    [[0, 0], [1, 1], [2, 2]]);
+  eq('matchArrays', '«Радио Рекорд» ≠ «Европа Плюс» при 0.65',
+    FMUse.matchArrays(['Радио Рекорд'], ['Европа Плюс'], 0.65).length, 0);
+  eq('matchArrays', '«Радио Рекорд» = «Рекорд» при 0.65 (1 пара)',
+    FMUse.matchArrays(['Радио Рекорд'], ['Рекорд'], 0.65).length, 1);
+});
+
+// ---- покрытие
+[
+  ['calcShiftedFreq', 'shift 0; JP shift 12 (88.1); диапазон RU игнорирует сдвиг'],
+  ['isAvailable', 'JP 76–90, сдвиги 0 и 12: min, max, ±0.1'],
+  ['evaluateShifts', 'пусто; диапазон RU; 5 наборов частот: full/partial/none, ratio, best 0/20/30'],
+  ['formatFreq', 'запятая, один знак; NaN/null/строка -> «—»'],
+  ['normalizeName', 'пустое/null; удаление «радио»/«fm»; идемпотентность на 6 строках'],
+  ['generateCodeName', 'пустое/null; слаг; обрезка 25; fallback «station»; идемпотентность'],
+  ['matchArrays', 'одинаковые 1:1; Рекорд ≠ Европа Плюс при 0.65; Радио Рекорд = Рекорд']
+].forEach(function (c) {
+  const tr = document.createElement('tr');
+  c.forEach(function (t) { const td = document.createElement('td'); td.textContent = t; tr.appendChild(td); });
+  document.getElementById('cov').appendChild(tr);
+});
+
+// ---- вывод (ошибочные «группа»-строки от safe() показываем только при падении)
+const okCount = rows.filter(function (r) { return r.pass; }).length;
+const bad = rows.filter(function (r) { return !r.pass; }).length;
+rows.filter(function (r) { return r.name !== 'группа' || !r.pass; }).forEach(function (r) {
+  const tr = document.createElement('tr');
+  tr.className = r.pass ? 'pass' : 'fail';
+  [r.group, r.name, r.pass ? 'PASS' : 'FAIL', r.detail].forEach(function (t) {
+    const td = document.createElement('td'); td.textContent = t; tr.appendChild(td);
+  });
+  document.getElementById('res').appendChild(tr);
+});
+const summary = bad === 0 ? 'OK ' + okCount + '/' + rows.length : 'FAIL ' + bad + ' из ' + rows.length;
+document.title = summary + ' — smoke';
+document.getElementById('sum').textContent = summary;
+document.getElementById('sum').className = bad === 0 ? 'pass' : 'fail';
+</script>
+</body>
+</html>
