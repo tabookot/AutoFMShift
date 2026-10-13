@@ -118,10 +118,6 @@ body {
     display: block; width: 100%; text-decoration: none;
 }
 .player-stream-info.active-link {
-    color: var(--accent); cursor: pointer;
-}
-.player-stream-info.active-link:hover { text-decoration: underline; }
-.player-stream-info.active-link {
     color: var(--accent); cursor: pointer; pointer-events: auto;
 }
 .player-stream-info.active-link:hover { text-decoration: underline; }
@@ -332,10 +328,10 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
 /* Меню выбора потока (поведение как у тултипа) */
 .stream-menu {
-    position: fixed; 
-    transform: translate(-50%, -100%); /* Центрируем и поднимаем над кнопкой */
-    min-width: 180px; max-height: 200px; overflow-y: auto; 
-    z-index: 2000; background: var(--panel); border: 1px solid var(--border); 
+    position: fixed;
+    transform: translateX(-50%);
+    min-width: 200px; max-height: 250px; overflow-y: auto; right: auto; left: 50%; top: 100%;
+    z-index: 2000; background: var(--panel); border: 1px solid var(--border);
     border-radius: var(--radius-sm); padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     display: flex; flex-direction: column; gap: 2px;
     margin-bottom: 8px; /* Отступ от кнопки */
@@ -363,7 +359,6 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .dial-display-row .fm-dial-controls .chip-btn.control-chip svg { width: 9px !important; height: 9px !important; }
 
 /* Меню выбора потока */
-.stream-menu { min-width: 200px; max-height: 250px; overflow-y: auto; right: auto; left: 50%; transform: translateX(-50%); top: 100%; }
 .stream-item { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; font-size: 11px; border-radius: 4px; cursor: pointer; }
 .stream-item:hover { background: var(--panel-light); }
 .stream-item.current { background: var(--accent); color: var(--bg); }
@@ -376,7 +371,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     74% { opacity: 1; }
     100% { opacity: 1; }
 }
-.fm-dial-controls { position: absolute; top: 6px; right: 6px; z-index: 10; display: flex; gap: 4px; }
+.fm-dial-controls { position: absolute; top: 5px; right: 10px; z-index: 10; display: flex; gap: 4px; }
 .fm-dial-controls .chip-btn.control-chip { 
     width: 24px; height: 24px; min-width: 24px; padding: 0; 
     background: linear-gradient(180deg, var(--panel-light) 0%, var(--bg) 100%);
@@ -520,12 +515,6 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; 
 }
 
-.fm-dial-container {
-    position: relative; height: 80px; margin: 0 4px 10px 4px;
-    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm);
-    padding: 0 15px; overflow: hidden; z-index: 4;
-}
-.fm-dial-controls { position: absolute; top: 5px; right: 10px; z-index: 10; }
 .fm-dial-scale { position: relative; width: 100%; height: 100%; margin-top: 20px; border-bottom: 2px solid var(--border); }
 .fm-dial-tick { position: absolute; bottom: 0; width: 1px; height: 8px; background: var(--text-dim); cursor: pointer; transition: height 0.1s; }
 .fm-dial-tick:hover { height: 14px; background: var(--accent); z-index: 5; }
@@ -680,7 +669,6 @@ body.player-mode .station-item.trash .name-text { color: var(--text-dim); opacit
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--text); color: var(--bg); padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 2000; opacity: 0; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.3); pointer-events: none; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-.second-row-test { display: none; }
 #mobilePlayerControls { display: none; }
 .mobile-volume-slider {
     -webkit-appearance: none; appearance: none;
@@ -837,8 +825,6 @@ body.player-mode .preset-dropdown { display: none !important; }
 .checkbox-wrap input:checked + .checkbox-custom { background: var(--accent); border-color: var(--accent); }
 .checkbox-wrap input:checked + .checkbox-custom::after { content: '✓'; color: var(--bg); font-size: 14px; font-weight: bold; line-height: 1; }
 
-.export-city-item { padding: 8px; border-bottom: 1px solid var(--border); }
-.export-city-item:last-child { border-bottom: none; }
 
 /* Loading Modal */
 #loadingModal { background: rgba(0,0,0,0.85); z-index: 3000; }
@@ -898,33 +884,4 @@ body.player-mode .preset-dropdown { display: none !important; }
     z-index: 5;
 }
 
-.player-loading-hint {
-    position: absolute;
-    top: 100%; right: 10px;
-    margin-top: 2px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 11px;
-    white-space: nowrap;
-    z-index: 50;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    display: none;
-    pointer-events: none;
-}
-.player-loading-hint.show { display: block; }
 
-/* Эффект электронной лампы для частоты в шапке */
-.header-freq {
-    position: absolute; top: -3px; left: 50%; transform: translateX(-50%);
-    display: none; 
-    font-family: 'Orbitron', monospace; font-weight: 700; font-size: 10px;
-    color: var(--accent); text-shadow: 0 0 6px var(--accent), 0 0 12px var(--accent-glow);
-    background: var(--panel-light); 
-    opacity: 0.85;
-    padding: 1px 4px; 
-    border-radius: 4px;
-    pointer-events: none; z-index: 10; white-space: nowrap;
-}
