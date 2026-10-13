@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "0.5.1-github-action",
-  "exportDate": 1791624903008,
+  "exportDate": 1791874709907,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -3447,7 +3447,9 @@
           "isDeleted": false,
           "deletedAt": null
         }
-      ]
+      ],
+      "isDeleted": false,
+      "deletedAt": null
     },
     "калининград": {
       "name": "Калининград",
@@ -12453,6 +12455,11 @@
       "type": "station",
       "city": "Тюмень",
       "name": "Радиопедия:Черновик/Радио Семёрка",
+      "reason": "glitch_protect"
+    },
+    {
+      "type": "city",
+      "name": "Казань",
       "reason": "glitch_protect"
     }
   ]
