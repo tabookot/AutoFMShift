@@ -6844,7 +6844,7 @@
       ]
     },
     {
-      "timestamp": "2026-10-13T07:01:01.349Z",
+      "timestamp": "2026-10-11T09:51:11.205Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -6897,67 +6897,21 @@
       },
       "radioBrowser": {
         "new": 0,
-        "changed": 14,
+        "changed": 7,
         "deleted": 0,
-        "streamsAdded": 10,
-        "streamsRemoved": 5,
+        "streamsAdded": 0,
+        "streamsRemoved": 19,
         "changedStations": [
           {
-            "name": "Восток FM",
-            "changes": [
-              "streams (+1)"
-            ]
-          },
-          {
-            "name": "Питер FM",
+            "name": "Авторадио",
             "changes": [
               "homepage",
-              "favicon",
-              "streams (+2)"
+              "tags",
+              "streams (-3)"
             ]
           },
           {
-            "name": "Радио 100",
-            "changes": [
-              "streams (+1/-1)"
-            ]
-          },
-          {
-            "name": "Радио Рекорд",
-            "changes": [
-              "streams (+1)"
-            ]
-          },
-          {
-            "name": "Радио Родных Дорог",
-            "changes": [
-              "homepage",
-              "tags"
-            ]
-          },
-          {
-            "name": "Радио России",
-            "changes": [
-              "homepage",
-              "tags"
-            ]
-          },
-          {
-            "name": "Радио Си",
-            "changes": [
-              "homepage",
-              "streams (-1)"
-            ]
-          },
-          {
-            "name": "Радио Сибирь",
-            "changes": [
-              "favicon",
-              "streams (+1)"
-            ]
-          },
-          {
-            "name": "Радио JAZZ",
+            "name": "Алания FM",
             "changes": [
               "homepage",
               "tags",
@@ -6965,34 +6919,44 @@
             ]
           },
           {
-            "name": "Хит FM",
+            "name": "Алиса FM",
             "changes": [
-              "tags"
+              "homepage",
+              "streams (-1)"
             ]
           },
           {
-            "name": "Comedy Radio",
+            "name": "Бизнес FM",
             "changes": [
-              "streams (~)"
-            ]
-          },
-          {
-            "name": "Mix FM",
-            "changes": [
-              "streams (+1/-1)"
-            ]
-          },
-          {
-            "name": "Radio Record",
-            "changes": [
+              "homepage",
+              "favicon",
               "tags",
-              "streams (+1/-1)"
+              "streams (-3)"
             ]
           },
           {
-            "name": "Rock FM",
+            "name": "Вести FM",
             "changes": [
-              "streams (+2)"
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (-5)"
+            ]
+          },
+          {
+            "name": "Детское радио",
+            "changes": [
+              "homepage",
+              "streams (-2)"
+            ]
+          },
+          {
+            "name": "Дорожное радио",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (-4)"
             ]
           }
         ]
@@ -7045,16 +7009,11 @@
           "city": "Тюмень",
           "name": "Радиопедия:Черновик/Радио Семёрка",
           "reason": "glitch_protect"
-        },
-        {
-          "type": "city",
-          "name": "Казань",
-          "reason": "glitch_protect"
         }
       ]
     },
     {
-      "timestamp": "2026-10-13T08:16:05.903Z",
+      "timestamp": "2026-10-12T10:30:01.154Z",
       "status": "success",
       "requiresAttention": false,
       "attentionReasons": [],
@@ -7107,11 +7066,125 @@
       },
       "radioBrowser": {
         "new": 0,
-        "changed": 0,
+        "changed": 16,
         "deleted": 0,
-        "streamsAdded": 0,
-        "streamsRemoved": 0,
-        "changedStations": []
+        "streamsAdded": 28,
+        "streamsRemoved": 7,
+        "changedStations": [
+          {
+            "name": "Авторадио",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (+3)"
+            ]
+          },
+          {
+            "name": "Алания FM",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Алиса FM",
+            "changes": [
+              "homepage",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Бизнес FM",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (+3)"
+            ]
+          },
+          {
+            "name": "Вести FM",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (+5)"
+            ]
+          },
+          {
+            "name": "Восток FM",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Детское радио",
+            "changes": [
+              "homepage",
+              "streams (+2)"
+            ]
+          },
+          {
+            "name": "Дорожное радио",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (+4)"
+            ]
+          },
+          {
+            "name": "Радио 7",
+            "changes": [
+              "favicon",
+              "streams (+1/-2)"
+            ]
+          },
+          {
+            "name": "Радио Рекорд",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Радио Си",
+            "changes": [
+              "homepage",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио Сибирь",
+            "changes": [
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Comedy Radio",
+            "changes": [
+              "streams (~)"
+            ]
+          },
+          {
+            "name": "Mix FM",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Radio Record",
+            "changes": [
+              "homepage"
+            ]
+          },
+          {
+            "name": "Rock FM",
+            "changes": [
+              "streams (+4/-2)"
+            ]
+          }
+        ]
       },
       "restored": [
         {

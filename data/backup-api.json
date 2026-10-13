@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
-  "appVersion": "github-action",
-  "exportDate": 1791879203012,
+  "appVersion": "0.5.1-github-action",
+  "exportDate": 1791800857777,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {

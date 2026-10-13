@@ -1346,32 +1346,24 @@
         "tags": ""
       },
       {
-        "name": "Radio 7",
-        "url": "https://radio7server.streamr.ru:8040/radio7256.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "https://radio7.ru/favicon.png",
-        "tags": ""
-      },
-      {
-        "name": "Radio 7 Tyumen",
-        "url": "http://live.radio7.su:9000/radio7_128",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": "hits, pop"
-      },
-      {
         "name": "Radio 7 Moscow",
         "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
         "bitrate": 320,
         "codec": "MP3",
         "favicon": "",
         "tags": "hits, russian hits"
+      },
+      {
+        "name": "Авторадио 107.7 FM",
+        "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
+        "bitrate": 64,
+        "codec": "AAC+",
+        "favicon": "",
+        "tags": ""
       }
     ],
     "homepage": "https://radio7.ru/",
-    "favicon": "https://radio7.ru/favicon.png",
+    "favicon": "",
     "tags": ""
   },
   {
@@ -2356,11 +2348,11 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд Dancecore",
-        "url": "http://radiorecord.hostingradio.ru/dc96.aacp",
+        "name": "Радио Рекорд Breaks",
+        "url": "http://radiorecord.hostingradio.ru/brks96.aacp",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "http://radiorecord.ru/local/templates/record/assets/build/favicon-set/apple-touch-icon.png",
+        "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
         "tags": ""
       },
       {
@@ -2624,7 +2616,7 @@
         "url": "https://stream.radiosibir.ru:8093/HQ",
         "bitrate": 192,
         "codec": "MP3",
-        "favicon": "",
+        "favicon": "https://radiosibir.ru/img/logo-small.png",
         "tags": "томск"
       },
       {
@@ -3918,7 +3910,7 @@
         "tags": ""
       }
     ],
-    "homepage": "https://www.radiorecord.fm/m3u/rr320-28kbps.m3u",
+    "homepage": "https://www.radiorecord.ru/",
     "favicon": "https://cdn-profiles.tunein.com/s309967/images/logod.jpg?t=1",
     "tags": "dj remix"
   },
@@ -3994,28 +3986,28 @@
         "tags": ""
       },
       {
-        "name": "Rock",
-        "url": "http://79.120.77.11:8000/rock",
-        "bitrate": 320,
-        "codec": "AAC+",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Folk Rock",
-        "url": "http://79.111.14.76:8000/folkrock",
-        "bitrate": 320,
-        "codec": "AAC+",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Acoustic Rock Radio",
-        "url": "http://live-radio.ru:8111/live",
+        "name": "ROCK FM",
+        "url": "https://nashe1.hostingradio.ru:80/rock-128.mp3",
         "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "http://live-radio.ru/favicon.png",
-        "tags": "accordion, acoustic, acoustic rock, autor-interprete, cantautor"
+        "codec": "MP3",
+        "favicon": "https://www.rockfm.ru/favicons/apple-touch-icon.png",
+        "tags": "rock"
+      },
+      {
+        "name": "J-Rock (Japanese Rock Music)",
+        "url": "http://79.111.119.111:8000/jrock",
+        "bitrate": 320,
+        "codec": "AAC+",
+        "favicon": "http://radcap.ru/apple-touch-icon.png",
+        "tags": "jrock"
+      },
+      {
+        "name": "Glam Rock / Metal - Caprice Radio",
+        "url": "http://79.120.39.202:8000/glam",
+        "bitrate": 320,
+        "codec": "AAC+",
+        "favicon": "http://radcap.ru/graf2/radcaplogo.png",
+        "tags": "glam metal, glam rock"
       }
     ],
     "homepage": "http://www.rockfm.ru/",
