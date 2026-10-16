@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1792051530688,
+  "exportDate": 1792137554923,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -5843,6 +5843,12 @@
     "мурманск": {
       "name": "Мурманск",
       "stations": [
+        {
+          "name": "(ПЛАН) Like FM",
+          "freq": 98,
+          "isDeleted": false,
+          "deletedAt": null
+        },
         {
           "name": "&#160;",
           "freq": 107.8,
