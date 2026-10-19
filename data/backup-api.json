@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1792309973832,
+  "exportDate": 1792399045234,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -10181,7 +10181,7 @@
           "deletedAt": null
         },
         {
-          "name": "Русское радио",
+          "name": "Русское Радио",
           "freq": 102.1,
           "isDeleted": false,
           "deletedAt": null
