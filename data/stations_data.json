@@ -171,7 +171,7 @@
         "url": "https://icecast-vgtrk.cdnvideo.ru/vestifm",
         "bitrate": 320,
         "codec": "MP3",
-        "favicon": "",
+        "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
         "tags": ""
       },
       {
@@ -200,7 +200,7 @@
       }
     ],
     "homepage": "http://radiovesti.ru/",
-    "favicon": "https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=100045127456557",
+    "favicon": "https://cdn-st1.smotrim.ru/smotrimru/i/favicon/apple-touch-icon-120x120.png",
     "tags": "news, talk"
   },
   {
@@ -751,16 +751,16 @@
         "tags": "поп-музыка, танцевальная"
       }
     ],
-    "homepage": "https://m.the-radio.ru/radio/marusya-fm-r2543",
+    "homepage": "https://top-radio.ru/web/marusya-fm",
     "favicon": "https://top-radio.ru/assets/image/radio/180/marusyafm.png",
-    "tags": "танцевальная музыка"
+    "tags": "поп-музыка, танцевальная"
   },
   {
     "name": "Маруся FM",
     "streams": [],
-    "homepage": "https://m.the-radio.ru/radio/marusya-fm-r2543",
-    "favicon": "",
-    "tags": "танцевальная музыка"
+    "homepage": "https://top-radio.ru/web/marusya-fm",
+    "favicon": "https://top-radio.ru/assets/image/radio/180/marusyafm.png",
+    "tags": "поп-музыка, танцевальная"
   },
   {
     "name": "Мега FM",
@@ -1168,7 +1168,19 @@
   },
   {
     "name": "Радио 10",
-    "streams": []
+    "streams": [
+      {
+        "name": "Радио 10",
+        "url": "https://ic.radio10.live/stream.mp3",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "pop music"
+      }
+    ],
+    "homepage": "https://radio10.live/",
+    "favicon": "",
+    "tags": "pop music"
   },
   {
     "name": "Радио 100",
@@ -1323,6 +1335,14 @@
     "streams": [
       {
         "name": "Radio 7",
+        "url": "http://europaplus.hostingradio.ru:8014/radiosept320.mp3",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "Radio 7",
         "url": "https://radio7server.streamr.ru:8040/radio7256.mp3",
         "bitrate": 0,
         "codec": "MP3",
@@ -1330,12 +1350,12 @@
         "tags": ""
       },
       {
-        "name": "Radio 7 Tyumen",
-        "url": "http://live.radio7.su:9000/radio7_128",
+        "name": "Радио СИ - 103.7 FM",
+        "url": "https://online.radioc.ru/radioc",
         "bitrate": 128,
         "codec": "MP3",
-        "favicon": "",
-        "tags": "hits, pop"
+        "favicon": "https://www.radioc.ru/online/logo.png",
+        "tags": ""
       },
       {
         "name": "Авторадио 107.7 FM",
@@ -2340,11 +2360,11 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд 2step",
-        "url": "http://radiorecord.hostingradio.ru/2step96.aacp",
+        "name": "Радио Рекорд Dancecore",
+        "url": "http://radiorecord.hostingradio.ru/dc96.aacp",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
+        "favicon": "http://radiorecord.ru/local/templates/record/assets/build/favicon-set/apple-touch-icon.png",
         "tags": ""
       },
       {
@@ -2354,6 +2374,14 @@
         "codec": "MP3",
         "favicon": "",
         "tags": "rap"
+      },
+      {
+        "name": "рекорд ",
+        "url": "http://online-2.gkvr.ru:8000/record_kra_128.aac",
+        "bitrate": 128,
+        "codec": "AAC+",
+        "favicon": "null",
+        "tags": ""
       }
     ],
     "homepage": "http://radiorecord.ru/",
@@ -2527,9 +2555,9 @@
         "name": "Русский Хит",
         "url": "https://air2.volna.top/RusHit-MSK",
         "bitrate": 128,
-        "codec": "MP3",
+        "codec": "AAC",
         "favicon": "https://fm-24.ru/assets/image/radio/180/ruhitnew.jpg",
-        "tags": "поп-музыка"
+        "tags": "поп"
       },
       {
         "name": "Русский Хит",
@@ -2598,10 +2626,18 @@
         "codec": "AAC",
         "favicon": "",
         "tags": ""
+      },
+      {
+        "name": "Радио СИ - 103.7 FM",
+        "url": "https://online.radioc.ru/radioc",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "https://www.radioc.ru/online/logo.png",
+        "tags": ""
       }
     ],
     "homepage": "https://m.radioc.ru/",
-    "favicon": "",
+    "favicon": "https://www.radioc.ru/online/logo.png",
     "tags": ""
   },
   {
@@ -2748,14 +2784,6 @@
     "name": "Радио Шансон",
     "streams": [
       {
-        "name": "Радио Шансон - Radio Shanson",
-        "url": "http://chanson.hostingradio.ru:8041/chanson256.mp3",
-        "bitrate": 256,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": "pop"
-      },
-      {
         "name": "Шансон Радио",
         "url": "http://chanson.hostingradio.ru:8041/chanson128.mp3",
         "bitrate": 0,
@@ -2770,6 +2798,14 @@
         "codec": "MP3",
         "favicon": "",
         "tags": "шансон"
+      },
+      {
+        "name": "Радио Волшебный Шансон",
+        "url": "https://listen8.myradio24.com/8144",
+        "bitrate": 0,
+        "codec": "",
+        "favicon": "",
+        "tags": ""
       }
     ],
     "homepage": "http://radioshanson.fm/",
@@ -3428,7 +3464,7 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://wwv.zvuch.com/radio-online/ulyanovsk-fm",
+    "homepage": "https://ruradio.net/ulyanovsk/ulyanovsk-fm-1042-fm-gFeVDpD3oe",
     "favicon": "https://ruradio.net/api/img/w150/f7/f77c947c874ac7de2aa19b337a758469.jpeg",
     "tags": "поп-музыка"
   },
@@ -3918,7 +3954,7 @@
         "tags": "phonk, rap, witch house"
       }
     ],
-    "homepage": "https://www.radiorecord.ru/",
+    "homepage": "https://www.radiorecord.fm/m3u/rr320-28kbps.m3u",
     "favicon": "https://cdn-profiles.tunein.com/s309967/images/logod.jpg?t=1",
     "tags": "classical"
   },
