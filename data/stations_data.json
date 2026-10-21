@@ -751,16 +751,16 @@
         "tags": "поп-музыка, танцевальная"
       }
     ],
-    "homepage": "https://top-radio.ru/web/marusya-fm",
+    "homepage": "https://m.the-radio.ru/radio/marusya-fm-r2543",
     "favicon": "https://top-radio.ru/assets/image/radio/180/marusyafm.png",
-    "tags": "поп-музыка, танцевальная"
+    "tags": "танцевальная музыка"
   },
   {
     "name": "Маруся FM",
     "streams": [],
-    "homepage": "https://top-radio.ru/web/marusya-fm",
-    "favicon": "https://top-radio.ru/assets/image/radio/180/marusyafm.png",
-    "tags": "поп-музыка, танцевальная"
+    "homepage": "https://m.the-radio.ru/radio/marusya-fm-r2543",
+    "favicon": "",
+    "tags": "танцевальная музыка"
   },
   {
     "name": "Мега FM",
@@ -1176,10 +1176,18 @@
         "codec": "MP3",
         "favicon": "",
         "tags": "pop music"
+      },
+      {
+        "name": "Град Петров Санкт Петербург 73.10 УКВ",
+        "url": "http://stream.grad-petrov.ru:8093/mp3",
+        "bitrate": 96,
+        "codec": "MP3",
+        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241228_214012596.jpg?alt=media&token=1844ad26-1a93-4b6a-807a-2dfcebf2d413",
+        "tags": "christian, grad petrov, religious, sankt peterburg"
       }
     ],
     "homepage": "https://radio10.live/",
-    "favicon": "",
+    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241228_214012596.jpg?alt=media&token=1844ad26-1a93-4b6a-807a-2dfcebf2d413",
     "tags": "pop music"
   },
   {
@@ -2360,11 +2368,11 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд Dancecore",
-        "url": "http://radiorecord.hostingradio.ru/dc96.aacp",
+        "name": "Радио Рекорд 2step",
+        "url": "http://radiorecord.hostingradio.ru/2step96.aacp",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "http://radiorecord.ru/local/templates/record/assets/build/favicon-set/apple-touch-icon.png",
+        "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
         "tags": ""
       },
       {
@@ -2374,14 +2382,6 @@
         "codec": "MP3",
         "favicon": "",
         "tags": "rap"
-      },
-      {
-        "name": "рекорд ",
-        "url": "http://online-2.gkvr.ru:8000/record_kra_128.aac",
-        "bitrate": 128,
-        "codec": "AAC+",
-        "favicon": "null",
-        "tags": ""
       }
     ],
     "homepage": "http://radiorecord.ru/",
@@ -2416,9 +2416,9 @@
         "tags": "music, nostalgia, pop, rrd, semenov"
       }
     ],
-    "homepage": "https://top-radio.ru/web/rodnyix-dorog",
+    "homepage": "http://radiord.ru/",
     "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20250111_000229150.jpg?alt=media&token=d7b2a8c7-5700-4c55-98c2-8846031700ca",
-    "tags": "chanson, music, pop, rrd"
+    "tags": "cheboksary, federal radiochanel, music, news, road"
   },
   {
     "name": "Радио Рокс",
@@ -2576,9 +2576,9 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://www.ruhit.fm/player.htm?region=1",
+    "homepage": "https://fm-24.ru/web/russkij-xit",
     "favicon": "https://fm-24.ru/assets/image/radio/180/ruhitnew.jpg",
-    "tags": "поп-музыка"
+    "tags": "поп"
   },
   {
     "name": "Радио Русь",
@@ -2802,8 +2802,8 @@
       {
         "name": "Радио Волшебный Шансон",
         "url": "https://listen8.myradio24.com/8144",
-        "bitrate": 0,
-        "codec": "",
+        "bitrate": 192,
+        "codec": "MP3",
         "favicon": "",
         "tags": ""
       }
@@ -3138,19 +3138,7 @@
   },
   {
     "name": "Радио Z",
-    "streams": [
-      {
-        "name": "Z Fm",
-        "url": "https://node0.craftradio.ru:8000/193_CB039DF9",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "null",
-        "tags": "фронтовое радио"
-      }
-    ],
-    "homepage": "https://node0.craftradio.ru:8000/193_CB039DF9",
-    "favicon": "",
-    "tags": "фронтовое радио"
+    "streams": []
   },
   {
     "name": "Радио-3",
@@ -3464,7 +3452,7 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://ruradio.net/ulyanovsk/ulyanovsk-fm-1042-fm-gFeVDpD3oe",
+    "homepage": "https://wwv.zvuch.com/radio-online/ulyanovsk-fm",
     "favicon": "https://ruradio.net/api/img/w150/f7/f77c947c874ac7de2aa19b337a758469.jpeg",
     "tags": "поп-музыка"
   },
@@ -3665,6 +3653,14 @@
       },
       {
         "name": "DFM",
+        "url": "https://dfm.hostingradio.ru/dfm96.aacp?5c80d70c",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "DFM",
         "url": "https://hls-01-dfm.hostingradio.ru/dfm/playlist.m3u8",
         "bitrate": 100,
         "codec": "AAC",
@@ -3678,14 +3674,6 @@
         "codec": "AAC+",
         "favicon": "https://dfm.ru/uploads/favicon.ico",
         "tags": "breakbeat"
-      },
-      {
-        "name": "DFM - Chill",
-        "url": "https://dfm-dfmchill.hostingradio.ru/dfmchill96.aacp",
-        "bitrate": 96,
-        "codec": "AAC+",
-        "favicon": "https://dfm.ru/uploads/favicon.ico",
-        "tags": "ambient, chill, relax, relaxation music"
       }
     ],
     "homepage": "https://dfm.ru/",
@@ -3938,20 +3926,20 @@
         "tags": "deep house, house"
       },
       {
-        "name": "Radio Record Organic",
-        "url": "http://radiorecord.hostingradio.ru/organic96.aacp",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "https://www.radiorecord.ru/icons/apple-touch-icon.png",
-        "tags": "house, organic house, progressive house"
-      },
-      {
         "name": "Radio Record Phonk",
         "url": "http://radiorecord.hostingradio.ru/phonk96.aacp",
         "bitrate": 0,
         "codec": "AAC",
         "favicon": "",
         "tags": "phonk, rap, witch house"
+      },
+      {
+        "name": "Radio Record Synthwave",
+        "url": "http://radiorecord.hostingradio.ru/synth96.aacp",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "http://www.radiorecord.ru/icons/apple-touch-icon.png",
+        "tags": ""
       }
     ],
     "homepage": "https://www.radiorecord.fm/m3u/rr320-28kbps.m3u",
@@ -4020,14 +4008,6 @@
         "codec": "MP3",
         "favicon": "https://lh3.googleusercontent.com/D3taObR7tfyhwDFY40VS8DIVri7iif5RuzI9C-mXxRwF41vGZ_dO_n6MWM57P-mZczFC=w300",
         "tags": "classic rock, pop rock, rock"
-      },
-      {
-        "name": "Rock",
-        "url": "http://79.120.77.11:8000/rock",
-        "bitrate": 320,
-        "codec": "AAC+",
-        "favicon": "",
-        "tags": ""
       },
       {
         "name": "Glam Rock / Metal - Caprice Radio",
