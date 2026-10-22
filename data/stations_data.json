@@ -50,7 +50,7 @@
         "name": "Авторадио 107.7 FM",
         "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
         "bitrate": 64,
-        "codec": "AAC+",
+        "codec": "AAC",
         "favicon": "",
         "tags": ""
       },
@@ -751,16 +751,16 @@
         "tags": "поп-музыка, танцевальная"
       }
     ],
-    "homepage": "https://m.the-radio.ru/radio/marusya-fm-r2543",
+    "homepage": "https://top-radio.ru/web/marusya-fm",
     "favicon": "https://top-radio.ru/assets/image/radio/180/marusyafm.png",
-    "tags": "танцевальная музыка"
+    "tags": "поп-музыка, танцевальная"
   },
   {
     "name": "Маруся FM",
     "streams": [],
-    "homepage": "https://m.the-radio.ru/radio/marusya-fm-r2543",
-    "favicon": "",
-    "tags": "танцевальная музыка"
+    "homepage": "https://top-radio.ru/web/marusya-fm",
+    "favicon": "https://top-radio.ru/assets/image/radio/180/marusyafm.png",
+    "tags": "поп-музыка, танцевальная"
   },
   {
     "name": "Мега FM",
@@ -1176,18 +1176,10 @@
         "codec": "MP3",
         "favicon": "",
         "tags": "pop music"
-      },
-      {
-        "name": "Град Петров Санкт Петербург 73.10 УКВ",
-        "url": "http://stream.grad-petrov.ru:8093/mp3",
-        "bitrate": 96,
-        "codec": "MP3",
-        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241228_214012596.jpg?alt=media&token=1844ad26-1a93-4b6a-807a-2dfcebf2d413",
-        "tags": "christian, grad petrov, religious, sankt peterburg"
       }
     ],
     "homepage": "https://radio10.live/",
-    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241228_214012596.jpg?alt=media&token=1844ad26-1a93-4b6a-807a-2dfcebf2d413",
+    "favicon": "",
     "tags": "pop music"
   },
   {
@@ -1249,7 +1241,7 @@
         "name": "Авторадио 107.7 FM",
         "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
         "bitrate": 64,
-        "codec": "AAC+",
+        "codec": "AAC",
         "favicon": "",
         "tags": ""
       }
@@ -1358,18 +1350,18 @@
         "tags": ""
       },
       {
-        "name": "Радио СИ - 103.7 FM",
-        "url": "https://online.radioc.ru/radioc",
+        "name": "Radio 7 Tyumen",
+        "url": "http://live.radio7.su:9000/radio7_128",
         "bitrate": 128,
         "codec": "MP3",
-        "favicon": "https://www.radioc.ru/online/logo.png",
-        "tags": ""
+        "favicon": "",
+        "tags": "hits, pop"
       },
       {
         "name": "Авторадио 107.7 FM",
         "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
         "bitrate": 64,
-        "codec": "AAC+",
+        "codec": "AAC",
         "favicon": "",
         "tags": ""
       }
@@ -2300,7 +2292,7 @@
         "url": "http://77.232.167.247:1007/admin",
         "bitrate": 0,
         "codec": "MP3",
-        "favicon": "http://priboy.news/static/favicon_150x150.png",
+        "favicon": "",
         "tags": ""
       },
       {
@@ -2312,7 +2304,7 @@
         "tags": "folk"
       }
     ],
-    "homepage": "http://priboy.news/",
+    "homepage": "https://www.radiopriboy.ru/",
     "favicon": "http://priboy.news/static/favicon_150x150.png",
     "tags": "folk"
   },
@@ -2368,8 +2360,8 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд 2step",
-        "url": "http://radiorecord.hostingradio.ru/2step96.aacp",
+        "name": "Радио Рекорд Breaks",
+        "url": "http://radiorecord.hostingradio.ru/brks96.aacp",
         "bitrate": 0,
         "codec": "AAC",
         "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
@@ -2434,8 +2426,8 @@
       {
         "name": "Роксана радиосы",
         "url": "https://listen1.myradio24.com/2761",
-        "bitrate": 128,
-        "codec": "MP3",
+        "bitrate": 263,
+        "codec": "AAC",
         "favicon": "http://roksanaradio.ru/assets/icon_256x256.png",
         "tags": "folk, live, news, pop, talk"
       }
@@ -2576,9 +2568,9 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://fm-24.ru/web/russkij-xit",
+    "homepage": "https://ruhit.fm/",
     "favicon": "https://fm-24.ru/assets/image/radio/180/ruhitnew.jpg",
-    "tags": "поп"
+    "tags": "music, pop, russian"
   },
   {
     "name": "Радио Русь",
@@ -2617,28 +2609,12 @@
     "tags": "100_6 fm, 7 nevo, dedovichi, music, pop"
   },
   {
+    "name": "Радио Семёрка",
+    "streams": []
+  },
+  {
     "name": "Радио Си",
-    "streams": [
-      {
-        "name": "Радио Си (Екатеринбург)",
-        "url": "https://online.radioc.ru/radioc_aacplus?v=1702736359326",
-        "bitrate": 64,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Радио СИ - 103.7 FM",
-        "url": "https://online.radioc.ru/radioc",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://www.radioc.ru/online/logo.png",
-        "tags": ""
-      }
-    ],
-    "homepage": "https://m.radioc.ru/",
-    "favicon": "https://www.radioc.ru/online/logo.png",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Радио Сибирь",
@@ -2800,9 +2776,9 @@
         "tags": "шансон"
       },
       {
-        "name": "Радио Волшебный Шансон",
-        "url": "https://listen8.myradio24.com/8144",
-        "bitrate": 192,
+        "name": " Радио ТусняковыЙ ШансоН",
+        "url": "https://listen7.myradio24.com/56974",
+        "bitrate": 128,
         "codec": "MP3",
         "favicon": "",
         "tags": ""
@@ -2958,7 +2934,7 @@
       {
         "name": "RADIO CHOCOLATE 98FM",
         "url": "https://choco.hostingradio.ru:10010/fm",
-        "bitrate": 256,
+        "bitrate": 128,
         "codec": "MP3",
         "favicon": "https://chocoradio.ru/favicon.ico",
         "tags": ""
@@ -2996,12 +2972,12 @@
         "url": "http://79.120.77.11:8000/jazz",
         "bitrate": 320,
         "codec": "AAC+",
-        "favicon": "r",
+        "favicon": "",
         "tags": ""
       },
       {
-        "name": "Acid Jazz",
-        "url": "http://79.111.14.76:8000/acidjazz",
+        "name": "Guitar Jazz",
+        "url": "http://79.120.77.11:8000/guitarjazz",
         "bitrate": 320,
         "codec": "AAC+",
         "favicon": "",
@@ -3158,7 +3134,7 @@
       {
         "name": "ГУСЬ-Релакс",
         "url": "https://stream4.radiogoose.ru/listen/relax/play",
-        "bitrate": 96,
+        "bitrate": 128,
         "codec": "AAC",
         "favicon": "https://radiogoose.ru/res/logo/relax.png",
         "tags": "chillout, easy listening, new age, relax, sleepingpill"
@@ -3226,7 +3202,7 @@
       {
         "name": "ГУСЬ.Рок",
         "url": "https://stream3.radiogoose.ru/listen/rock/play",
-        "bitrate": 96,
+        "bitrate": 128,
         "codec": "AAC",
         "favicon": "https://radiogoose.ru/res/logo/rock.png",
         "tags": "alternative, alternative rock, metal, post-punk, punk rock"
@@ -3309,16 +3285,12 @@
         "bitrate": 192,
         "codec": "MP3",
         "favicon": "https://vk.com/images/icons/pwa/favicon_32.png?12",
-        "tags": "music, rock"
+        "tags": "rock"
       }
     ],
     "homepage": "https://vk.com/samara_maximum",
     "favicon": "https://vk.com/images/icons/pwa/favicon_32.png?12",
-    "tags": "music, rock"
-  },
-  {
-    "name": "Семёрка",
-    "streams": []
+    "tags": "rock"
   },
   {
     "name": "Серебряная ладья",
@@ -3639,7 +3611,7 @@
         "name": "Dfm",
         "url": "http://dfm-basshouse.hostingradio.ru/basshouse96.aacp",
         "bitrate": 96,
-        "codec": "AAC+",
+        "codec": "AAC",
         "favicon": "https://www.dfm.ru/uploads/favicon.ico",
         "tags": "bass house"
       },
@@ -3650,14 +3622,6 @@
         "codec": "AAC",
         "favicon": "",
         "tags": "dfm"
-      },
-      {
-        "name": "DFM",
-        "url": "https://dfm.hostingradio.ru/dfm96.aacp?5c80d70c",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
       },
       {
         "name": "DFM",
@@ -3674,6 +3638,14 @@
         "codec": "AAC+",
         "favicon": "https://dfm.ru/uploads/favicon.ico",
         "tags": "breakbeat"
+      },
+      {
+        "name": "DFM - Chill",
+        "url": "https://dfm-dfmchill.hostingradio.ru/dfmchill96.aacp",
+        "bitrate": 96,
+        "codec": "AAC+",
+        "favicon": "https://dfm.ru/uploads/favicon.ico",
+        "tags": "ambient, chill, relax, relaxation music"
       }
     ],
     "homepage": "https://dfm.ru/",
@@ -3783,10 +3755,10 @@
       },
       {
         "name": "Deep Mix Moscow Radio",
-        "url": "http://deepmix.ru:8520/;",
-        "bitrate": 128,
+        "url": "http://radio.deepmix.ru:7620/;;",
+        "bitrate": 320,
         "codec": "MP3",
-        "favicon": "https://deepmix.eu/img_pda/logo_1280x320.png",
+        "favicon": "https://deepmix.ru/img_pda/logo_1280x320.png",
         "tags": ""
       },
       {
@@ -3926,23 +3898,23 @@
         "tags": "deep house, house"
       },
       {
+        "name": "Radio Record Organic",
+        "url": "http://radiorecord.hostingradio.ru/organic96.aacp",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "https://www.radiorecord.ru/icons/apple-touch-icon.png",
+        "tags": "house, organic house, progressive house"
+      },
+      {
         "name": "Radio Record Phonk",
         "url": "http://radiorecord.hostingradio.ru/phonk96.aacp",
         "bitrate": 0,
         "codec": "AAC",
         "favicon": "",
         "tags": "phonk, rap, witch house"
-      },
-      {
-        "name": "Radio Record Synthwave",
-        "url": "http://radiorecord.hostingradio.ru/synth96.aacp",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "http://www.radiorecord.ru/icons/apple-touch-icon.png",
-        "tags": ""
       }
     ],
-    "homepage": "https://www.radiorecord.fm/m3u/rr320-28kbps.m3u",
+    "homepage": "https://www.radiorecord.ru/",
     "favicon": "https://cdn-profiles.tunein.com/s309967/images/logod.jpg?t=1",
     "tags": "classical"
   },
@@ -4010,12 +3982,20 @@
         "tags": "classic rock, pop rock, rock"
       },
       {
-        "name": "Glam Rock / Metal - Caprice Radio",
-        "url": "http://79.120.39.202:8000/glam",
+        "name": "Rock",
+        "url": "http://79.120.77.11:8000/rock",
         "bitrate": 320,
         "codec": "AAC+",
-        "favicon": "http://radcap.ru/graf2/radcaplogo.png",
-        "tags": "glam metal, glam rock"
+        "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "Folk Rock",
+        "url": "http://79.111.14.76:8000/folkrock",
+        "bitrate": 320,
+        "codec": "AAC+",
+        "favicon": "",
+        "tags": ""
       },
       {
         "name": "Acoustic Rock Radio",

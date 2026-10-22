@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1792570979171,
+  "exportDate": 1792657517990,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -10509,6 +10509,12 @@
           "deletedAt": null
         },
         {
+          "name": "Радио Семёрка",
+          "freq": 103.1,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
           "name": "Радио Сибирь",
           "freq": 92.8,
           "isDeleted": false,
@@ -10553,12 +10559,6 @@
         {
           "name": "Русское Радио",
           "freq": 102.5,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "Семёрка",
-          "freq": 103.1,
           "isDeleted": false,
           "deletedAt": null
         },
