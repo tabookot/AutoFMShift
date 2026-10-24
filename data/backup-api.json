@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1792743709415,
+  "exportDate": 1792828686084,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -12423,6 +12423,12 @@
       "type": "station",
       "city": "Владимир",
       "name": "план Регион-Медиа",
+      "reason": "glitch_protect"
+    },
+    {
+      "type": "station",
+      "city": "Мурманск",
+      "name": "(ПЛАН) Like FM",
       "reason": "glitch_protect"
     },
     {
