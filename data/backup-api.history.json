@@ -9751,10 +9751,185 @@
           "reason": "glitch_protect"
         }
       ]
+    },
+    {
+      "timestamp": "2026-10-26T08:41:36.616Z",
+      "status": "success",
+      "requiresAttention": false,
+      "attentionReasons": [],
+      "changes": {
+        "cities": {
+          "new": [],
+          "deleted": [],
+          "renamed": []
+        },
+        "stations": {
+          "new": [
+            {
+              "city": "Краснодар",
+              "name": "? (Вещало на 104,1)"
+            },
+            {
+              "city": "Мурманск",
+              "name": "&#160;"
+            },
+            {
+              "city": "Салехард",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Ханты-Мансийск",
+              "name": "Радио Радио"
+            }
+          ],
+          "deleted": [
+            {
+              "city": "Краснодар",
+              "name": "? (Вещало на 104,1)"
+            },
+            {
+              "city": "Мурманск",
+              "name": "&#160;"
+            },
+            {
+              "city": "Салехард",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Ханты-Мансийск",
+              "name": "Радио Радио"
+            }
+          ],
+          "renamed": [],
+          "frequency_migrated": []
+        }
+      },
+      "radioBrowser": {
+        "new": 0,
+        "changed": 9,
+        "deleted": 0,
+        "streamsAdded": 5,
+        "streamsRemoved": 6,
+        "changedStations": [
+          {
+            "name": "Радио 7",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Радио Рекорд",
+            "changes": [
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио России",
+            "changes": [
+              "homepage",
+              "tags"
+            ]
+          },
+          {
+            "name": "Радио Z",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Ульяновск FM",
+            "changes": [
+              "homepage"
+            ]
+          },
+          {
+            "name": "Хит FM",
+            "changes": [
+              "tags"
+            ]
+          },
+          {
+            "name": "DFM",
+            "changes": [
+              "streams (+2/-1)"
+            ]
+          },
+          {
+            "name": "Radio Record",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Rock FM",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          }
+        ]
+      },
+      "restored": [
+        {
+          "type": "station",
+          "city": "Владимир",
+          "name": "Маруся ФМ",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Владимир",
+          "name": "план Регион-Медиа",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Мурманск",
+          "name": "(ПЛАН) Like FM",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Мурманск",
+          "name": "&#160;",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио 1-й Канал",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио КП",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Екатеринбург",
+          "name": "Радиопедия:Черновик/Радио Лето",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Екатеринбург",
+          "name": "Радиопедия:Черновик/Радио Спутник (Екатеринбург)",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Тюмень",
+          "name": "Радиопедия:Черновик/Радио Семёрка",
+          "reason": "glitch_protect"
+        }
+      ]
     }
   ],
   "lastRun": {
-    "timestamp": "2026-10-25T08:15:55.657Z",
+    "timestamp": "2026-10-26T08:41:36.616Z",
     "status": "success",
     "recorded": true
   }

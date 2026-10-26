@@ -1338,17 +1338,17 @@
         "tags": ""
       },
       {
+        "name": "Radio 7 Moscow",
+        "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
+        "bitrate": 320,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "hits, russian hits"
+      },
+      {
         "name": "Авторадио 107.7 FM",
         "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
         "bitrate": 64,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Russkoe Radio - Moskva 105.7 FM",
-        "url": "http://rusradio.hostingradio.ru/rusradio96.aacp",
-        "bitrate": 0,
         "codec": "AAC",
         "favicon": "",
         "tags": ""
@@ -2280,7 +2280,7 @@
         "url": "http://77.232.167.247:1007/admin",
         "bitrate": 0,
         "codec": "MP3",
-        "favicon": "",
+        "favicon": "http://priboy.news/static/favicon_150x150.png",
         "tags": ""
       },
       {
@@ -2362,14 +2362,6 @@
         "codec": "MP3",
         "favicon": "",
         "tags": "rap"
-      },
-      {
-        "name": "рекорд ",
-        "url": "http://online-2.gkvr.ru:8000/record_kra_128.aac",
-        "bitrate": 128,
-        "codec": "AAC+",
-        "favicon": "null",
-        "tags": ""
       }
     ],
     "homepage": "http://radiorecord.ru/",
@@ -2480,9 +2472,9 @@
         "tags": "music, news, talk"
       }
     ],
-    "homepage": "http://www.radiorus.ru/",
+    "homepage": "https://radiorus.ru/",
     "favicon": "https://vestiorel.ru/favicon.png",
-    "tags": "music, news, talk"
+    "tags": "news, talk"
   },
   {
     "name": "Радио Русские песни",
@@ -3110,19 +3102,7 @@
   },
   {
     "name": "Радио Z",
-    "streams": [
-      {
-        "name": "Z Fm",
-        "url": "https://node0.craftradio.ru:8000/193_CB039DF9",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "null",
-        "tags": "фронтовое радио"
-      }
-    ],
-    "homepage": "https://node0.craftradio.ru:8000/193_CB039DF9",
-    "favicon": "",
-    "tags": "фронтовое радио"
+    "streams": []
   },
   {
     "name": "Радио-3",
@@ -3432,7 +3412,7 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://wwv.zvuch.com/radio-online/ulyanovsk-fm",
+    "homepage": "https://ruradio.net/ulyanovsk/ulyanovsk-fm-1042-fm-gFeVDpD3oe",
     "favicon": "https://ruradio.net/api/img/w150/f7/f77c947c874ac7de2aa19b337a758469.jpeg",
     "tags": "поп-музыка"
   },
@@ -3486,7 +3466,7 @@
     ],
     "homepage": "https://smotri.radio/",
     "favicon": "https://hitfm.ru/favicon.ico",
-    "tags": "chr, dance, hits, international hits, pop"
+    "tags": "pop rock, russian music, top hits"
   },
   {
     "name": "Экспресс Радио",
@@ -3632,20 +3612,28 @@
         "tags": "dfm"
       },
       {
+        "name": "DFM",
+        "url": "https://dfm.hostingradio.ru/dfm96.aacp?5c80d70c",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "DFM",
+        "url": "https://hls-01-dfm.hostingradio.ru/dfm/playlist.m3u8",
+        "bitrate": 100,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": "club, dance, edm, electronic, pop dance"
+      },
+      {
         "name": "DFM - Breakbeat",
         "url": "https://dfm-breakbeat.hostingradio.ru/breakbeat96.aacp",
         "bitrate": 96,
         "codec": "AAC+",
         "favicon": "https://dfm.ru/uploads/favicon.ico",
         "tags": "breakbeat"
-      },
-      {
-        "name": "DFM - Chill",
-        "url": "https://dfm-dfmchill.hostingradio.ru/dfmchill96.aacp",
-        "bitrate": 96,
-        "codec": "AAC+",
-        "favicon": "https://dfm.ru/uploads/favicon.ico",
-        "tags": "ambient, chill, relax, relaxation music"
       }
     ],
     "homepage": "https://dfm.ru/",
@@ -3898,20 +3886,20 @@
         "tags": "deep house, house"
       },
       {
-        "name": "Radio Record Organic",
-        "url": "http://radiorecord.hostingradio.ru/organic96.aacp",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "https://www.radiorecord.ru/icons/apple-touch-icon.png",
-        "tags": "house, organic house, progressive house"
-      },
-      {
         "name": "Radio Record Phonk",
         "url": "http://radiorecord.hostingradio.ru/phonk96.aacp",
         "bitrate": 0,
         "codec": "AAC",
         "favicon": "",
         "tags": "phonk, rap, witch house"
+      },
+      {
+        "name": "Radio Record Synthwave",
+        "url": "http://radiorecord.hostingradio.ru/synth96.aacp",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "http://www.radiorecord.ru/icons/apple-touch-icon.png",
+        "tags": ""
       }
     ],
     "homepage": "https://www.radiorecord.fm/m3u/rr320-28kbps.m3u",
@@ -3990,8 +3978,8 @@
         "tags": ""
       },
       {
-        "name": "Arena Rock",
-        "url": "http://79.111.14.76:8000/aor",
+        "name": "Folk Rock",
+        "url": "http://79.111.14.76:8000/folkrock",
         "bitrate": 320,
         "codec": "AAC+",
         "favicon": "",
