@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1793090774503,
+  "exportDate": 1793179595421,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -6117,6 +6117,18 @@
     "нальчик": {
       "name": "Нальчик",
       "stations": [
+        {
+          "name": "(ПЛАН) Радио Дача",
+          "freq": 92.1,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "(ПЛАН) Радио Родных Дорог",
+          "freq": 96.2,
+          "isDeleted": false,
+          "deletedAt": null
+        },
         {
           "name": "Вести FM",
           "freq": 96.6,
