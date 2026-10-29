@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1793179595421,
+  "exportDate": 1793266613312,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -139,6 +139,12 @@
     "анадырь": {
       "name": "Анадырь",
       "stations": [
+        {
+          "name": "(ПЛАН) Радио Monte Carlo",
+          "freq": 87.5,
+          "isDeleted": false,
+          "deletedAt": null
+        },
         {
           "name": "Дорожное радио",
           "freq": 100,
