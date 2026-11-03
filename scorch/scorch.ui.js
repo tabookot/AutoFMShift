@@ -840,20 +840,26 @@ function rrectPath(c, x, y, w, h, r) {
       stars.w = Wc;
     }
     const p = cycleT;
-    skyLight = { x: -999, col: '255,255,255', a: 0 };
+    skyLight.x = -999; skyLight.col = '255,255,255'; skyLight.a = 0;
     const pal = biome.pal;
-    const g = ctx.createLinearGradient(0, 0, 0, Hc);
-    if (pal && pal.day) {
-      for (let s = 0; s <= 4; s++) {
-        const u = s / 4;
-        const pc = sampleStops(pal.day, u);
-        const nc = sampleStops(tod.stops, u);
-        g.addColorStop(u, rgbaStr(mixColA(nc, pc, dayness)));
+    // the sky gradient is rebuilt only when its inputs move: height,
+    // biome palette or the 1/48 day quantum (the far-hills grain)
+    const sdq = Math.round(dayness * 48);
+    if (!drawSky._g || drawSky._gh !== Hc || drawSky._gb !== biome || drawSky._gq !== sdq) {
+      const g = ctx.createLinearGradient(0, 0, 0, Hc);
+      if (pal && pal.day) {
+        for (let s = 0; s <= 4; s++) {
+          const u = s / 4;
+          const pc = sampleStops(pal.day, u);
+          const nc = sampleStops(tod.stops, u);
+          g.addColorStop(u, rgbaStr(mixColA(nc, pc, dayness)));
+        }
+      } else {
+        tod.stops.forEach((c, i) => g.addColorStop(i / (tod.stops.length - 1), c));
       }
-    } else {
-      tod.stops.forEach((c, i) => g.addColorStop(i / (tod.stops.length - 1), c));
+      drawSky._g = g; drawSky._gh = Hc; drawSky._gb = biome; drawSky._gq = sdq;
     }
-    ctx.fillStyle = g;
+    ctx.fillStyle = drawSky._g;
     ctx.fillRect(-30, -30, Wc + 60, Hc + 60);
     const nn = 1 - dayness;
     const starA = clamp((nn - 0.25) / 0.5, 0, 1);
@@ -913,7 +919,7 @@ function rrectPath(c, x, y, w, h, r) {
         }
       });
       ctx.globalAlpha = 1;
-      if (mx > 20 && mx < Wc - 20) skyLight = { x: mx, col: '223,228,234', a: 0.45 * starA + 0.1 };
+      if (mx > 20 && mx < Wc - 20) { skyLight.x = mx; skyLight.col = '223,228,234'; skyLight.a = 0.45 * starA + 0.1; }
     }
     if (!moonSky && moonSys) {
       // THE FOUR MOONS on their 3D-precalc orbits (genMoonSys /
@@ -992,7 +998,7 @@ function rrectPath(c, x, y, w, h, r) {
       ctx.fillStyle = rgbaStr(hot);
       ctx.beginPath(); ctx.arc(sx, sy, 24 * shimmer, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
-      if (sx > 20 && sx < Wc - 20) skyLight = { x: sx, col: `${hot[0] | 0},${hot[1] | 0},${hot[2] | 0}`, a: (0.25 + alt * 0.6) * (1 - sunDim) };
+      if (sx > 20 && sx < Wc - 20) { skyLight.x = sx; skyLight.col = `${hot[0] | 0},${hot[1] | 0},${hot[2] | 0}`; skyLight.a = (0.25 + alt * 0.6) * (1 - sunDim); }
     }
     if (biome.sky && biome.sky.twin) {
       const tp = (p + 0.58) % 1;
@@ -1220,7 +1226,7 @@ function rrectPath(c, x, y, w, h, r) {
         ctx.fillStyle = pgl;
         ctx.beginPath(); ctx.arc(px2, py2, pr * 1.35, 0, Math.PI * 2); ctx.fill();
       }
-      if (px2 > 40 && px2 < Wc - 40) skyLight = { x: px2, col: '220,200,150', a: 0.3 };
+      if (px2 > 40 && px2 < Wc - 40) { skyLight.x = px2; skyLight.col = '220,200,150'; skyLight.a = 0.3; }
     }
     if (biome.sky && biome.sky.giant && !moonSky) {
       const gg = biome.sky.giant;
@@ -1301,10 +1307,14 @@ function rrectPath(c, x, y, w, h, r) {
     };
     drawClouds(false);
     cloudDraw = drawClouds;
-    const hz = ctx.createLinearGradient(0, Hc * 0.45, 0, Hc * 0.75);
-    hz.addColorStop(0, 'rgba(0,0,0,0)');
-    hz.addColorStop(1, (pal && pal.haze) || tod.haze);
-    ctx.fillStyle = hz;
+    const hzc = (pal && pal.haze) || tod.haze;
+    if (!drawSky._hz || drawSky._hzh !== Hc || drawSky._hzc !== hzc) {
+      drawSky._hz = ctx.createLinearGradient(0, Hc * 0.45, 0, Hc * 0.75);
+      drawSky._hz.addColorStop(0, 'rgba(0,0,0,0)');
+      drawSky._hz.addColorStop(1, hzc);
+      drawSky._hzh = Hc; drawSky._hzc = hzc;
+    }
+    ctx.fillStyle = drawSky._hz;
     ctx.fillRect(-30, Hc * 0.45, Wc + 60, Hc * 0.3);
     // ECLIPSE veil: a grazing cover tints the whole sky as a sunset, a
     // full cover drops a fast night; the sun's road on the water dies
@@ -1325,11 +1335,15 @@ function rrectPath(c, x, y, w, h, r) {
   
   // ============ CAVE BACKDROP: lighter earth behind the scene ============
   function drawCaveBG() {
-    const g = ctx.createLinearGradient(0, 0, 0, Hc);
-    g.addColorStop(0, shade(biome.sub[0], 1.7));
-    g.addColorStop(0.5, shade(biome.sub[1], 1.45));
-    g.addColorStop(1, shade(biome.sub[1], 1.25));
-    ctx.fillStyle = g;
+    // the cave backdrop is static per (height, biome): gradient cached
+    if (!drawCaveBG._g || drawCaveBG._gh !== Hc || drawCaveBG._gb !== biome) {
+      const g = ctx.createLinearGradient(0, 0, 0, Hc);
+      g.addColorStop(0, shade(biome.sub[0], 1.7));
+      g.addColorStop(0.5, shade(biome.sub[1], 1.45));
+      g.addColorStop(1, shade(biome.sub[1], 1.25));
+      drawCaveBG._g = g; drawCaveBG._gh = Hc; drawCaveBG._gb = biome;
+    }
+    ctx.fillStyle = drawCaveBG._g;
     ctx.fillRect(-30, -30, Wc + 60, Hc + 60);
     if (groundPat) {
       ctx.globalAlpha = 0.3;
@@ -1357,10 +1371,13 @@ function rrectPath(c, x, y, w, h, r) {
       }
     }
     // darker vignette toward the edges — depth of the cavern
-    const vg = ctx.createRadialGradient(Wc / 2, Hc / 2, Math.min(Wc, Hc) * 0.3, Wc / 2, Hc / 2, Math.max(Wc, Hc) * 0.75);
-    vg.addColorStop(0, 'rgba(0,0,0,0)');
-    vg.addColorStop(1, 'rgba(0,0,0,0.35)');
-    ctx.fillStyle = vg;
+    if (!drawCaveBG._vg || drawCaveBG._vw !== Wc || drawCaveBG._vh !== Hc) {
+      const vg = ctx.createRadialGradient(Wc / 2, Hc / 2, Math.min(Wc, Hc) * 0.3, Wc / 2, Hc / 2, Math.max(Wc, Hc) * 0.75);
+      vg.addColorStop(0, 'rgba(0,0,0,0)');
+      vg.addColorStop(1, 'rgba(0,0,0,0.35)');
+      drawCaveBG._vg = vg; drawCaveBG._vw = Wc; drawCaveBG._vh = Hc;
+    }
+    ctx.fillStyle = drawCaveBG._vg;
     ctx.fillRect(-30, -30, Wc + 60, Hc + 60);
   }
   
@@ -1688,7 +1705,93 @@ function drawCaveShade() {
     ctx.restore();
   }
   
-  function drawTerrain() {
+  // ============ TERRAIN BAKE ============
+  // Everything static between deforms — the ground body, strata, stones,
+  // surface decals, untouched fuel seams, the per-column strip, tunnel
+  // voids, static flora, floor edges, the cave ceiling — renders ONCE
+  // into an offscreen canvas at device resolution and blits with a single
+  // drawImage. A rebuild happens only on a deform (terrVer), a resize or
+  // DPR change, a new world (biome/seed) or a day-quantum step: the
+  // strip's sun shading and the edge tint ride the same 1/48 day grain
+  // as the far hills. The LIVING layers keep drawing per frame on top:
+  // pulsing magma veins, twinkles, burning seams, burn/melt strips, lava
+  // pools, swaying flora, cave vents and volcano craters
+  let terrCv = null, terrCx = null;
+  let terrKV = -1, terrKW = 0, terrKH = 0, terrKD = 0, terrKB = null, terrKS = 0, terrKQ = -1;
+  const terrSilhouette = () => {
+    ctx.beginPath();
+    ctx.moveTo(-30, Hc + 30);
+    ctx.lineTo(-30, cols[0].top);
+    for (let i = 0; i < cols.length; i++) ctx.lineTo(i * cols.step, cols[i].top);
+    ctx.lineTo(Wc + 30, cols[cols.length - 1].top);
+    ctx.lineTo(Wc + 30, Hc + 30);
+    ctx.closePath();
+  };
+  // one fuel seam painter shared by the bake (untouched state) and the
+  // frame pass (burning state); ctx is read at call time, so it paints
+  // into whichever pass invoked it
+  const drawPocket = (pk, fuel) => {
+    if (pk.state === 2 || !fuel) return;
+    const wP = pk.x1 - pk.x0, hP = pk.y1 - pk.y0;
+    const ccx = (pk.x0 + pk.x1) / 2, ccy = (pk.y0 + pk.y1) / 2;
+    const blobXY = (b) => [ccx + b[0] * wP, ccy + b[1] * hP, Math.max(4, b[2] * wP), Math.max(2.5, b[3] * hP)];
+    const blobPath = () => {
+      ctx.beginPath();
+      pk.bl.forEach(b => { const [bx, by, brx, bry] = blobXY(b); ctx.moveTo(bx + brx, by); ctx.ellipse(bx, by, brx, bry, 0, 0, Math.PI * 2); });
+    };
+    const pr = pk.state === 1 ? clamp(pk.t / pk.dur, 0, 1) : 0;
+    const fy = pk.y0 + hP * pr;
+    ctx.save();
+    blobPath();
+    ctx.clip();
+    pk.bl.forEach(b => {
+      const [bx, by, brx, bry] = blobXY(b);
+      ctx.fillStyle = `rgba(${fuel.col},0.42)`;
+      ctx.beginPath(); ctx.ellipse(bx, by, brx, bry, 0, 0, Math.PI * 2); ctx.fill();
+    });
+    if (pk.state === 1) {
+      ctx.fillStyle = 'rgba(8,6,4,0.6)';
+      ctx.fillRect(pk.x0 - wP, pk.y0 - hP * 2, wP * 3, Math.max(0, fy - pk.y0) + 2);
+    }
+    ctx.fillStyle = `rgba(${fuel.spark},0.5)`;
+    for (let k = 0; k < 5; k++) {
+      const sx = pk.x0 + ((seed * 31 + k * 47) % (pk.x1 - pk.x0 - 4)) + 2;
+      const sy = Math.max(fy + 3, pk.y0 + 4 + ((seed * 17 + k * 53) % Math.max(1, pk.y1 - pk.y0 - 8)));
+      ctx.fillRect(sx, sy, 2, 2);
+    }
+    if (pk.state === 1) {
+      ctx.strokeStyle = 'rgba(255,140,40,0.85)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(pk.x0, fy);
+      for (let x = pk.x0 + 6; x < pk.x1; x += 7) ctx.lineTo(x, fy + Math.sin(x * 0.3 + gt * 7) * 2.5);
+      ctx.lineTo(pk.x1, fy);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+    ctx.restore();
+    blobPath();
+    ctx.strokeStyle = `rgba(${fuel.col},0.4)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    if (pk.state === 1) {
+      const gl2 = ctx.createRadialGradient(ccx, fy, 2, ccx, fy, wP * 0.7);
+      gl2.addColorStop(0, 'rgba(255,110,30,0.25)');
+      gl2.addColorStop(1, 'rgba(255,110,30,0)');
+      ctx.fillStyle = gl2;
+      ctx.fillRect(pk.x0 - 6, fy - 20, pk.x1 - pk.x0 + 12, 40);
+    }
+  };
+  function bakeTerrain() {
+    const dpr = window.devicePixelRatio || 1;
+    const bw = Math.max(2, Math.ceil(Wc * dpr)), bh = Math.max(2, Math.ceil(Hc * dpr));
+    if (!terrCv) { terrCv = document.createElement('canvas'); terrCx = terrCv.getContext('2d'); }
+    if (terrCv.width !== bw) terrCv.width = bw;
+    if (terrCv.height !== bh) terrCv.height = bh;
+    const main = ctx;
+    ctx = terrCx;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, Wc, Hc);
     const N = cols.length;
     const bk = biomeKey();
     ctx.beginPath();
@@ -1758,15 +1861,6 @@ function drawCaveShade() {
         const y0 = st + 14 + nz2 * 46;
         ctx.fillRect(x, y0, 10 + nz * 12, 2);
         ctx.fillRect(x + 3, y0 + 5, 6 + nz * 6, 1.5);
-      } else if (un.dec === 'magma' && nz > 0.5) {
-        const pul = 0.3 + 0.45 * Math.max(0, Math.sin(gt * 1.4 + i * 0.7));
-        ctx.strokeStyle = `rgba(${lav().hot},${pul.toFixed(3)})`;
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        const y0 = st + 12 + nz2 * 42;
-        ctx.moveTo(x, y0);
-        ctx.quadraticCurveTo(x + 6, y0 - 5 - Math.sin(gt * 0.9 + i) * 2, x + 12, y0);
-        ctx.stroke();
       } else if (un.dec === 'spore' && nz > 0.52) {
         ctx.fillStyle = `rgba(${un.twink},0.22)`;
         const y0 = st + 10 + nz2 * 46;
@@ -1785,99 +1879,13 @@ function drawCaveShade() {
       }
     }
     ctx.lineWidth = 1;
-    // DEEP deposits: dots / shards / breathing cracks / crystal veins
-    if (soilTw.length !== un.twN || (soilTw.length && (soilTw[0].sd !== seed || soilTw[0].wc !== Wc))) {
-      soilTw = [];
-      for (let k = 0; k < un.twN; k++) {
-        const x = R(0, Wc);
-        const base = surfaceAt(x);
-        const y = clamp(base + R(12, Math.max(16, Hc - 6 - base)), base + 12, Hc - 4);
-        soilTw.push({ x, y, ph: R(0, 6.28), sp: R(0.5, 2.2), s: R(1.4, 2.6), seg: [R(-4, 4), R(-4, 4), R(-4, 4)], l: R(8, 18), sd: seed, wc: Wc });
-      }
-    }
-    for (let k = 0; k < soilTw.length; k++) {
-      const tw = soilTw[k];
-      if (inVoid(tw.x, tw.y) || tw.y < surfaceAt(tw.x) + 3) continue;
-      let a;
-      if (tw.dep === undefined) tw.dep = un.dep;
-      if (un.dep === 'crack') a = 0.3 + 0.4 * Math.max(0, Math.sin(gt * tw.sp + tw.ph));
-      else a = Math.pow(Math.max(0, Math.sin(gt * tw.sp + tw.ph)), un.dep === 'shard' ? 3 : 2);
-      if (a < 0.05) continue;
-      ctx.strokeStyle = `rgba(${un.twink},${(a * 0.9).toFixed(3)})`;
-      ctx.fillStyle = `rgba(${un.twink},${(a * 0.9).toFixed(3)})`;
-      if (un.dep === 'crack' || un.dep === 'vein') {
-        ctx.lineWidth = un.dep === 'crack' ? 1.5 : 1.2;
-        ctx.beginPath();
-        ctx.moveTo(tw.x, tw.y);
-        ctx.lineTo(tw.x + tw.seg[0], tw.y + tw.l * 0.35);
-        ctx.lineTo(tw.x + tw.seg[0] + tw.seg[1], tw.y + tw.l * 0.7);
-        ctx.lineTo(tw.x + tw.seg[0] + tw.seg[1] + tw.seg[2], tw.y + tw.l);
-        ctx.stroke();
-        ctx.lineWidth = 1;
-      } else if (un.dep === 'shard') {
-        ctx.fillRect(tw.x, tw.y, 1.6, tw.l * 0.5 + 4);
-        ctx.fillRect(tw.x - 1, tw.y + 2, 0.8, 3);
-      } else {
-        ctx.fillRect(tw.x - tw.s / 2, tw.y, tw.s, tw.s);
-      }
-    }
-  // fuel pockets: the biome's own seams on the surface, the shared fossil
-  // seams (CAVE_FUEL) underground
-  const fuel = UNDER ? CAVE_FUEL : biome.fuel;
+    const fuel = UNDER ? CAVE_FUEL : biome.fuel; // untouched seams are baked in
     pockets.forEach(pk => {
-      if (pk.state === 2 || !fuel) return;
-      const wP = pk.x1 - pk.x0, hP = pk.y1 - pk.y0;
-      const ccx = (pk.x0 + pk.x1) / 2, ccy = (pk.y0 + pk.y1) / 2;
-      const blobXY = (b) => [ccx + b[0] * wP, ccy + b[1] * hP, Math.max(4, b[2] * wP), Math.max(2.5, b[3] * hP)];
-      const blobPath = () => {
-        ctx.beginPath();
-        pk.bl.forEach(b => { const [bx, by, brx, bry] = blobXY(b); ctx.moveTo(bx + brx, by); ctx.ellipse(bx, by, brx, bry, 0, 0, Math.PI * 2); });
-      };
-      const pr = pk.state === 1 ? clamp(pk.t / pk.dur, 0, 1) : 0;
-      const fy = pk.y0 + hP * pr;
-      ctx.save();
-      blobPath();
-      ctx.clip();
-      pk.bl.forEach(b => {
-        const [bx, by, brx, bry] = blobXY(b);
-        ctx.fillStyle = `rgba(${fuel.col},0.42)`;
-        ctx.beginPath(); ctx.ellipse(bx, by, brx, bry, 0, 0, Math.PI * 2); ctx.fill();
-      });
-      if (pk.state === 1) {
-        ctx.fillStyle = 'rgba(8,6,4,0.6)';
-        ctx.fillRect(pk.x0 - wP, pk.y0 - hP * 2, wP * 3, Math.max(0, fy - pk.y0) + 2);
-      }
-      ctx.fillStyle = `rgba(${fuel.spark},0.5)`;
-      for (let k = 0; k < 5; k++) {
-        const sx = pk.x0 + ((seed * 31 + k * 47) % (pk.x1 - pk.x0 - 4)) + 2;
-        const sy = Math.max(fy + 3, pk.y0 + 4 + ((seed * 17 + k * 53) % Math.max(1, pk.y1 - pk.y0 - 8)));
-        ctx.fillRect(sx, sy, 2, 2);
-      }
-      if (pk.state === 1) {
-        ctx.strokeStyle = 'rgba(255,140,40,0.85)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(pk.x0, fy);
-        for (let x = pk.x0 + 6; x < pk.x1; x += 7) ctx.lineTo(x, fy + Math.sin(x * 0.3 + gt * 7) * 2.5);
-        ctx.lineTo(pk.x1, fy);
-        ctx.stroke();
-        ctx.lineWidth = 1;
-      }
-      ctx.restore();
-      blobPath();
-      ctx.strokeStyle = `rgba(${fuel.col},0.4)`;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      if (pk.state === 1) {
-        const gl2 = ctx.createRadialGradient(ccx, fy, 2, ccx, fy, wP * 0.7);
-        gl2.addColorStop(0, 'rgba(255,110,30,0.25)');
-        gl2.addColorStop(1, 'rgba(255,110,30,0)');
-        ctx.fillStyle = gl2;
-        ctx.fillRect(pk.x0 - 6, fy - 20, pk.x1 - pk.x0 + 12, 40);
-      }
+      if (pk.state !== 0 || !fuel) return;
+      drawPocket(pk, fuel);
     });
     ctx.restore();
-    // surface strip + burn + melt + LIQUID LAVA POOLS, per column
+    // surface strip: the sun shading rides the bake's day quantum
     const sunDir = (skyLight && skyLight.x > -900) ? (skyLight.x > Wc / 2 ? 1 : -1) : 0;
     const sunK = sunDir ? clamp(0.4 + (skyLight.a || 0), 0, 1) : 0;
     for (let i = 0; i < N; i++) {
@@ -1903,40 +1911,6 @@ function drawCaveShade() {
       } else {
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.fillRect(x, c.top, w, 2.5);
-      }
-      if (c.burn > 0) {
-        ctx.globalAlpha = c.burn * 0.5;
-        ctx.fillStyle = '#c84818';
-        ctx.fillRect(x, c.top, w, 6 + c.burn * 7);
-        ctx.globalAlpha = 1;
-      }
-      if (c.melt > 0) {
-        const L = lav();
-        ctx.globalAlpha = c.melt * 0.8;
-        ctx.fillStyle = `rgb(${L.hot})`;
-        ctx.fillRect(x, c.top, w, 3 + c.melt * 6);
-        ctx.globalAlpha = c.melt * 0.55;
-        ctx.fillStyle = `rgb(${L.core})`;
-        ctx.fillRect(x, c.top, w, 2);
-        ctx.globalAlpha = 1;
-      }
-      // the pool: molten = live hot palette with a pulsing skin; cooling =
-      // the colour SLIDES to this world's own earth — the mass becomes ground
-      if (c.lava > 0.4) {
-        const L = lav();
-        const hot = c.lavaT < LAVA_MELT;
-        const cp = hot ? 0 : clamp((c.lavaT - LAVA_MELT) / (LAVA_COOL - LAVA_MELT), 0, 1);
-        const body = hot ? L.hot : mixTri(L.deep, hexTri(biome.sub[1]), cp);
-        const skin = hot ? L.core : mixTri(L.hot, hexTri(biome.surf), cp);
-        const top = c.top - c.lava;
-        ctx.fillStyle = hot
-          ? `rgba(${body},${(0.8 + Math.sin(gt * 8 + i) * 0.15).toFixed(2)})`
-          : `rgba(${body},${(0.92 - cp * 0.08).toFixed(2)})`;
-        ctx.fillRect(x, top, w, c.lava + 0.5);
-        ctx.fillStyle = hot
-          ? `rgba(${skin},0.9)`
-          : `rgba(${skin},${(0.7 * (1 - cp) + 0.28).toFixed(2)})`;
-        ctx.fillRect(x, top, w, Math.max(1, c.lava * 0.4));
       }
     }
     // tunnel voids
@@ -1996,44 +1970,7 @@ function drawCaveShade() {
         i = j;
       }
     }
-    // flora blocks — cave biomes never reach them, kept for surface worlds
-    if (bk === 'green') {
-      ctx.strokeStyle = 'rgba(52,92,32,0.9)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (let i = 0; i < N; i += 3) {
-        const c = cols[i];
-        if (c.surf <= 0 || c.burn > 0.2 || (c.h1 > 0 && c.h0 <= c.top + 2)) continue;
-        if (noise(i * 13.7) < 0.55) continue;
-        const x = i * cols.step;
-        const h = 3 + noise(i * 3.3) * 4;
-        const sway = Math.sin(gt * 1.6 + i * 0.7) * 1.2;
-        ctx.moveTo(x, c.top + 1);
-        ctx.lineTo(x + sway, c.top - h);
-        if (noise(i * 7.7) > 0.5) {
-          ctx.moveTo(x + 2, c.top + 1);
-          ctx.lineTo(x + 2 + sway * 0.7, c.top - h * 0.7);
-        }
-      }
-      ctx.stroke();
-    } else if (bk === 'xeno') {
-      for (let i = 0; i < N; i += 4) {
-        const c = cols[i];
-        if (c.surf <= 0 || c.burn > 0.2 || (c.h1 > 0 && c.h0 <= c.top + 2)) continue;
-        if (noise(i * 9.3) < 0.6) continue;
-        const x = i * cols.step;
-        const h = 3 + noise(i * 3.3) * 5;
-        const sway = Math.sin(gt * 1.3 + i * 0.5) * 1.2;
-        ctx.strokeStyle = 'rgba(150,105,215,0.9)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x, c.top + 1);
-        ctx.quadraticCurveTo(x + sway * 0.4, c.top - h * 0.6, x + sway, c.top - h);
-        ctx.stroke();
-        ctx.fillStyle = 'rgba(140,235,255,0.85)';
-        ctx.fillRect(x + sway - 1, c.top - h - 1, 2, 2);
-      }
-    } else if (bk === 'desert' || bk === 'rust') {
+    if (bk === 'desert' || bk === 'rust') {
       ctx.strokeStyle = bk === 'rust' ? 'rgba(90,42,28,0.35)' : 'rgba(122,92,52,0.3)';
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -2091,6 +2028,166 @@ function drawCaveShade() {
       for (let i = 0; i < N; i++) ctx.lineTo(i * cols.step, ceil[i] + 0.5);
       ctx.stroke();
       ctx.lineWidth = 1;
+    }
+    ctx = main;
+    terrKV = terrVer; terrKW = Wc; terrKH = Hc; terrKD = dpr;
+    terrKB = biome; terrKS = seed; terrKQ = Math.round(dayness * 48);
+  }
+  function drawTerrain() {
+    const N = cols.length;
+    const bk = biomeKey();
+    const un = biome.under || { strata: [[biome.sub[1], 26], [biome.sub[2], 54]], wobble: 8, dec: 'root', dep: 'dot', twink: '255,255,255', twN: 0 };
+    const dpr = window.devicePixelRatio || 1;
+    const dq = UNDER ? 0 : Math.round(dayness * 48);
+    if (!terrCv || terrKV !== terrVer || terrKW !== Wc || terrKH !== Hc || terrKD !== dpr || terrKB !== biome || terrKS !== seed || terrKQ !== dq) bakeTerrain();
+    // the whole static relief in one blit, then the living layers in
+    // their original paint order
+    ctx.drawImage(terrCv, 0, 0, Wc, Hc);
+    terrSilhouette();
+    ctx.save();
+    ctx.clip();
+    // living decals: the magma veins pulse, so they ride the frame pass
+    // with a void guard, like the twinkles below them
+    if (un.dec === 'magma') for (let i = 3; i < N; i += 5) {
+      const x = i * cols.step;
+      const st = cols[i].top;
+      const nz = noise(i * 4.9), nz2 = noise(i * 2.7);
+      if (nz > 0.5) {
+        const y0 = st + 12 + nz2 * 42;
+        if (inVoid(x, y0)) continue;
+        const pul = 0.3 + 0.45 * Math.max(0, Math.sin(gt * 1.4 + i * 0.7));
+        ctx.strokeStyle = `rgba(${lav().hot},${pul.toFixed(3)})`;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(x, y0);
+        ctx.quadraticCurveTo(x + 6, y0 - 5 - Math.sin(gt * 0.9 + i) * 2, x + 12, y0);
+        ctx.stroke();
+      }
+    }
+    ctx.lineWidth = 1;
+    // DEEP deposits: dots / shards / breathing cracks / crystal veins
+    if (soilTw.length !== un.twN || (soilTw.length && (soilTw[0].sd !== seed || soilTw[0].wc !== Wc))) {
+      soilTw = [];
+      for (let k = 0; k < un.twN; k++) {
+        const x = R(0, Wc);
+        const base = surfaceAt(x);
+        const y = clamp(base + R(12, Math.max(16, Hc - 6 - base)), base + 12, Hc - 4);
+        soilTw.push({ x, y, ph: R(0, 6.28), sp: R(0.5, 2.2), s: R(1.4, 2.6), seg: [R(-4, 4), R(-4, 4), R(-4, 4)], l: R(8, 18), sd: seed, wc: Wc });
+      }
+    }
+    for (let k = 0; k < soilTw.length; k++) {
+      const tw = soilTw[k];
+      if (inVoid(tw.x, tw.y) || tw.y < surfaceAt(tw.x) + 3) continue;
+      let a;
+      if (tw.dep === undefined) tw.dep = un.dep;
+      if (un.dep === 'crack') a = 0.3 + 0.4 * Math.max(0, Math.sin(gt * tw.sp + tw.ph));
+      else a = Math.pow(Math.max(0, Math.sin(gt * tw.sp + tw.ph)), un.dep === 'shard' ? 3 : 2);
+      if (a < 0.05) continue;
+      ctx.strokeStyle = `rgba(${un.twink},${(a * 0.9).toFixed(3)})`;
+      ctx.fillStyle = `rgba(${un.twink},${(a * 0.9).toFixed(3)})`;
+      if (un.dep === 'crack' || un.dep === 'vein') {
+        ctx.lineWidth = un.dep === 'crack' ? 1.5 : 1.2;
+        ctx.beginPath();
+        ctx.moveTo(tw.x, tw.y);
+        ctx.lineTo(tw.x + tw.seg[0], tw.y + tw.l * 0.35);
+        ctx.lineTo(tw.x + tw.seg[0] + tw.seg[1], tw.y + tw.l * 0.7);
+        ctx.lineTo(tw.x + tw.seg[0] + tw.seg[1] + tw.seg[2], tw.y + tw.l);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+      } else if (un.dep === 'shard') {
+        ctx.fillRect(tw.x, tw.y, 1.6, tw.l * 0.5 + 4);
+        ctx.fillRect(tw.x - 1, tw.y + 2, 0.8, 3);
+      } else {
+        ctx.fillRect(tw.x - tw.s / 2, tw.y, tw.s, tw.s);
+      }
+    }
+  // fuel pockets: the biome's own seams on the surface, the shared fossil
+  // seams (CAVE_FUEL) underground
+  const fuel = UNDER ? CAVE_FUEL : biome.fuel;
+    pockets.forEach(pk => {
+      if (pk.state !== 1 || !fuel) return;
+      if (inVoid(pk.cx, pk.cy)) return;
+      drawPocket(pk, fuel);
+    });
+    ctx.restore();
+    // burn / melt / the LIQUID LAVA POOLS breathe — they stay per frame
+    for (let i = 0; i < N; i++) {
+      const c = cols[i];
+      const x = i * cols.step, w = cols.step + 0.5;
+      if (c.burn > 0) {
+        ctx.globalAlpha = c.burn * 0.5;
+        ctx.fillStyle = '#c84818';
+        ctx.fillRect(x, c.top, w, 6 + c.burn * 7);
+        ctx.globalAlpha = 1;
+      }
+      if (c.melt > 0) {
+        const L = lav();
+        ctx.globalAlpha = c.melt * 0.8;
+        ctx.fillStyle = `rgb(${L.hot})`;
+        ctx.fillRect(x, c.top, w, 3 + c.melt * 6);
+        ctx.globalAlpha = c.melt * 0.55;
+        ctx.fillStyle = `rgb(${L.core})`;
+        ctx.fillRect(x, c.top, w, 2);
+        ctx.globalAlpha = 1;
+      }
+      // the pool: molten = live hot palette with a pulsing skin; cooling =
+      // the colour SLIDES to this world's own earth — the mass becomes ground
+      if (c.lava > 0.4) {
+        const L = lav();
+        const hot = c.lavaT < LAVA_MELT;
+        const cp = hot ? 0 : clamp((c.lavaT - LAVA_MELT) / (LAVA_COOL - LAVA_MELT), 0, 1);
+        const body = hot ? L.hot : mixTri(L.deep, hexTri(biome.sub[1]), cp);
+        const skin = hot ? L.core : mixTri(L.hot, hexTri(biome.surf), cp);
+        const top = c.top - c.lava;
+        ctx.fillStyle = hot
+          ? `rgba(${body},${(0.8 + Math.sin(gt * 8 + i) * 0.15).toFixed(2)})`
+          : `rgba(${body},${(0.92 - cp * 0.08).toFixed(2)})`;
+        ctx.fillRect(x, top, w, c.lava + 0.5);
+        ctx.fillStyle = hot
+          ? `rgba(${skin},0.9)`
+          : `rgba(${skin},${(0.7 * (1 - cp) + 0.28).toFixed(2)})`;
+        ctx.fillRect(x, top, w, Math.max(1, c.lava * 0.4));
+      }
+    }
+    // flora blocks — cave biomes never reach them, kept for surface worlds
+    if (bk === 'green') {
+      ctx.strokeStyle = 'rgba(52,92,32,0.9)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < N; i += 3) {
+        const c = cols[i];
+        if (c.surf <= 0 || c.burn > 0.2 || (c.h1 > 0 && c.h0 <= c.top + 2)) continue;
+        if (noise(i * 13.7) < 0.55) continue;
+        const x = i * cols.step;
+        const h = 3 + noise(i * 3.3) * 4;
+        const sway = Math.sin(gt * 1.6 + i * 0.7) * 1.2;
+        ctx.moveTo(x, c.top + 1);
+        ctx.lineTo(x + sway, c.top - h);
+        if (noise(i * 7.7) > 0.5) {
+          ctx.moveTo(x + 2, c.top + 1);
+          ctx.lineTo(x + 2 + sway * 0.7, c.top - h * 0.7);
+        }
+      }
+      ctx.stroke();
+    } else if (bk === 'xeno') {
+      for (let i = 0; i < N; i += 4) {
+        const c = cols[i];
+        if (c.surf <= 0 || c.burn > 0.2 || (c.h1 > 0 && c.h0 <= c.top + 2)) continue;
+        if (noise(i * 9.3) < 0.6) continue;
+        const x = i * cols.step;
+        const h = 3 + noise(i * 3.3) * 5;
+        const sway = Math.sin(gt * 1.3 + i * 0.5) * 1.2;
+        ctx.strokeStyle = 'rgba(150,105,215,0.9)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, c.top + 1);
+        ctx.quadraticCurveTo(x + sway * 0.4, c.top - h * 0.6, x + sway, c.top - h);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(140,235,255,0.85)';
+        ctx.fillRect(x + sway - 1, c.top - h - 1, 2, 2);
+      }
+    }
+    if (UNDER && ceil) {
       // fossil vents: dormant = a faint warm seam, erupting = a pulsing
       // furnace mouth in the rock, spent = a dead dark crack
       caveVents.forEach(v => {
@@ -3207,27 +3304,44 @@ function drawCaveShade() {
     if (y >= c.top) return (c.h1 > 0 && y >= c.h0 - 2 && y < c.h1) ? 0 : aimLumGround;
     return aimLumSky[clamp(Math.round((y / Hc) * AIM_LUM_BANDS), 0, AIM_LUM_BANDS)];
   }
+  // trajectory cache: the 140-step integration reruns only when the aim
+  // inputs move — angle, power, gun position, assist toggle or a terrain
+  // revision; the pulsing dots themselves stay live (they animate on gt)
+  const AIM_STEPS = 140;
+  const aimPts = [];
+  for (let i = 0; i < AIM_STEPS; i++) aimPts.push({ x: 0, y: 0 });
+  const aimPos = { x: 0, y: 0 }, aimVel = { vx: 0, vy: 0 };
+  const aimApex = { x: 0, y: 0 }, aimHitP = { x: 0, y: 0 };
+  let aimPtN = 0, aimHasHit = false;
+  let aimCA = 0, aimCP = 0, aimCX = 0, aimCY = 0, aimCD = 0, aimCV = -1, aimCS = 1;
   function drawAim() {
     const t = aimTank();
     const dir = aimDir();
-    const rad = aim.ang * Math.PI / 180;
-    const pos = { x: t.x + Math.cos(rad) * 18 * dir, y: t.y - 12 - Math.sin(rad) * 18 };
-    const vel = { vx: Math.cos(rad) * aim.pow * (VMAX / 100) * dir, vy: -Math.sin(rad) * aim.pow * (VMAX / 100) };
-    const dt = 1 / 60;
-    let apex = null;
-    let hit = null;
-    const pts = [];
-    for (let i = 0; scAssist && i < 140; i++) {
-      integrate(pos, vel, 0, dt);
-      pts.push({ x: pos.x, y: pos.y });
-      if (!apex || pos.y < apex.y) apex = { x: pos.x, y: pos.y };
-      if (pos.x < 0 || pos.x > Wc || pos.y > Hc) break;
-      if (pos.y < 0) break;
-      if (shotBlocked(pos.x, pos.y)) { hit = { x: pos.x, y: pos.y }; break; }
+    if (aimCA !== aim.ang || aimCP !== aim.pow || aimCX !== t.x || aimCY !== t.y || aimCD !== dir || aimCV !== terrVer || aimCS !== (scAssist ? 1 : 0)) {
+      aimCA = aim.ang; aimCP = aim.pow; aimCX = t.x; aimCY = t.y; aimCD = dir; aimCV = terrVer; aimCS = scAssist ? 1 : 0;
+      const rad = aim.ang * Math.PI / 180;
+      aimPos.x = t.x + Math.cos(rad) * 18 * dir;
+      aimPos.y = t.y - 12 - Math.sin(rad) * 18;
+      aimVel.vx = Math.cos(rad) * aim.pow * (VMAX / 100) * dir;
+      aimVel.vy = -Math.sin(rad) * aim.pow * (VMAX / 100);
+      const dt = 1 / 60;
+      let n = 0, apex = false;
+      aimHasHit = false;
+      for (let i = 0; scAssist && i < AIM_STEPS; i++) {
+        integrate(aimPos, aimVel, 0, dt);
+        const q = aimPts[n];
+        q.x = aimPos.x; q.y = aimPos.y;
+        n++;
+        if (!apex || aimPos.y < aimApex.y) { aimApex.x = aimPos.x; aimApex.y = aimPos.y; apex = true; }
+        if (aimPos.x < 0 || aimPos.x > Wc || aimPos.y > Hc) break;
+        if (aimPos.y < 0) break;
+        if (shotBlocked(aimPos.x, aimPos.y)) { aimHitP.x = aimPos.x; aimHitP.y = aimPos.y; aimHasHit = true; break; }
+      }
+      aimPtN = n;
     }
     if (!UNDER) aimLumSync();
-    for (let i = 5; i < pts.length; i += 6) {
-      const q = pts[i];
+    for (let i = 5; i < aimPtN; i += 6) {
+      const q = aimPts[i];
       // two-layer dot: tone flips with the LOCAL background (dark bg ->
       // light marker), rim always contrasts the core; alpha pulse keeps
       // a visibility floor instead of fading the dots out
@@ -3239,34 +3353,34 @@ function drawCaveShade() {
       ctx.beginPath(); ctx.arc(q.x, q.y, 2, 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = 1;
-    if (hit) {
-      const darkBg = UNDER || aimBgLum(hit.x, hit.y) < 0.5;
+    if (aimHasHit) {
+      const darkBg = UNDER || aimBgLum(aimHitP.x, aimHitP.y) < 0.5;
       // contrast rim under the accent stroke keeps the cross readable
       ctx.strokeStyle = UNDER ? 'rgba(255,196,110,0.9)' : darkBg ? AIM_HALO_LIGHT : AIM_HALO_DARK;
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.moveTo(hit.x - 5, hit.y - 5); ctx.lineTo(hit.x + 5, hit.y + 5);
-      ctx.moveTo(hit.x + 5, hit.y - 5); ctx.lineTo(hit.x - 5, hit.y + 5);
+      ctx.moveTo(aimHitP.x - 5, aimHitP.y - 5); ctx.lineTo(aimHitP.x + 5, aimHitP.y + 5);
+      ctx.moveTo(aimHitP.x + 5, aimHitP.y - 5); ctx.lineTo(aimHitP.x - 5, aimHitP.y + 5);
       ctx.stroke();
       ctx.strokeStyle = UNDER ? '#ff9b2f' : darkBg ? AIM_HI_LIGHT : AIM_HI_DARK;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(hit.x - 5, hit.y - 5); ctx.lineTo(hit.x + 5, hit.y + 5);
-      ctx.moveTo(hit.x + 5, hit.y - 5); ctx.lineTo(hit.x - 5, hit.y + 5);
+      ctx.moveTo(aimHitP.x - 5, aimHitP.y - 5); ctx.lineTo(aimHitP.x + 5, aimHitP.y + 5);
+      ctx.moveTo(aimHitP.x + 5, aimHitP.y - 5); ctx.lineTo(aimHitP.x - 5, aimHitP.y + 5);
       ctx.stroke();
       ctx.globalAlpha = 0.5;
-      ctx.beginPath(); ctx.arc(hit.x, hit.y, ARSENAL[currentCur()].r * 0.4, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(aimHitP.x, aimHitP.y, ARSENAL[currentCur()].r * 0.4, 0, Math.PI * 2); ctx.stroke();
       ctx.globalAlpha = 1;
     }
-    if (apex && Math.abs(wind) > 0.8 && !UNDER) {
+    if (aimPtN && Math.abs(wind) > 0.8 && !UNDER) {
       const ch = wind < 0 ? '‹' : '›';
-      const darkBg = aimBgLum(apex.x, apex.y) < 0.5;
+      const darkBg = aimBgLum(aimApex.x, aimApex.y) < 0.5;
       ctx.font = 'bold 13px Orbitron, monospace';
       ctx.strokeStyle = darkBg ? AIM_HALO_LIGHT : AIM_HALO_DARK;
       ctx.lineWidth = 3;
-      ctx.strokeText(ch.repeat(Math.round(Math.abs(wind))), apex.x - 14, apex.y - 10);
+      ctx.strokeText(ch.repeat(Math.round(Math.abs(wind))), aimApex.x - 14, aimApex.y - 10);
       ctx.fillStyle = darkBg ? AIM_HI_LIGHT : AIM_HI_DARK;
-      ctx.fillText(ch.repeat(Math.round(Math.abs(wind))), apex.x - 14, apex.y - 10);
+      ctx.fillText(ch.repeat(Math.round(Math.abs(wind))), aimApex.x - 14, aimApex.y - 10);
     }
     if (drag && drag.moved) {
       const cy = t.y - 12;
@@ -4779,7 +4893,7 @@ function drawCaveShade() {
     }
     groundPat = null;
     buildGroundTex();
-    dirtyA = 0; dirtyB = N - 1;
+    dirtyA = 0; dirtyB = N - 1; terrVer++;
   }
   
   function resize() {

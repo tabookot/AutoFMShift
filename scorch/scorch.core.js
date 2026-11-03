@@ -137,6 +137,13 @@ let stars = [];
 let skyLight = { x: -999, col: '255,255,255', a: 0 };
 let digSid = 0;
 let dirtyA = 0, dirtyB = 0;
+// terrain geometry revision: every real deform bumps it, and the baked
+// terrain + the aim preview recompute only when it moves. terrMicro is
+// the throttled bump for CONTINUOUS sub-pixel drifts (lava beds,
+// smoldering fires, drifting grains) where a per-frame rebake would be
+// wasted work
+let terrVer = 0, terrMicroT = -1;
+function terrMicro() { if (gt - terrMicroT > 0.15) { terrMicroT = gt; terrVer++; } }
 let raf = null, last = 0, gt = 0, skyT = 0, cloudOff = 0;
 let aim = { ang: 45, pow: 55 }, aiAim = 55;
 let seatAim = [{ ang: 45, pow: 55 }, { ang: 45, pow: 55 }];

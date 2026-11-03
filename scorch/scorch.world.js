@@ -227,7 +227,7 @@ function genTerrain() {
   for (let i = 4; i < N - 4; i++) hi = Math.min(hi, cols[i].top);
   if (waterLevel < hi + 26) waterLevel = hi + 26;
   windDir = S() < 0.5 ? -1 : 1;
-  dirtyA = 0; dirtyB = N - 1;
+  dirtyA = 0; dirtyB = N - 1; terrVer++;
   waterReset();
 
   // ============ UNDERGROUND: build the cave ============
@@ -510,7 +510,7 @@ function volcBreach(x, y, w) {
         cols[i].melt = 1; cols[i].surf = 0;
       }
     }
-    dirtyA = Math.min(dirtyA, a); dirtyB = Math.max(dirtyB, b);
+    dirtyA = Math.min(dirtyA, a); dirtyB = Math.max(dirtyB, b); terrVer++;
   };
   if (t === 'digger' || t === 'plasma') {
     fx.push({ k: 'flash', x, y, r: 18, t: 0, life: 0.12, col: `rgb(${lav().glow})` });
@@ -920,7 +920,7 @@ function placeTanks(final) {
         const fall = 1 - Math.abs(k) / 8;
         cols[j].top = Math.min(cols[j].top, need + (1 - fall) * 20);
       }
-      dirtyA = Math.min(dirtyA, c - 7); dirtyB = Math.max(dirtyB, c + 7);
+      dirtyA = Math.min(dirtyA, c - 7); dirtyB = Math.max(dirtyB, c + 7); terrVer++;
     }
   });
   tanks = [
@@ -1011,7 +1011,7 @@ function placeTanks(final) {
         const fall = 1 - Math.abs(k) / 25;
         cols[j].top = Math.min(cols[j].top, crest + 36 * (1 - fall));
       }
-      dirtyA = Math.min(dirtyA, mi - 16); dirtyB = Math.max(dirtyB, ci + 25);
+      dirtyA = Math.min(dirtyA, mi - 16); dirtyB = Math.max(dirtyB, ci + 25); terrVer++;
     });
   }
 //scorch.world.js part02
@@ -1029,7 +1029,7 @@ function placeTanks(final) {
         const bench = d < 14 ? t.y + 0.4 : t.y + 0.4 + (d - 14) * rs;
         if (cols[i].top > bench) {
           cols[i].top = bench;
-          dirtyA = Math.min(dirtyA, i); dirtyB = Math.max(dirtyB, i + 1);
+          dirtyA = Math.min(dirtyA, i); dirtyB = Math.max(dirtyB, i + 1); terrVer++;
         } else if (d >= 14) break;
       }
     }
@@ -1171,7 +1171,7 @@ function craterMask(cx, r, pow, mode, form, melt) {
   }
   if (list.length) {
     terraJobs.push({ t: 0, cols: list });
-    dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1);
+    dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1); terrVer++;
   }
 }
 
@@ -1185,7 +1185,7 @@ function subsideColumn(i, quiet) {
   c.h0 = 0; c.h1 = 0; c.sid = 0;
   c.surf *= 0.7;
   if (!quiet && Math.random() < 0.5 && fx.length < 380) fx.push({ k: 'dust', x: i * cols.step, y: c.top, vx: R(-10, 10), vy: -R(10, 40), r: R(2, 5), t: 0, life: R(0.5, 1.1), col: M().dustCol });
-  dirtyA = Math.min(dirtyA, i); dirtyB = Math.max(dirtyB, i + 1);
+  dirtyA = Math.min(dirtyA, i); dirtyB = Math.max(dirtyB, i + 1); terrVer++;
   return drop;
 }
 // the void TRACKS the drill: floor extends to it, ceiling rises with it
@@ -1219,7 +1219,7 @@ function carve(x, y, rad, sid) {
     if (c.h1 > 0 && c.h1 <= c.h0 + 2) { c.h0 = 0; c.h1 = 0; c.sid = 0; }
     if (c.h1 > 0 && c.h0 <= c.top + 2) c.surf *= 0.9;
   }
-  dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1);
+  dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1); terrVer++;
 }
 
 function carveLine(x0, y0, x1, y1, rad, sid) {
@@ -1279,7 +1279,7 @@ function slump(i0, i1, rounds) {
     }
     if (!moved) break;
   }
-  dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1);
+  dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1); terrVer++;
   for (let i = i0; i <= i1; i += 3) {
     if (Math.random() < 0.4 && fx.length < 380) fx.push({ k: 'dust', x: i * cols.step, y: surfaceAt(i * cols.step) - 2, vx: R(-8, 8), vy: -R(6, 20), r: R(2, 4), t: 0, life: R(0.5, 1), col: M().dustCol });
   }
@@ -1319,7 +1319,7 @@ function smoothGround(i0, i1, rounds) {
       cols[i0 + k].top = src[k] * 0.42 + (src[k - 1] + src[k + 1]) * 0.2 + (src[k - 2] + src[k + 2]) * 0.09;
     }
   }
-  dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1 + 1);
+  dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1 + 1); terrVer++;
 }
 
 function digTrench(x, y, ang, len, rad) {
@@ -1373,6 +1373,7 @@ function ceilingCrush(x, r) {
     mass += (before - ceil[i]) * cols.step;
   }
   const n = Math.round(clamp(mass / 90, 4, 26));
+  terrVer++; // the ceiling tore open: the baked ceiling follows
   for (let k = 0; k < n; k++) {
     const cx = x + R(-r * 0.5, r * 0.5);
     debris.push({ x: cx, y: ceilAt(cx) - R(2, 10), vx: R(-24, 24), vy: R(30, 90), rot: R(0, 6.28), vr: R(-5, 5), s: R(1.6, 3.6), col: M().chunks[(Math.random() * M().chunks.length) | 0], settled: false, life: 12 });
@@ -1402,6 +1403,7 @@ function growStalactite(x, r) {
     if (L.x < x - r || L.x > x + r) continue;
     if (L.k === 'beam' ? ceilAt(L.x) > L.y + 2 : ceilAt(L.x) > L.y + L.g * 0.4) caveLights.splice(q, 1);
   }
+  terrVer++; // the stalactite grew into the baked ceiling
 }
 
 // a nuke tearing into the cave ceiling: the torn rock pours back down as
@@ -1420,7 +1422,7 @@ function growCeilColumn(x, r) {
   }
   if (list.length) {
     terraJobs.push({ t: 0, cols: list });
-    dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1);
+    dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1); terrVer++;
   }
   tanks.forEach((tk, i) => {
     if (canHurt(i) && Math.abs(tk.x - x) < r * 0.85) addTerrDmg(i, 18, 'завал');
@@ -1483,6 +1485,8 @@ function stepTerra(dt) {
     }
     return live;
   });
+  // a live job eases its column tops every frame — the bake must follow
+  if (terraJobs.length) terrVer++;
   const ms = M().slope * 1.6;
   const K = 3 * dt;
   // per-column threshold jitter: the continuous relaxation otherwise
@@ -1490,8 +1494,8 @@ function stepTerra(dt) {
   for (let i = Math.max(1, dirtyA); i < Math.min(cols.length - 1, dirtyB); i++) {
     const msi = ms * (0.55 + noise(i * 0.47) * 0.9);
     const diff = cols[i + 1].top - cols[i].top;
-    if (diff > msi) { const q = Math.min((diff - msi) * 0.25, K * 20); cols[i].top += q; cols[i + 1].top -= q; }
-    else if (diff < -msi) { const q = Math.min((-diff - msi) * 0.25, K * 20); cols[i].top -= q; cols[i + 1].top += q; }
+    if (diff > msi) { const q = Math.min((diff - msi) * 0.25, K * 20); cols[i].top += q; cols[i + 1].top -= q; terrMicro(); }
+    else if (diff < -msi) { const q = Math.min((-diff - msi) * 0.25, K * 20); cols[i].top -= q; cols[i + 1].top += q; terrMicro(); }
   }
   // wind-driven creep of the drift worlds
   if (biome.mat.drift) {
@@ -1518,7 +1522,7 @@ function stepTerra(dt) {
           }
         }
       }
-      dirtyA = 2; dirtyB = N - 2;
+      dirtyA = 2; dirtyB = N - 2; terrMicro();
     }
   }
   cols.forEach(c => {
@@ -1543,6 +1547,7 @@ function stepTerra(dt) {
     }
     if (c.lavaT < LAVA_MELT) {
       c.top = Math.min(Hc - 6, c.top + dt * (LAVA_BURN + c.lava * 0.05));
+      terrMicro();
       c.burn = Math.max(c.burn, 0.9); c.surf *= 0.92; c.melt = Math.max(c.melt || 0, 0.85);
       if (Math.random() < dt * 1.5) igniteAt(x, c.top + 6, 8 + c.lava * 0.4, 'lava');
       tanks.forEach((tk, ti) => {
@@ -1568,6 +1573,7 @@ function stepTerra(dt) {
     } else if (c.lavaT < LAVA_COOL) {
       const q = Math.min(c.lava, (wet ? LAVA_FILL_WET : LAVA_FILL) * dt);
       c.lava -= q; c.top -= q;
+      terrMicro();
       if (c.lava <= 0.4) { c.lava = 0; c.melt *= 0.4; }
     } else c.lava = 0;
     dirtyA = Math.min(dirtyA, i); dirtyB = Math.max(dirtyB, i + 1);
@@ -1628,7 +1634,7 @@ function stepTerra(dt) {
           const gx = R(pk.x0, pk.x1);
           lavaBits.push({ x: gx, y: surfaceAt(gx) - 2, vx: R(-40, 40), vy: -R(120, 220), t: 0, life: R(1, 1.8), s: R(1.4, 2.2) });
         }
-        dirtyA = Math.min(dirtyA, ga); dirtyB = Math.max(dirtyB, gb + 1);
+        dirtyA = Math.min(dirtyA, ga); dirtyB = Math.max(dirtyB, gb + 1); terrVer++;
       } else {
         for (let k = 0; k < 3; k++) {
           const fxp = R(pk.x0, pk.x1);
@@ -1705,6 +1711,7 @@ function igniteAt(x, y, r, kind) {
 // blast that tears most of the seam's PERIMETER at once (or a giant MEGA
 // seam) detonates the whole pocket instead
 function ignitePocket(pk, r, kind) {
+  terrVer++; // the seam leaves the terrain bake the moment it lights up
   if (pk.mega || r * 2 >= (pk.x1 - pk.x0) * 1.4) {
     pk.state = 2;
     schedule(() => pocketDetonate(pk), R(0.06, 0.25));
@@ -1969,8 +1976,13 @@ function stepPlasmaOrbs(dt) {
 function stepFx(dt) {
   shake = Math.max(0, shake - dt * (4 + shake * 4));
   stepPlasmaOrbs(dt);
-  const fxOld = fx, fxLen0 = fxOld.length;
-  const fxKept = fxOld.filter(f => {
+  // fx: in-place compaction — the old filter+concat rebuilt two arrays
+  // every frame; particles spawned by the step itself move down behind
+  // the compacted block, exactly like the old tail concat kept them
+  const fxLen0 = fx.length;
+  let fxW = 0;
+  for (let fxi = 0; fxi < fxLen0; fxi++) {
+    const f = fx[fxi];
     f.t += dt;
     if (f.k === 'wring') { f.r += f.vr * dt; }
     if (f.k === 'dust') { f.x += f.vx * dt; f.y += f.vy * dt; f.vy *= (1 - dt * 0.6); f.r += 14 * dt; }
@@ -2018,18 +2030,18 @@ function stepFx(dt) {
         }
       }
     }
-    return f.t < f.life;
-  });
-  fx = fxKept.concat(fxOld.slice(fxLen0));
+    if (f.t < f.life) fx[fxW++] = f;
+  }
+  for (let i = fxLen0; i < fx.length; i++) fx[fxW++] = fx[i];
+  fx.length = fxW;
   if (fx.length > 600) {
-    let over = fx.length - 600;
-    const fxCap = [];
+    let over = fx.length - 600, cw = 0;
     for (let i = 0; i < fx.length; i++) {
       const f = fx[i];
       if (over > 0 && (f.k === 'dust' || f.k === 'smoke' || f.k === 'vsmoke' || f.k === 'wisp' || f.k === 'sed' || f.k === 'bubble' || f.k === 'drop' || f.k === 'splash' || f.k === 'wring')) { over--; continue; }
-      fxCap.push(f);
+      fx[cw++] = f;
     }
-    fx = fxCap;
+    fx.length = cw;
   }
   debris = debris.filter(d => {
     d.life -= dt;
@@ -2048,7 +2060,7 @@ function stepFx(dt) {
         const c = cols[ci];
         if (d.s > 1.6 && d.y < c.top + 2 && !(c.h1 > 0 && d.y >= c.h0 - 2)) {
           c.top = Math.min(c.top, Math.max(6, d.y + d.s * 0.3));
-          dirtyA = Math.min(dirtyA, ci); dirtyB = Math.max(dirtyB, ci);
+          dirtyA = Math.min(dirtyA, ci); dirtyB = Math.max(dirtyB, ci); terrVer++;
         }
       }
     } else {
@@ -2104,6 +2116,7 @@ function stepFx(dt) {
     c.burn = Math.max(c.burn, 0.5);
     if (!fp.volc && c.h1 <= 0 && c.top < Hc - 8 && Math.random() < dt * 5) {
       c.top += 0.22;
+      terrMicro();
       dirtyA = Math.min(dirtyA, ci); dirtyB = Math.max(dirtyB, ci + 1);
     }
     // `soft` marks the fires of the seams and the cave crystals: they
@@ -2968,6 +2981,7 @@ function newGrain() {
   const sl = Math.abs(slopeAt(x));
   if (Math.random() > clamp(0.85 - sl * 4, 0.1, 0.85)) return null;
   c.top += 0.9;
+  terrMicro();
   dirtyA = Math.min(dirtyA, ci); dirtyB = Math.max(dirtyB, ci + 1);
   return { x, y: sy - 2, vx: wind * R(30, 60), vy: -R(4, 16), t: 0, s: R(1.4, 2.4), val: 0.9 };
 }
@@ -2979,6 +2993,7 @@ function bakeGrain(g) {
   if (c.h1 > 0 || c.top < 8) return;
   const nb = Math.min(cols[clamp(ci - 2, 0, N - 1)].top, cols[clamp(ci + 2, 0, N - 1)].top);
   c.top = Math.max(c.top - g.val, nb - 5);
+  terrMicro();
   dirtyA = Math.min(dirtyA, ci); dirtyB = Math.max(dirtyB, ci + 1);
 }
 function stepGrains(dt) {
@@ -3616,7 +3631,21 @@ function step(dt) {
     updateProjectile(shot, dt);
     if (shot && shot.dead) { resolveHit(shot); shot = null; }
   }
-  subshots = subshots.filter(s => { updateProjectile(s, dt); if (s.dead) { resolveHit(s); return false; } return true; });
+  // subshots: in-place compaction — no filter array per frame; children
+  // pushed mid-frame (MIRV splits) ride behind the compacted block
+  // instead of being dropped by the old filter
+  {
+    const n0 = subshots.length;
+    let w = 0;
+    for (let i = 0; i < n0; i++) {
+      const s = subshots[i];
+      updateProjectile(s, dt);
+      if (s.dead) { resolveHit(s); continue; }
+      subshots[w++] = s;
+    }
+    for (let i = n0; i < subshots.length; i++) subshots[w++] = subshots[i];
+    subshots.length = w;
+  }
   // roller/digger first ground touch: hand the turn over AT ONCE — the shot
   // keeps rolling/drilling as a background subshot (bg), and its later blast
   // touches no turn state, like napalm's fire outliving its own turn
@@ -3628,20 +3657,34 @@ function step(dt) {
   }
   // the in-flight hum: glued to whichever shell is airborne right now
   if (typeof flySync === 'function') flySync();
-  liquids = liquids.filter(l => { updateLiquid(l, dt); return !l.dead; });
-  sinkers = sinkers.filter(sk => {
-    sk.t += dt;
-    const bed = floorAt(sk.x, sk.y);
-    if (sk.y < bed - 4) {
-      sk.y = Math.min(sk.y + 26 * dt, bed - 4);
-      sk.x += Math.sin(sk.t * 2) * 0.4;
-      if (Math.random() < dt * 0.8) pushRipple(sk.x, 1.6);
-      if (Math.random() < dt * 3) fx.push({ k: 'sed', x: sk.x + R(-6, 6), y: sk.y - 6, vx: 0, vy: R(3, 8), t: 0, life: R(0.6, 1.4), s: R(1, 1.8) });
-    } else if (Math.random() < dt * 0.5) {
-      fx.push({ k: 'bubble', x: sk.x + R(-3, 3), y: sk.y - 8, vy: -R(14, 30), wob: R(0, 6.28), t: 0, life: R(0.8, 1.6), s: R(1, 2) });
+  // liquids/sinkers: in-place compaction, same keep rules, zero allocs
+  {
+    let w = 0;
+    for (let i = 0; i < liquids.length; i++) {
+      const l = liquids[i];
+      updateLiquid(l, dt);
+      if (!l.dead) liquids[w++] = l;
     }
-    return sk.y < Hc - 2;
-  });
+    liquids.length = w;
+  }
+  {
+    let w = 0;
+    for (let i = 0; i < sinkers.length; i++) {
+      const sk = sinkers[i];
+      sk.t += dt;
+      const bed = floorAt(sk.x, sk.y);
+      if (sk.y < bed - 4) {
+        sk.y = Math.min(sk.y + 26 * dt, bed - 4);
+        sk.x += Math.sin(sk.t * 2) * 0.4;
+        if (Math.random() < dt * 0.8) pushRipple(sk.x, 1.6);
+        if (Math.random() < dt * 3) fx.push({ k: 'sed', x: sk.x + R(-6, 6), y: sk.y - 6, vx: 0, vy: R(3, 8), t: 0, life: R(0.6, 1.4), s: R(1, 1.8) });
+      } else if (Math.random() < dt * 0.5) {
+        fx.push({ k: 'bubble', x: sk.x + R(-3, 3), y: sk.y - 8, vy: -R(14, 30), wob: R(0, 6.28), t: 0, life: R(0.8, 1.6), s: R(1, 2) });
+      }
+      if (sk.y < Hc - 2) sinkers[w++] = sk;
+    }
+    sinkers.length = w;
+  }
   stepTerra(dt * 2.2);
   stepFx(dt * 1.6);
   stepWater(dt);
@@ -3678,7 +3721,7 @@ function step(dt) {
           cols[i].melt = 1; cols[i].surf = 0;
         }
       }
-      dirtyA = Math.min(dirtyA, bi0); dirtyB = Math.max(dirtyB, bi1);
+      dirtyA = Math.min(dirtyA, bi0); dirtyB = Math.max(dirtyB, bi1); terrVer++;
       volcScan();
       const v0 = volcano.craters[0];
       if (v0) for (let k = 0; k < 14; k++) emitLavaFrom(v0, true);
@@ -3703,6 +3746,7 @@ function step(dt) {
         cols[cr.i].burn = Math.max(cols[cr.i].burn, 0.7);
         if (cols[cr.i].top < capY) {
           cols[cr.i].top += dt * 0.45;
+          terrMicro();
           dirtyA = Math.min(dirtyA, cr.i); dirtyB = Math.max(dirtyB, cr.i + 1);
         }
         if (Math.random() < dt * 0.6) firePatches.push({ x: cr.x, y: cr.y, life: 0.6, volc: true });
@@ -3724,7 +3768,14 @@ function step(dt) {
     comets.push({ x: R(0, Wc * 1.1), y: R(10, Hc * 0.3), vx: -R(160, 380), vy: R(30, 110), t: 0, life: R(0.8, 2), sz: R(1, 2.4) });
   }
   comets.forEach(c => { c.x += c.vx * dt; c.y += c.vy * dt; c.t += dt; });
-  comets = comets.filter(c => c.t < c.life);
+  {
+    let w = 0;
+    for (let i = 0; i < comets.length; i++) {
+      const c = comets[i];
+      if (c.t < c.life) comets[w++] = c;
+    }
+    comets.length = w;
+  }
 
   stepWorm(dt);
   stepJunks(dt);
