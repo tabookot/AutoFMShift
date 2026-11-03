@@ -3174,7 +3174,39 @@ function drawCaveShade() {
     ctx.fillStyle = biome.surf;
     grains.forEach(g => ctx.fillRect(g.x, g.y, g.s, g.s));
   }
-  //scorch.ui.js part03
+  // ---- aim marker contrast: local background luminance (drawAim) ----
+  // Sky tone follows the live day palette (tod.stops blended toward
+  // biome.pal.day by dayness), ground follows biome.surf, dug tunnels
+  // count as dark; caves keep the warm cave look and skip sampling.
+  // The band LUT rebuilds only when the biome or the day-cycle quantum
+  // changes, so aim frames stay allocation-free.
+  const AIM_HALO_DARK = 'rgba(15,30,55,0.8)'; // rim over a light background
+  const AIM_HALO_LIGHT = 'rgba(255,255,255,0.85)'; // rim over a dark background
+  const AIM_HI_DARK = '#b34a00'; // indColHi() day flavor
+  const AIM_HI_LIGHT = '#ffb020'; // indColHi() night flavor
+  const AIM_LUM_BANDS = 12;
+  let aimLumB = null, aimLumP = -1, aimLumSky = null, aimLumGround = 0;
+  function aimLumSync() {
+    const p = Math.round(cycleT * 512);
+    if (aimLumB === biome && aimLumP === p) return;
+    aimLumB = biome;
+    aimLumP = p;
+    const pal = biome.pal;
+    aimLumSky = [];
+    for (let b = 0; b <= AIM_LUM_BANDS; b++) {
+      const u = b / AIM_LUM_BANDS;
+      let c = sampleStops(tod.stops, u);
+      if (pal && pal.day) c = mixColA(c, sampleStops(pal.day, u), dayness);
+      aimLumSky.push((0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255);
+    }
+    const s = parseCol(biome.surf);
+    aimLumGround = (0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2]) / 255;
+  }
+  function aimBgLum(x, y) {
+    const c = colAt(x);
+    if (y >= c.top) return (c.h1 > 0 && y >= c.h0 - 2 && y < c.h1) ? 0 : aimLumGround;
+    return aimLumSky[clamp(Math.round((y / Hc) * AIM_LUM_BANDS), 0, AIM_LUM_BANDS)];
+  }
   function drawAim() {
     const t = aimTank();
     const dir = aimDir();
@@ -3193,18 +3225,30 @@ function drawCaveShade() {
       if (pos.y < 0) break;
       if (shotBlocked(pos.x, pos.y)) { hit = { x: pos.x, y: pos.y }; break; }
     }
-    const halo = UNDER ? 'rgba(255,196,110,0.8)' : isDayT() ? 'rgba(15,30,55,0.8)' : 'rgba(255,255,255,0.85)';
+    if (!UNDER) aimLumSync();
     for (let i = 5; i < pts.length; i += 6) {
       const q = pts[i];
-      ctx.globalAlpha = 0.55 + 0.45 * Math.sin(gt * 4 - i * 0.22);
-      ctx.fillStyle = halo;
+      // two-layer dot: tone flips with the LOCAL background (dark bg ->
+      // light marker), rim always contrasts the core; alpha pulse keeps
+      // a visibility floor instead of fading the dots out
+      const darkBg = UNDER || aimBgLum(q.x, q.y) < 0.5;
+      ctx.globalAlpha = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(gt * 4 - i * 0.22));
+      ctx.fillStyle = UNDER ? 'rgba(255,196,110,0.8)' : darkBg ? AIM_HALO_LIGHT : AIM_HALO_DARK;
       ctx.beginPath(); ctx.arc(q.x, q.y, 3.4, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = UNDER ? '#ff9b2f' : indColHi();
+      ctx.fillStyle = UNDER ? '#ff9b2f' : darkBg ? AIM_HI_LIGHT : AIM_HI_DARK;
       ctx.beginPath(); ctx.arc(q.x, q.y, 2, 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = 1;
     if (hit) {
-      ctx.strokeStyle = UNDER ? '#ff9b2f' : indColHi();
+      const darkBg = UNDER || aimBgLum(hit.x, hit.y) < 0.5;
+      // contrast rim under the accent stroke keeps the cross readable
+      ctx.strokeStyle = UNDER ? 'rgba(255,196,110,0.9)' : darkBg ? AIM_HALO_LIGHT : AIM_HALO_DARK;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(hit.x - 5, hit.y - 5); ctx.lineTo(hit.x + 5, hit.y + 5);
+      ctx.moveTo(hit.x + 5, hit.y - 5); ctx.lineTo(hit.x - 5, hit.y + 5);
+      ctx.stroke();
+      ctx.strokeStyle = UNDER ? '#ff9b2f' : darkBg ? AIM_HI_LIGHT : AIM_HI_DARK;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(hit.x - 5, hit.y - 5); ctx.lineTo(hit.x + 5, hit.y + 5);
@@ -3216,11 +3260,12 @@ function drawCaveShade() {
     }
     if (apex && Math.abs(wind) > 0.8 && !UNDER) {
       const ch = wind < 0 ? '‹' : '›';
+      const darkBg = aimBgLum(apex.x, apex.y) < 0.5;
       ctx.font = 'bold 13px Orbitron, monospace';
-      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.strokeStyle = darkBg ? AIM_HALO_LIGHT : AIM_HALO_DARK;
       ctx.lineWidth = 3;
       ctx.strokeText(ch.repeat(Math.round(Math.abs(wind))), apex.x - 14, apex.y - 10);
-      ctx.fillStyle = indColHi();
+      ctx.fillStyle = darkBg ? AIM_HI_LIGHT : AIM_HI_DARK;
       ctx.fillText(ch.repeat(Math.round(Math.abs(wind))), apex.x - 14, apex.y - 10);
     }
     if (drag && drag.moved) {
@@ -3230,8 +3275,13 @@ function drawCaveShade() {
       ctx.setLineDash([3, 5]);
       ctx.beginPath(); ctx.moveTo(t.x, cy); ctx.lineTo(drag.x, drag.y); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.strokeStyle = indColHi();
+      // power arc: contrast rim underlay + accent stroke
+      const darkBg = UNDER || aimBgLum(t.x, cy - 16) < 0.5;
+      ctx.strokeStyle = UNDER ? 'rgba(255,196,110,0.9)' : darkBg ? AIM_HALO_LIGHT : AIM_HALO_DARK;
       ctx.globalAlpha = 0.35;
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(t.x, cy, 14 + aim.pow * 0.45, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = UNDER ? '#ff9b2f' : darkBg ? AIM_HI_LIGHT : AIM_HI_DARK;
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(t.x, cy, 14 + aim.pow * 0.45, 0, Math.PI * 2); ctx.stroke();
       ctx.globalAlpha = 1;

@@ -4,6 +4,7 @@ Python 3.8+, только стандартная библиотека. Запу�
 
 | Файл | Назначение |
 |---|---|
+| AutoFMShift_post_patch.bat | Сборка релиза после патчей со сдвигом версии, сборкой бандла и тестами  |
 | set_version.py | Меняет `VERSION` в core.js, `?v=` у локальных `<script>`/`<link>` и `SC_BUILD` в scorch/scorch.js. Использование: `python tools/set_version.py X.Y.Z` |
 | build_scorch.py | Собирает `scorch/scorch.bundle.js` из частей Scorch. `--check` возвращает код 1, если бандл устарел |
 | embed_attribution.py | Превращает `scorch/samples/ATTRIBUTION.txt` в `scorch/scorch.credits.js` |
