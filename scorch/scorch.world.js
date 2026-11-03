@@ -229,6 +229,7 @@ function genTerrain() {
   windDir = S() < 0.5 ? -1 : 1;
   dirtyA = 0; dirtyB = N - 1; terrVer++;
   waterReset();
+  rollWeather();
 
   // ============ UNDERGROUND: build the cave ============
   if (UNDER) {
@@ -3577,6 +3578,106 @@ function stepMoonSys(dt) {
   if (!moonSys) return;
   moonSys.forEach(mo => { mo.ang = (mo.ang + mo.spd * dt) % (Math.PI * 2); });
 }
+// ============ WEATHER: per-biome roll (terrain gen) ============
+// rain on the living worlds, snow on arctic, ash on the burnt ones;
+// caves get none; rain and ash can roll a storm (lightning), snow stays
+// calm. Visual only - no accumulation, no gameplay effect
+function rollWeather() {
+  wx.on = 0; wx.kind = 0; wx.pow = 0; wx.storm = 0; wx.rebolt = 0;
+  wx.boltT = 0; wx.flashT = 0; wx.nextBolt = R(8, 20);
+  wx.sat = 0;
+  const kind = { green: 1, xeno: 1, arctic: 2, volcanic: 3, ashen: 3, rust: 3 }[biomeKey()] || 0;
+  if (UNDER || !kind) return;
+  if (Math.random() >= (kind === 2 ? 0.5 : 0.62)) return;
+  wx.kind = kind;
+  wx.pow = R(0.45, 1);
+  // storms: heavy rain on the living worlds, dry heat-lightning on the
+  // burnt ones; snow stays calm - the arctic night belongs to the aurora
+  wx.storm = (kind === 1 || kind === 3) && wx.pow > 0.6 && Math.random() < (kind === 3 ? 0.4 : 0.5) ? 1 : 0;
+  if (wx.storm) wx.nextBolt = R(2.5, 6);
+  wx.on = 1;
+  const P = wx.p;
+  for (let i = 0; i < P.length; i++) {
+    const p = P[i];
+    p.x = R(-60, Wc * 1.08); p.y = R(-40, Hc); p.vx = 0; p.vy = Math.random();
+    p.ph = R(0, 6.28);
+    p.sz = kind === 2 ? R(1.2, 2.4) : kind === 3 ? R(1, 2) : 1;
+  }
+}
+
+// bolt polyline: a jagged drop from the cloud deck to the terrain
+// surface under px (eased so the head accelerates, tail snapped to the
+// ground); gx/gy keep the impact point for the ground bloom
+function genBolt() {
+  const B = wx.boltP, m = B.length - 1;
+  const px = R(40, Wc - 40);
+  const gi = clamp(Math.round(px / cols.step), 0, cols.length - 1);
+  const gy = cols[gi].top - 2;
+  const y0 = R(6, Hc * 0.12);
+  for (let i = 0; i <= m; i++) {
+    const u = i / m;
+    B[i].x = px + R(-26, 30) * (1 - u * 0.55);
+    B[i].y = y0 + (gy - y0) * (u * u);
+  }
+  B[m].x = px; B[m].y = gy;
+  wx.gx = px; wx.gy = gy;
+}
+
+// per-frame weather update: particles tilt with the live wind and wrap
+// to the top; lightning strikes storms only and the flash always decays
+// in ~0.17 s (it can never stick); the satellite is a rare night crosser
+function stepWeather(dt) {
+  wx.boltT = Math.max(0, wx.boltT - dt * 9);
+  wx.flashT = Math.max(0, wx.flashT - dt * 6);
+  if (wx.sat) {
+    wx.satX += wx.satV * dt;
+    if (wx.satX < -60 || wx.satX > Wc + 60) wx.sat = 0;
+  } else if (!UNDER && Math.random() < dt * 0.035) {
+    wx.sat = 1;
+    const ltr = Math.random() < 0.5;
+    wx.satX = ltr ? -40 : Wc + 40;
+    wx.satV = ltr ? R(16, 30) : -R(16, 30);
+    wx.satY = R(Hc * 0.05, Hc * 0.3);
+    wx.satPh = R(0, 6.28);
+  }
+  if (!wx.on || UNDER || !qualWeather) return;
+  if (wx.storm) {
+    wx.nextBolt -= dt;
+    if (wx.nextBolt <= 0) {
+      wx.nextBolt = R(5, 11);
+      wx.boltT = 1; wx.flashT = 1;
+      genBolt();
+      wx.rebolt = Math.random() < 0.35 ? 1 : 0;
+    }
+    if (wx.rebolt && wx.boltT <= 0.55) { wx.rebolt = 0; wx.boltT = 0.85; genBolt(); }
+  }
+  const rain = wx.kind === 1, snow = wx.kind === 2;
+  const drift = windDir * (rain ? 130 : snow ? 170 : 90);
+  const n = Math.round(220 * wx.pow);
+  wx.n = n;
+  for (let i = 0; i < n; i++) {
+    const p = wx.p[i];
+    p.vx += (drift - p.vx) * Math.min(1, dt * 2.2);
+    if (rain) {
+      p.y += (560 + p.vy * 180) * dt;
+      p.x += p.vx * dt;
+      if (p.y > Hc + 30) { p.y = R(-80, -10); p.x = R(-60, Wc * 1.08); }
+    } else if (snow) {
+      p.ph += dt * (1 + p.sz * 0.4);
+      p.y += (46 + p.vy * 34) * dt;
+      p.x += (p.vx + Math.sin(p.ph) * 22) * dt;
+      if (p.y > Hc + 20) { p.y = R(-60, -10); p.x = R(-60, Wc * 1.08); }
+    } else {
+      p.ph += dt * 0.9;
+      p.y += (26 + p.vy * 20) * dt;
+      p.x += (p.vx * 0.7 + Math.sin(p.ph) * 14) * dt;
+      if (p.y > Hc + 20) { p.y = R(-60, -10); p.x = R(-60, Wc * 1.08); }
+    }
+    if (p.x < -80) p.x += Wc + 140; else if (p.x > Wc + 80) p.x -= Wc + 140;
+  }
+}
+
+
 // ================= LOOP =================
 function start() {
   score = 0; wins = 0; shots = 0; shots2 = 0; aiSkill = 0.35;
@@ -3594,7 +3695,7 @@ function start() {
 }
 function loop(t) {
   raf = requestAnimationFrame(loop);
-  const dt = Math.min((t - last) / 1000, 0.05); last = t;
+  const dt = clamp((t - last) / 1000, 0, 0.05); last = t;
   if (overlay && overlay.classList.contains('show')) step(dt);
 }
 function step(dt) {
@@ -3777,6 +3878,8 @@ function step(dt) {
     }
     comets.length = w;
   }
+
+  stepWeather(dt);
 
   stepWorm(dt);
   stepJunks(dt);

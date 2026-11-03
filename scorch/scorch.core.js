@@ -163,6 +163,22 @@ function scQualApply() {
   qualWeather = q.weather;
 }
 scQualApply();
+
+// ============ WEATHER: per-biome precipitation (sky patch) ============
+// kind: 0 none / 1 rain / 2 snow / 3 ash. The particle pool is fixed and
+// preallocated - only the wx.n prefix is alive per frame, nothing is
+// reallocated in the render loop. boltP is the lightning polyline,
+// rewritten in place per strike. qualWeather (quality preset) gates the
+// whole layer off on the low preset
+const wx = {
+  on: 0, kind: 0, pow: 0, storm: 0, n: 0, gx: 0, gy: 0, rebolt: 0,
+  boltT: 0, flashT: 0, nextBolt: 10,
+  sat: 0, satX: 0, satY: 0, satV: 0, satPh: 0,
+  p: [], boltP: []
+};
+for (let i = 0; i < 220; i++) wx.p.push({ x: 0, y: 0, vx: 0, vy: 0, ph: 0, sz: 1 });
+for (let i = 0; i < 14; i++) wx.boltP.push({ x: 0, y: 0 });
+
 // effective render DPR: native, capped at 2 while scDprCap is on
 function scDprEff() {
   const d = window.devicePixelRatio || 1;

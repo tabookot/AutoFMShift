@@ -167,6 +167,22 @@ function scQualApply() {
   qualWeather = q.weather;
 }
 scQualApply();
+
+// ============ WEATHER: per-biome precipitation (sky patch) ============
+// kind: 0 none / 1 rain / 2 snow / 3 ash. The particle pool is fixed and
+// preallocated - only the wx.n prefix is alive per frame, nothing is
+// reallocated in the render loop. boltP is the lightning polyline,
+// rewritten in place per strike. qualWeather (quality preset) gates the
+// whole layer off on the low preset
+const wx = {
+  on: 0, kind: 0, pow: 0, storm: 0, n: 0, gx: 0, gy: 0, rebolt: 0,
+  boltT: 0, flashT: 0, nextBolt: 10,
+  sat: 0, satX: 0, satY: 0, satV: 0, satPh: 0,
+  p: [], boltP: []
+};
+for (let i = 0; i < 220; i++) wx.p.push({ x: 0, y: 0, vx: 0, vy: 0, ph: 0, sz: 1 });
+for (let i = 0; i < 14; i++) wx.boltP.push({ x: 0, y: 0 });
+
 // effective render DPR: native, capped at 2 while scDprCap is on
 function scDprEff() {
   const d = window.devicePixelRatio || 1;
@@ -2541,6 +2557,7 @@ function genTerrain() {
   windDir = S() < 0.5 ? -1 : 1;
   dirtyA = 0; dirtyB = N - 1; terrVer++;
   waterReset();
+  rollWeather();
 
   // ============ UNDERGROUND: build the cave ============
   if (UNDER) {
@@ -5889,6 +5906,106 @@ function stepMoonSys(dt) {
   if (!moonSys) return;
   moonSys.forEach(mo => { mo.ang = (mo.ang + mo.spd * dt) % (Math.PI * 2); });
 }
+// ============ WEATHER: per-biome roll (terrain gen) ============
+// rain on the living worlds, snow on arctic, ash on the burnt ones;
+// caves get none; rain and ash can roll a storm (lightning), snow stays
+// calm. Visual only - no accumulation, no gameplay effect
+function rollWeather() {
+  wx.on = 0; wx.kind = 0; wx.pow = 0; wx.storm = 0; wx.rebolt = 0;
+  wx.boltT = 0; wx.flashT = 0; wx.nextBolt = R(8, 20);
+  wx.sat = 0;
+  const kind = { green: 1, xeno: 1, arctic: 2, volcanic: 3, ashen: 3, rust: 3 }[biomeKey()] || 0;
+  if (UNDER || !kind) return;
+  if (Math.random() >= (kind === 2 ? 0.5 : 0.62)) return;
+  wx.kind = kind;
+  wx.pow = R(0.45, 1);
+  // storms: heavy rain on the living worlds, dry heat-lightning on the
+  // burnt ones; snow stays calm - the arctic night belongs to the aurora
+  wx.storm = (kind === 1 || kind === 3) && wx.pow > 0.6 && Math.random() < (kind === 3 ? 0.4 : 0.5) ? 1 : 0;
+  if (wx.storm) wx.nextBolt = R(2.5, 6);
+  wx.on = 1;
+  const P = wx.p;
+  for (let i = 0; i < P.length; i++) {
+    const p = P[i];
+    p.x = R(-60, Wc * 1.08); p.y = R(-40, Hc); p.vx = 0; p.vy = Math.random();
+    p.ph = R(0, 6.28);
+    p.sz = kind === 2 ? R(1.2, 2.4) : kind === 3 ? R(1, 2) : 1;
+  }
+}
+
+// bolt polyline: a jagged drop from the cloud deck to the terrain
+// surface under px (eased so the head accelerates, tail snapped to the
+// ground); gx/gy keep the impact point for the ground bloom
+function genBolt() {
+  const B = wx.boltP, m = B.length - 1;
+  const px = R(40, Wc - 40);
+  const gi = clamp(Math.round(px / cols.step), 0, cols.length - 1);
+  const gy = cols[gi].top - 2;
+  const y0 = R(6, Hc * 0.12);
+  for (let i = 0; i <= m; i++) {
+    const u = i / m;
+    B[i].x = px + R(-26, 30) * (1 - u * 0.55);
+    B[i].y = y0 + (gy - y0) * (u * u);
+  }
+  B[m].x = px; B[m].y = gy;
+  wx.gx = px; wx.gy = gy;
+}
+
+// per-frame weather update: particles tilt with the live wind and wrap
+// to the top; lightning strikes storms only and the flash always decays
+// in ~0.17 s (it can never stick); the satellite is a rare night crosser
+function stepWeather(dt) {
+  wx.boltT = Math.max(0, wx.boltT - dt * 9);
+  wx.flashT = Math.max(0, wx.flashT - dt * 6);
+  if (wx.sat) {
+    wx.satX += wx.satV * dt;
+    if (wx.satX < -60 || wx.satX > Wc + 60) wx.sat = 0;
+  } else if (!UNDER && Math.random() < dt * 0.035) {
+    wx.sat = 1;
+    const ltr = Math.random() < 0.5;
+    wx.satX = ltr ? -40 : Wc + 40;
+    wx.satV = ltr ? R(16, 30) : -R(16, 30);
+    wx.satY = R(Hc * 0.05, Hc * 0.3);
+    wx.satPh = R(0, 6.28);
+  }
+  if (!wx.on || UNDER || !qualWeather) return;
+  if (wx.storm) {
+    wx.nextBolt -= dt;
+    if (wx.nextBolt <= 0) {
+      wx.nextBolt = R(5, 11);
+      wx.boltT = 1; wx.flashT = 1;
+      genBolt();
+      wx.rebolt = Math.random() < 0.35 ? 1 : 0;
+    }
+    if (wx.rebolt && wx.boltT <= 0.55) { wx.rebolt = 0; wx.boltT = 0.85; genBolt(); }
+  }
+  const rain = wx.kind === 1, snow = wx.kind === 2;
+  const drift = windDir * (rain ? 130 : snow ? 170 : 90);
+  const n = Math.round(220 * wx.pow);
+  wx.n = n;
+  for (let i = 0; i < n; i++) {
+    const p = wx.p[i];
+    p.vx += (drift - p.vx) * Math.min(1, dt * 2.2);
+    if (rain) {
+      p.y += (560 + p.vy * 180) * dt;
+      p.x += p.vx * dt;
+      if (p.y > Hc + 30) { p.y = R(-80, -10); p.x = R(-60, Wc * 1.08); }
+    } else if (snow) {
+      p.ph += dt * (1 + p.sz * 0.4);
+      p.y += (46 + p.vy * 34) * dt;
+      p.x += (p.vx + Math.sin(p.ph) * 22) * dt;
+      if (p.y > Hc + 20) { p.y = R(-60, -10); p.x = R(-60, Wc * 1.08); }
+    } else {
+      p.ph += dt * 0.9;
+      p.y += (26 + p.vy * 20) * dt;
+      p.x += (p.vx * 0.7 + Math.sin(p.ph) * 14) * dt;
+      if (p.y > Hc + 20) { p.y = R(-60, -10); p.x = R(-60, Wc * 1.08); }
+    }
+    if (p.x < -80) p.x += Wc + 140; else if (p.x > Wc + 80) p.x -= Wc + 140;
+  }
+}
+
+
 // ================= LOOP =================
 function start() {
   score = 0; wins = 0; shots = 0; shots2 = 0; aiSkill = 0.35;
@@ -5906,7 +6023,7 @@ function start() {
 }
 function loop(t) {
   raf = requestAnimationFrame(loop);
-  const dt = Math.min((t - last) / 1000, 0.05); last = t;
+  const dt = clamp((t - last) / 1000, 0, 0.05); last = t;
   if (overlay && overlay.classList.contains('show')) step(dt);
 }
 function step(dt) {
@@ -6089,6 +6206,8 @@ function step(dt) {
     }
     comets.length = w;
   }
+
+  stepWeather(dt);
 
   stepWorm(dt);
   stepJunks(dt);
@@ -7024,6 +7143,7 @@ function rrectPath(c, x, y, w, h, r) {
       }
       ctx.globalAlpha = 1;
     }
+    drawAurora(starA);
     const moonSky = VOLC_BIOMES.includes(biomeKey()) || biomeKey() === 'rust';
     if (!moonSky) {
       const inNight = p >= 0.51 && p <= 0.97;
@@ -7106,19 +7226,43 @@ function rrectPath(c, x, y, w, h, r) {
       });
       ctx.globalAlpha = 1;
     }
+    // meteors: a two-pass tail (wide faint glow, narrow bright core) and
+    // a hot head
+    ctx.lineCap = 'round';
     comets.forEach(c => {
       const cp = c.t / c.life;
       const sz = c.sz || 1.5;
-      ctx.strokeStyle = `rgba(200,230,255,${0.85 * (1 - cp) * starA})`;
+      const fade = 1 - cp;
+      const tx = c.x - c.vx * 0.85, ty = c.y - c.vy * 0.85;
+      ctx.strokeStyle = `rgba(160,200,255,${(0.3 * fade * starA).toFixed(3)})`;
+      ctx.lineWidth = sz * 2.4;
+      ctx.beginPath();
+      ctx.moveTo(c.x, c.y);
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(225,240,255,${(0.85 * fade * starA).toFixed(3)})`;
       ctx.lineWidth = sz;
       ctx.beginPath();
       ctx.moveTo(c.x, c.y);
-      ctx.lineTo(c.x - c.vx * 0.5, c.y - c.vy * 0.5);
+      ctx.lineTo(tx, ty);
       ctx.stroke();
-      ctx.fillStyle = `rgba(240,250,255,${(1 - cp) * 0.9 * starA})`;
-      ctx.beginPath(); ctx.arc(c.x, c.y, sz, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = `rgba(255,255,255,${(fade * 0.9 * starA).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(c.x, c.y, sz * 1.1, 0, Math.PI * 2); ctx.fill();
     });
+    ctx.lineCap = 'butt';
     ctx.lineWidth = 1;
+    // a rare blinking satellite crossing the night sky
+    if (wx.sat && starA > 0.1) {
+      const bl = Math.sin(skyT * 5.2 + wx.satPh);
+      ctx.globalAlpha = (bl > 0.25 ? 0.85 : bl > -0.6 ? 0.3 : 0.12) * starA;
+      ctx.fillStyle = '#dfe6ee';
+      ctx.fillRect(wx.satX - 0.8, wx.satY - 0.8, 1.6, 1.6);
+      if (bl > 0.25) {
+        ctx.fillRect(wx.satX - 3.5, wx.satY - 0.4, 7, 0.8);
+        ctx.fillRect(wx.satX - 0.4, wx.satY - 3.5, 0.8, 7);
+      }
+      ctx.globalAlpha = 1;
+    }
     {
       const sunP = p >= 0.95 ? (p - 0.95) / 0.55 : (p + 0.05) / 0.55;
       const sx = -60 + sunP * (Wc + 120);
@@ -7472,8 +7616,182 @@ function rrectPath(c, x, y, w, h, r) {
       }
       if (skyLight.x > 10) skyLight.a *= (1 - eclipseF);
     }
+    drawWeather();
   }
   
+  // arctic nights: a living curtain - two gradient ribbons plus a baked
+  // ray-field tile scrolled by the travelling wave, so bright flashes
+  // sweep along the band; two layers at different speeds/rates
+  // interfere into a flicker, and a rare surge lights the whole curtain
+  // up. The tile (one canvas, rebuilt per height; width equals the wave
+  // period so it loops seamlessly) bakes the wave envelope into the ray
+  // alphas - a frame costs a few drawImage calls, no allocations
+  function drawAurora(starA) {
+    if (biomeKey() !== 'arctic' || starA < 0.12) return;
+    const rayLen = Hc * 0.46;
+    if (!drawSky._aur || drawSky._aurH !== Hc) {
+      const mk = (col, a1, a2) => {
+        const g = ctx.createLinearGradient(0, Hc * 0.04, 0, Hc * 0.5);
+        g.addColorStop(0, `rgba(${col},0)`);
+        g.addColorStop(0.35, `rgba(${col},${a1})`);
+        g.addColorStop(0.65, `rgba(${col},${a2})`);
+        g.addColorStop(1, `rgba(${col},0)`);
+        return g;
+      };
+      drawSky._aur = [mk('92,255,166', 0.55, 0.24), mk('60,232,210', 0.38, 0.16)];
+      const TW = 560, TH = Math.max(2, Math.ceil(rayLen * 0.52));
+      const cv = document.createElement('canvas');
+      cv.width = TW; cv.height = TH;
+      const c2 = cv.getContext('2d');
+      // shared vertical profile: bright head under the curtain path,
+      // tail fading out before mid-sky (no hard bottom edge)
+      const rg = c2.createLinearGradient(0, 0, 0, TH);
+      rg.addColorStop(0, 'rgba(120,255,190,0)');
+      rg.addColorStop(0.2, 'rgba(120,255,190,0.55)');
+      rg.addColorStop(0.55, 'rgba(96,240,214,0.22)');
+      rg.addColorStop(1, 'rgba(80,220,255,0)');
+      c2.fillStyle = rg;
+      for (let x = 8; x < TW - 8; x += 14) {
+        const w = Math.pow(0.5 + 0.5 * Math.sin(x * (Math.PI * 2 / TW)), 2.2);
+        const a = 0.08 + w * 0.62;
+        if (a < 0.1) continue;
+        c2.globalAlpha = a;
+        c2.fillRect(x - 2.2, 0, 4.4, TH);
+        if (w > 0.72) { c2.globalAlpha = a * 0.4; c2.fillRect(x - 6, 0, 12, TH); }
+      }
+      drawSky._aurCv = cv; drawSky._aurTW = TW;
+      drawSky._aurH = Hc;
+    }
+    // macro dynamics: slow breath + a rare strong surge sweeping through
+    const surge = Math.pow(Math.max(0, Math.sin(skyT * 0.09 + 1.3)), 6);
+    const breath = 0.72 + 0.28 * Math.sin(skyT * 0.3) + surge * 0.9;
+    ctx.globalCompositeOperation = 'lighter';
+    for (let r = 0; r < 2; r++) {
+      const a = Math.min(0.5, [0.34, 0.22][r] * starA * breath);
+      if (a < 0.01) continue;
+      ctx.globalAlpha = a;
+      ctx.strokeStyle = drawSky._aur[r];
+      ctx.lineWidth = Hc * (0.034 - r * 0.01);
+      ctx.beginPath();
+      const yb = Hc * (0.09 + r * 0.05), sp = 0.22 + r * 0.07;
+      for (let x = -40; x <= Wc + 40; x += 34) {
+        const y = yb + Math.sin(x * 0.006 + skyT * sp + r * 2.4) * Hc * 0.045 + Math.sin(x * 0.017 - skyT * 0.13 + r) * Hc * 0.016;
+        if (x === -40) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    // ray layers: scrolling tiles carry the flash patches along the
+    // curtain (47 px/s and -19 px/s), both blitted 1:1 - resampling on
+    // 'lighter' costs extra; the interference of the two speeds reads
+    // as flicker
+    const TW = drawSky._aurTW, TH = drawSky._aurCv.height;
+    // low quality preset drops the far layer (half the blits)
+    const nL = qualWeather ? 2 : 1;
+    for (let L = 0; L < nL; L++) {
+      const v = L ? -19 : 47;
+      ctx.globalAlpha = Math.min(0.9, (L ? 0.4 : 0.8) * starA * breath);
+      let sx = ((skyT * v) % TW + TW) % TW - TW;
+      for (; sx < Wc; sx += TW) ctx.drawImage(drawSky._aurCv, sx, 0, TW, TH);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 1;
+  }
+
+  let shadCv = null;
+  // clouds cast soft wind-tracked shadows on the relief: same noise
+  // geometry and drift as the sky pass (drawClouds), blitted from one
+  // baked sprite; the caller clips it to the terrain silhouette
+  function drawCloudShadows() {
+    if (!cloudCount) return;
+    if (!shadCv) {
+      shadCv = document.createElement('canvas');
+      shadCv.width = shadCv.height = 128;
+      const c2 = shadCv.getContext('2d');
+      const g = c2.createRadialGradient(64, 64, 8, 64, 64, 62);
+      g.addColorStop(0, 'rgba(10,14,22,0.5)');
+      g.addColorStop(0.55, 'rgba(10,14,22,0.26)');
+      g.addColorStop(1, 'rgba(10,14,22,0)');
+      c2.fillStyle = g;
+      c2.fillRect(0, 0, 128, 128);
+    }
+    const dayK = 0.3 + 0.7 * dayness;
+    // rain clouds hang lower and cast darker patches
+    const wet = wx.on && wx.kind === 1 ? 1.5 : 1;
+    for (let c = 0; c < cloudCount; c++) {
+      const depth = 0.4 + noise(c * 1.7) * 0.65;
+      const cw = 110 + noise(c * 3.1) * 150;
+      const cx = (((cloudOff * depth) + noise(c * 13) * Wc * 1.4) % (Wc + 420) + (Wc + 420)) % (Wc + 420) - 210;
+      const sw = cw, sh = sw * 0.32;
+      // anchor the patch to the relief under its center: the caller
+      // clips to the silhouette, so a patch floating in mid-air band
+      // was clipped away whole - that is why the shadows were invisible
+      const ci = clamp(Math.round(cx / cols.step), 0, cols.length - 1);
+      const sy = cols[ci].top + sh * 0.2;
+      ctx.globalAlpha = Math.min(0.45, (0.16 + noise(c * 5) * 0.1) * dayK * wet);
+      ctx.drawImage(shadCv, cx - sw / 2, sy - sh / 2, sw, sh);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // precipitation + lightning in the sky pass: one batched stroke for
+  // rain, one batched fill for snow / ash; the bolt and the scene flash
+  // decay in stepWeather (~0.17 s), so the flash never sticks
+  function drawWeather() {
+    if (wx.flashT > 0.01) {
+      // hot peak, quick tail: the alpha rides flashT squared
+      ctx.fillStyle = `rgba(235,240,255,${(wx.flashT * wx.flashT * 0.3).toFixed(3)})`;
+      ctx.fillRect(-30, -30, Wc + 60, Hc + 60);
+    }
+    if (wx.boltT > 0.01) {
+      const B = wx.boltP;
+      // re-strike flicker: the channel strobates while it decays
+      const fl = wx.boltT > 0.7 ? 1 : 0.55 + 0.45 * Math.sin(wx.boltT * 47);
+      ctx.beginPath();
+      ctx.moveTo(B[0].x, B[0].y);
+      for (let i = 1; i < B.length; i++) ctx.lineTo(B[i].x, B[i].y);
+      ctx.strokeStyle = `rgba(150,185,255,${(0.22 * wx.boltT * fl).toFixed(3)})`;
+      ctx.lineWidth = 11;
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(210,225,255,${(0.55 * wx.boltT * fl).toFixed(3)})`;
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(248,250,255,${(0.95 * wx.boltT * fl).toFixed(3)})`;
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      // impact bloom where the channel meets the relief
+      if (wx.boltT > 0.35) {
+        const bk = (wx.boltT - 0.35) / 0.65;
+        ctx.fillStyle = `rgba(210,225,255,${(0.3 * bk).toFixed(3)})`;
+        ctx.beginPath(); ctx.arc(wx.gx, wx.gy, 5 + 14 * (1 - bk), 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(248,250,255,${(0.5 * bk).toFixed(3)})`;
+        ctx.beginPath(); ctx.arc(wx.gx, wx.gy, 2.5 + 6 * (1 - bk), 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.lineWidth = 1;
+    }
+    const kind = wx.on && !UNDER ? wx.kind : 0;
+    if (!kind || !qualWeather) return;
+    const n = wx.n;
+    if (kind === 1) {
+      ctx.strokeStyle = 'rgba(178,200,228,0.34)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const p = wx.p[i];
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - p.vx * 0.038, p.y - (560 + p.vy * 180) * 0.038);
+      }
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = kind === 2 ? 'rgba(235,242,250,0.85)' : 'rgba(176,170,164,0.6)';
+      for (let i = 0; i < n; i++) {
+        const p = wx.p[i];
+        ctx.fillRect(p.x, p.y, p.sz, p.sz);
+      }
+    }
+  }
+
+
   // ============ CAVE BACKDROP: lighter earth behind the scene ============
   function drawCaveBG() {
     // the cave backdrop is static per (height, biome): gradient cached
@@ -8187,6 +8505,15 @@ function drawCaveShade() {
     terrSilhouette();
     ctx.save();
     ctx.clip();
+
+    // cloud shadows + the lightning flash tinting the ground for a
+    // fraction of a second, both inside the terrain silhouette clip
+    drawCloudShadows();
+    if (wx.flashT > 0.01) {
+      ctx.fillStyle = `rgba(235,240,255,${(wx.flashT * wx.flashT * 0.2).toFixed(3)})`;
+      ctx.fillRect(-30, -30, Wc + 60, Hc + 60);
+    }
+
     // living decals: the magma veins pulse, so they ride the frame pass
     // with a void guard, like the twinkles below them
     if (un.dec === 'magma') for (let i = 3; i < N; i += 5) {
@@ -11043,6 +11370,13 @@ function drawCaveShade() {
         lava: c.lava * ky, lavaT: c.lavaT
       });
     }
+    // live deformation jobs ride the remap too: their column indices
+    // point at the old grid - a write past the new N throws once cols
+    // is replaced (resize mid-explosion)
+    terraJobs = terraJobs.map(j => ({
+      t: j.t,
+      cols: j.cols.map(c => ({ ...c, i: clamp(Math.round(c.i * cols.step * kx / step), 0, N - 1) }))
+    })).filter(j => j.cols.length);
     nc.step = step;
     cols = nc;
     // rescale the cave ceiling profile and everything hanging in the cave
