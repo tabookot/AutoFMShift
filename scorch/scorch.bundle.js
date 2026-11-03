@@ -134,6 +134,44 @@ let ammoInv = {}, aiAmmo = {}, cur = 0, cur2 = 0, turn, state, turnOrder = 0;
 let roundOpener = 0;
 let shot = null, subshots = [], liquids = [], debris = [], remains = [], sinkers = [], windParts = [], comets = [], grains = [], wreckBits = [];
 let fx = [];
+// ================== GRAPHICS QUALITY ==================
+// one preset knob (LS scorch_qual: low/mid/high) scales the hot-path
+// budgets: fx particle caps (world.js), star + sky-dust counts, star
+// twinkle, projectile trail length, and a weather-particles switch
+// reserved for the weather patch. LS scorch_dprcap limits the render
+// device pixel ratio to 2 (phone x3/x4 screens). Both persist across
+// sessions; switching never restarts a round - the next draw picks the
+// new budgets up, and the DPR change rides the regular resize() path
+const SC_QUALS = {
+  low:  { fx: 0.4, star: 0.45, twinkle: 0, trail: 0.5, weather: 0 },
+  mid:  { fx: 0.7, star: 0.75, twinkle: 1, trail: 0.8, weather: 1 },
+  high: { fx: 1,   star: 1,    twinkle: 1, trail: 1,   weather: 1 }
+};
+let scQual = 'high', scDprCap = true;
+try {
+  const q = localStorage.getItem('scorch_qual');
+  if (q && SC_QUALS[q]) scQual = q;
+  scDprCap = localStorage.getItem('scorch_dprcap') !== '0';
+} catch (e) {}
+// derived budgets, refreshed by scQualApply(); read per frame by world/ui
+let fxMax = 380, fxMaxSoft = 340, starN = 130, skyDustN = 80, trailCap = 90;
+let qualTwinkle = 1, qualWeather = 1;
+function scQualApply() {
+  const q = SC_QUALS[scQual] || SC_QUALS.high;
+  fxMax = Math.round(380 * q.fx);
+  fxMaxSoft = Math.round(340 * q.fx);
+  starN = Math.round(130 * q.star);
+  skyDustN = Math.round(80 * q.star);
+  trailCap = Math.round(90 * q.trail);
+  qualTwinkle = q.twinkle;
+  qualWeather = q.weather;
+}
+scQualApply();
+// effective render DPR: native, capped at 2 while scDprCap is on
+function scDprEff() {
+  const d = window.devicePixelRatio || 1;
+  return scDprCap && d > 2 ? 2 : d;
+}
 let firePatches = [];
 let terraJobs = [];
 let events = [];
@@ -2741,7 +2779,7 @@ function emitLavaFrom(cr, burst) {
   });
 }
 function spawnLFlow(cr) {
-  if (fx.length > 340) return;
+  if (fx.length > fxMaxSoft) return;
   const sl = slopeAt(cr.x);
   const dir = sl > 0.02 ? 1 : sl < -0.02 ? -1 : (Math.sign(cr.nx) || 1);
   const y0 = surfaceAt(cr.x) - 2;
@@ -2983,7 +3021,7 @@ function spawnRipple(kind, level) {
 function pushRipple(x, amp) {
   if (ripples.length >= WP.maxRipples + 4) ripples.shift();
   ripples.push({ x, radius: 6, amp, speed: WP.speed * 0.8, decay: WP.decay, width: 260, t: 0 });
-  if (amp >= 6 && fx.length < 380) {
+  if (amp >= 6 && fx.length < fxMax) {
     const y = waterAt(x);
     fx.push({ k: 'wring', x, y, r: 2, vr: 65, t: 0, life: 0.9 });
     fx.push({ k: 'wring', x, y, r: 2, vr: 38, t: 0, life: 1.5 });
@@ -3458,7 +3496,7 @@ function subsideColumn(i, quiet) {
   c.top += drop;
   c.h0 = 0; c.h1 = 0; c.sid = 0;
   c.surf *= 0.7;
-  if (!quiet && Math.random() < 0.5 && fx.length < 380) fx.push({ k: 'dust', x: i * cols.step, y: c.top, vx: R(-10, 10), vy: -R(10, 40), r: R(2, 5), t: 0, life: R(0.5, 1.1), col: M().dustCol });
+  if (!quiet && Math.random() < 0.5 && fx.length < fxMax) fx.push({ k: 'dust', x: i * cols.step, y: c.top, vx: R(-10, 10), vy: -R(10, 40), r: R(2, 5), t: 0, life: R(0.5, 1.1), col: M().dustCol });
   dirtyA = Math.min(dirtyA, i); dirtyB = Math.max(dirtyB, i + 1); terrVer++;
   return drop;
 }
@@ -3555,7 +3593,7 @@ function slump(i0, i1, rounds) {
   }
   dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1); terrVer++;
   for (let i = i0; i <= i1; i += 3) {
-    if (Math.random() < 0.4 && fx.length < 380) fx.push({ k: 'dust', x: i * cols.step, y: surfaceAt(i * cols.step) - 2, vx: R(-8, 8), vy: -R(6, 20), r: R(2, 4), t: 0, life: R(0.5, 1), col: M().dustCol });
+    if (Math.random() < 0.4 && fx.length < fxMax) fx.push({ k: 'dust', x: i * cols.step, y: surfaceAt(i * cols.step) - 2, vx: R(-8, 8), vy: -R(6, 20), r: R(2, 4), t: 0, life: R(0.5, 1), col: M().dustCol });
   }
 }
 
@@ -3624,7 +3662,7 @@ function addTerrDmg(i, dmg, src) {
   if (t.hp <= 0) killTank(i, 'crush');
 }
 function popDmg(t, dmg) {
-  if (dmg < 1 || fx.length > 380) return;
+  if (dmg < 1 || fx.length > fxMax) return;
   fx.push({ k: 'hp', x: t.x + R(-8, 8), y: t.y - 36, val: Math.round(dmg), t: 0, life: 2.8 });
 }
 
@@ -4190,25 +4228,25 @@ function spawnDirtFall(x, r, col) {
   }
 }
 function spawnDrops(x, y, n, sp) {
-  if (fx.length > 380) return;
+  if (fx.length > fxMax) return;
   for (let k = 0; k < n; k++) {
     fx.push({ k: 'drop', x: x + R(-4, 4), y: y - 2, vx: R(-sp * 0.6, sp * 0.6), vy: -R(sp * 0.5, sp * 1.05), t: 0, life: R(0.6, 1.3) });
   }
 }
 function spawnSed(x, y, n) {
-  if (fx.length > 380) return;
+  if (fx.length > fxMax) return;
   for (let k = 0; k < n; k++) {
     fx.push({ k: 'sed', x: x + R(-7, 7), y: y + R(-4, 4), vx: R(-6, 6), vy: R(3, 13), t: 0, life: R(1.4, 3.2), s: R(1, 2.2) });
   }
 }
 function spawnWisps(x, y, n) {
-  if (fx.length > 380) return;
+  if (fx.length > fxMax) return;
   for (let k = 0; k < n; k++) {
     fx.push({ k: 'wisp', x: x + R(-5, 5), y: y - 2, vx: R(-8, 8), vy: -R(14, 32), ph: R(0, 6.28), t: 0, life: R(0.9, 1.8) });
   }
 }
 function spawnEmbers(x, y, n, r) {
-  if (fx.length > 360) return;
+  if (fx.length > fxMaxSoft) return;
   for (let k = 0; k < n; k++) {
     fx.push({
       k: 'ember',
@@ -4241,7 +4279,7 @@ function stepPlasmaOrbs(dt) {
     if (f.eatT > 0.3) {
       f.eatT = 0;
       craterMask(f.x, f.r * 0.45, 0.22, 'blast', 'star', 1);
-      if (Math.random() < 0.5 && fx.length < 380) fx.push({ k: 'wisp', x: f.x + R(-8, 8), y: f.y - 4, vx: R(-6, 6), vy: -R(14, 30), ph: R(0, 6.28), t: 0, life: R(0.6, 1.2) });
+      if (Math.random() < 0.5 && fx.length < fxMax) fx.push({ k: 'wisp', x: f.x + R(-8, 8), y: f.y - 4, vx: R(-6, 6), vy: -R(14, 30), ph: R(0, 6.28), t: 0, life: R(0.6, 1.2) });
       igniteAt(f.x, f.y + 10, 14);
     }
   }
@@ -4308,8 +4346,9 @@ function stepFx(dt) {
   }
   for (let i = fxLen0; i < fx.length; i++) fx[fxW++] = fx[i];
   fx.length = fxW;
-  if (fx.length > 600) {
-    let over = fx.length - 600, cw = 0;
+  const fxCeil = Math.round(600 * fxMax / 380);
+  if (fx.length > fxCeil) {
+    let over = fx.length - fxCeil, cw = 0;
     for (let i = 0; i < fx.length; i++) {
       const f = fx[i];
       if (over > 0 && (f.k === 'dust' || f.k === 'smoke' || f.k === 'vsmoke' || f.k === 'wisp' || f.k === 'sed' || f.k === 'bubble' || f.k === 'drop' || f.k === 'splash' || f.k === 'wring')) { over--; continue; }
@@ -4673,7 +4712,7 @@ function digMotion(p, dt) {
 
 function updateProjectile(p, dt) {
   if (!p.inWater) p.trail.push({ x: p.x, y: p.y, t: gt });
-  while (p.trail.length > 90 || (p.trail.length && gt - p.trail[0].t > trailLife(p.w))) p.trail.shift();
+  while (p.trail.length > trailCap || (p.trail.length && gt - p.trail[0].t > trailLife(p.w))) p.trail.shift();
   p.rot += dt * 6;
   if (p.y < p.apex) p.apex = p.y;
 
@@ -4786,12 +4825,12 @@ function updateProjectile(p, dt) {
       p.vy *= (1 - dt * 2.4);
       p.vx *= (1 - dt * 1.8);
       if (p.w.water === 'sink') {
-        if (fx.length < 380 && Math.random() < dt * 4) fx.push({ k: 'bubble', x: p.x + R(-3, 3), y: p.y - 5, vy: -R(25, 55), wob: R(0, 6.28), t: 0, life: R(1, 2), s: R(1, 2.2) });
+        if (fx.length < fxMax && Math.random() < dt * 4) fx.push({ k: 'bubble', x: p.x + R(-3, 3), y: p.y - 5, vy: -R(25, 55), wob: R(0, 6.28), t: 0, life: R(1, 2), s: R(1, 2.2) });
         const fl = inVoid(p.x, p.y) ? (colAt(p.x).h1 || surf) : surf;
         if (p.y >= fl) { p.dead = true; p.sunkSilent = true; return; }
         return;
       }
-      if (fx.length < 380 && Math.random() < dt * 9) fx.push({ k: 'bubble', x: p.x + R(-3, 3), y: p.y - 5, vy: -R(25, 55), wob: R(0, 6.28), t: 0, life: R(1, 2), s: R(1, 2.6) });
+      if (fx.length < fxMax && Math.random() < dt * 9) fx.push({ k: 'bubble', x: p.x + R(-3, 3), y: p.y - 5, vy: -R(25, 55), wob: R(0, 6.28), t: 0, life: R(1, 2), s: R(1, 2.6) });
       const fl = inVoid(p.x, p.y) ? (colAt(p.x).h1 || surf) : surf;
       if (p.y >= fl) { p.dead = true; p.wet = true; p.bed = true; return; }
       return;
@@ -6962,8 +7001,12 @@ function rrectPath(c, x, y, w, h, r) {
     const nn = 1 - dayness;
     const starA = clamp((nn - 0.25) / 0.5, 0, 1);
     if (starA > 0.02) {
-      stars.forEach(st => {
-        const tw = 0.35 + 0.65 * Math.abs(Math.sin(skyT * st.tw + st.ph));
+      // preset star budget: a prefix of the fixed pool, no per-frame regen
+      // (the indexed loop also drops the forEach closure allocation)
+      const sN = Math.min(stars.length, starN);
+      for (let si = 0; si < sN; si++) {
+        const st = stars[si];
+        const tw = qualTwinkle ? 0.35 + 0.65 * Math.abs(Math.sin(skyT * st.tw + st.ph)) : 0.62;
         ctx.globalAlpha = tw * starA * 0.9;
         ctx.fillStyle = st.col;
         ctx.fillRect(st.x, st.y, st.sz, st.sz);
@@ -6972,10 +7015,10 @@ function rrectPath(c, x, y, w, h, r) {
           ctx.fillRect(st.x - st.sz, st.y + st.sz / 2 - 0.5, st.sz * 3, 1);
           ctx.fillRect(st.x + st.sz / 2 - 0.5, st.y - st.sz, 1, st.sz * 3);
         }
-      });
+      }
       ctx.globalAlpha = 0.07 * starA;
       ctx.fillStyle = '#fff';
-      for (let i = 0; i < 80; i++) {
+      for (let i = 0; i < skyDustN; i++) {
         const t = (i * 61.7) % 100 / 100;
         ctx.fillRect(t * Wc, Hc * 0.1 + t * Hc * 0.35 + (noise(i * 3.3) - 0.5) * 50, 1, 1);
       }
@@ -7201,7 +7244,7 @@ function rrectPath(c, x, y, w, h, r) {
         // device resolution (the mask grid itself is 3x denser now — see
         // genPlanetMask) and are blitted 1:1 each frame: no interpolation,
         // no blur — just the original per-cell drawing, cached
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = scDprEff();
         const bW = Math.max(2, Math.ceil(pr * 2 * dpr));
         if (drawSky._pmk !== seed || !drawSky._pcv || drawSky._pcv.width !== bW) {
           drawSky._pmk = seed;
@@ -7881,7 +7924,7 @@ function drawCaveShade() {
     }
   };
   function bakeTerrain() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = scDprEff();
     const bw = Math.max(2, Math.ceil(Wc * dpr)), bh = Math.max(2, Math.ceil(Hc * dpr));
     if (!terrCv) { terrCv = document.createElement('canvas'); terrCx = terrCv.getContext('2d'); }
     if (terrCv.width !== bw) terrCv.width = bw;
@@ -8135,7 +8178,7 @@ function drawCaveShade() {
     const N = cols.length;
     const bk = biomeKey();
     const un = biome.under || { strata: [[biome.sub[1], 26], [biome.sub[2], 54]], wobble: 8, dec: 'root', dep: 'dot', twink: '255,255,255', twN: 0 };
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = scDprEff();
     const dq = UNDER ? 0 : Math.round(dayness * 48);
     if (!terrCv || terrKV !== terrVer || terrKW !== Wc || terrKH !== Hc || terrKD !== dpr || terrKB !== biome || terrKS !== seed || terrKQ !== dq) bakeTerrain();
     // the whole static relief in one blit, then the living layers in
@@ -10086,6 +10129,16 @@ function drawCaveShade() {
                   <span class="sc-sndlab">ПРИЦЕЛ</span>
                   <b class="sc-sndval" id="scValAs" style="margin-left:auto"></b>
                 </div>
+                <div class="sc-sndrow" id="scRowQl" title="Качество графики: частицы, звёзды, трейлы — применяется сразу">
+                  <button class="sc-sndico" id="scBtnQl" type="button"></button>
+                  <span class="sc-sndlab">КАЧЕСТВО</span>
+                  <b class="sc-sndval" id="scValQl" style="margin-left:auto"></b>
+                </div>
+                <div class="sc-sndrow" id="scRowDp" title="Плотность пикселей: ×2 максимум (быстрее на экранах x3/x4) или полная (чётче)">
+                  <button class="sc-sndico" id="scBtnDp" type="button"></button>
+                  <span class="sc-sndlab">ПЛОТНОСТЬ</span>
+                  <b class="sc-sndval" id="scValDp" style="margin-left:auto"></b>
+                </div>
               </div>
               <button class="sc-go sc-sym" title="В бой!">&#x25B6;</button>
             </div>
@@ -10728,6 +10781,47 @@ function drawCaveShade() {
     if (optAsBtn) optAsBtn.onclick = (e) => { e.stopPropagation(); setAs(!scAssist); };
     paintSh();
     paintAs();
+    // graphics quality preset cycler + render-DPR cap, live-applied
+    const optQlRow = overlay.querySelector('#scRowQl');
+    const optQlBtn = overlay.querySelector('#scBtnQl');
+    const optQlVal = overlay.querySelector('#scValQl');
+    const optDpRow = overlay.querySelector('#scRowDp');
+    const optDpBtn = overlay.querySelector('#scBtnDp');
+    const optDpVal = overlay.querySelector('#scValDp');
+    const IC_QL = '<svg width="18" height="18" viewBox="0 0 16 16"><rect x="2" y="9" width="3" height="5" fill="currentColor"/><rect x="6.5" y="6" width="3" height="8" fill="currentColor"/><rect x="11" y="3" width="3" height="11" fill="currentColor"/></svg>';
+    const IC_DP2 = '<svg width="18" height="18" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="4.5" height="4.5" fill="currentColor"/><rect x="9" y="2.5" width="4.5" height="4.5" fill="currentColor"/><rect x="2.5" y="9" width="4.5" height="4.5" fill="currentColor"/><rect x="9" y="9" width="4.5" height="4.5" fill="currentColor"/></svg>';
+    const IC_DP1 = '<svg width="18" height="18" viewBox="0 0 16 16"><rect x="2" y="2" width="2.4" height="2.4" fill="currentColor"/><rect x="6.8" y="2" width="2.4" height="2.4" fill="currentColor"/><rect x="11.6" y="2" width="2.4" height="2.4" fill="currentColor"/><rect x="2" y="6.8" width="2.4" height="2.4" fill="currentColor"/><rect x="6.8" y="6.8" width="2.4" height="2.4" fill="currentColor"/><rect x="11.6" y="6.8" width="2.4" height="2.4" fill="currentColor"/><rect x="2" y="11.6" width="2.4" height="2.4" fill="currentColor"/><rect x="6.8" y="11.6" width="2.4" height="2.4" fill="currentColor"/><rect x="11.6" y="11.6" width="2.4" height="2.4" fill="currentColor"/></svg>';
+    const QL_NAME = { low: 'НИЗКОЕ', mid: 'СРЕДНЕЕ', high: 'ВЫСОКОЕ' };
+    const QL_NEXT = { low: 'mid', mid: 'high', high: 'low' };
+    const paintQl = () => {
+      if (optQlBtn) optQlBtn.innerHTML = IC_QL;
+      if (optQlVal) optQlVal.textContent = QL_NAME[scQual] || scQual;
+    };
+    const setQl = (k) => {
+      if (!SC_QUALS[k] || k === scQual) return;
+      scQual = k;
+      scOptSet('scorch_qual', k);
+      scQualApply();
+      paintQl();
+    };
+    const paintDp = () => {
+      if (optDpBtn) optDpBtn.innerHTML = scDprCap ? IC_DP2 : IC_DP1;
+      if (optDpVal) optDpVal.textContent = scDprCap ? '×2 МАКС' : 'ПОЛНАЯ';
+    };
+    const setDp = (on) => {
+      const v = !!on;
+      if (v === scDprCap) return;
+      scDprCap = v;
+      scOptSet('scorch_dprcap', v ? '1' : '0');
+      paintDp();
+      resize();
+    };
+    if (optQlRow) optQlRow.addEventListener('pointerdown', (e) => e.stopPropagation());
+    if (optQlBtn) optQlBtn.onclick = (e) => { e.stopPropagation(); setQl(QL_NEXT[scQual] || 'high'); };
+    if (optDpRow) optDpRow.addEventListener('pointerdown', (e) => e.stopPropagation());
+    if (optDpBtn) optDpBtn.onclick = (e) => { e.stopPropagation(); setDp(!scDprCap); };
+    paintQl();
+    paintDp();
     // the media bar: system-media-style control over the external stream
     // (play/pause/stop on its element; next/prev via the host's optional
     // window.scMedia = {next, prev} hooks, else synthetic media-key events
@@ -10998,7 +11092,7 @@ function drawCaveShade() {
     if (!overlay) return;
     const r = cv.getBoundingClientRect();
     if (!r.width) { setTimeout(resize, 60); return; }
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = scDprEff();
     cv.width = r.width * dpr; cv.height = r.height * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const oW = Wc, oH = Hc;

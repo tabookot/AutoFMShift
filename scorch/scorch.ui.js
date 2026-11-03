@@ -864,8 +864,12 @@ function rrectPath(c, x, y, w, h, r) {
     const nn = 1 - dayness;
     const starA = clamp((nn - 0.25) / 0.5, 0, 1);
     if (starA > 0.02) {
-      stars.forEach(st => {
-        const tw = 0.35 + 0.65 * Math.abs(Math.sin(skyT * st.tw + st.ph));
+      // preset star budget: a prefix of the fixed pool, no per-frame regen
+      // (the indexed loop also drops the forEach closure allocation)
+      const sN = Math.min(stars.length, starN);
+      for (let si = 0; si < sN; si++) {
+        const st = stars[si];
+        const tw = qualTwinkle ? 0.35 + 0.65 * Math.abs(Math.sin(skyT * st.tw + st.ph)) : 0.62;
         ctx.globalAlpha = tw * starA * 0.9;
         ctx.fillStyle = st.col;
         ctx.fillRect(st.x, st.y, st.sz, st.sz);
@@ -874,10 +878,10 @@ function rrectPath(c, x, y, w, h, r) {
           ctx.fillRect(st.x - st.sz, st.y + st.sz / 2 - 0.5, st.sz * 3, 1);
           ctx.fillRect(st.x + st.sz / 2 - 0.5, st.y - st.sz, 1, st.sz * 3);
         }
-      });
+      }
       ctx.globalAlpha = 0.07 * starA;
       ctx.fillStyle = '#fff';
-      for (let i = 0; i < 80; i++) {
+      for (let i = 0; i < skyDustN; i++) {
         const t = (i * 61.7) % 100 / 100;
         ctx.fillRect(t * Wc, Hc * 0.1 + t * Hc * 0.35 + (noise(i * 3.3) - 0.5) * 50, 1, 1);
       }
@@ -1103,7 +1107,7 @@ function rrectPath(c, x, y, w, h, r) {
         // device resolution (the mask grid itself is 3x denser now — see
         // genPlanetMask) and are blitted 1:1 each frame: no interpolation,
         // no blur — just the original per-cell drawing, cached
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = scDprEff();
         const bW = Math.max(2, Math.ceil(pr * 2 * dpr));
         if (drawSky._pmk !== seed || !drawSky._pcv || drawSky._pcv.width !== bW) {
           drawSky._pmk = seed;
@@ -1783,7 +1787,7 @@ function drawCaveShade() {
     }
   };
   function bakeTerrain() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = scDprEff();
     const bw = Math.max(2, Math.ceil(Wc * dpr)), bh = Math.max(2, Math.ceil(Hc * dpr));
     if (!terrCv) { terrCv = document.createElement('canvas'); terrCx = terrCv.getContext('2d'); }
     if (terrCv.width !== bw) terrCv.width = bw;
@@ -2037,7 +2041,7 @@ function drawCaveShade() {
     const N = cols.length;
     const bk = biomeKey();
     const un = biome.under || { strata: [[biome.sub[1], 26], [biome.sub[2], 54]], wobble: 8, dec: 'root', dep: 'dot', twink: '255,255,255', twN: 0 };
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = scDprEff();
     const dq = UNDER ? 0 : Math.round(dayness * 48);
     if (!terrCv || terrKV !== terrVer || terrKW !== Wc || terrKH !== Hc || terrKD !== dpr || terrKB !== biome || terrKS !== seed || terrKQ !== dq) bakeTerrain();
     // the whole static relief in one blit, then the living layers in
@@ -3988,6 +3992,16 @@ function drawCaveShade() {
                   <span class="sc-sndlab">ПРИЦЕЛ</span>
                   <b class="sc-sndval" id="scValAs" style="margin-left:auto"></b>
                 </div>
+                <div class="sc-sndrow" id="scRowQl" title="Качество графики: частицы, звёзды, трейлы — применяется сразу">
+                  <button class="sc-sndico" id="scBtnQl" type="button"></button>
+                  <span class="sc-sndlab">КАЧЕСТВО</span>
+                  <b class="sc-sndval" id="scValQl" style="margin-left:auto"></b>
+                </div>
+                <div class="sc-sndrow" id="scRowDp" title="Плотность пикселей: ×2 максимум (быстрее на экранах x3/x4) или полная (чётче)">
+                  <button class="sc-sndico" id="scBtnDp" type="button"></button>
+                  <span class="sc-sndlab">ПЛОТНОСТЬ</span>
+                  <b class="sc-sndval" id="scValDp" style="margin-left:auto"></b>
+                </div>
               </div>
               <button class="sc-go sc-sym" title="В бой!">&#x25B6;</button>
             </div>
@@ -4630,6 +4644,47 @@ function drawCaveShade() {
     if (optAsBtn) optAsBtn.onclick = (e) => { e.stopPropagation(); setAs(!scAssist); };
     paintSh();
     paintAs();
+    // graphics quality preset cycler + render-DPR cap, live-applied
+    const optQlRow = overlay.querySelector('#scRowQl');
+    const optQlBtn = overlay.querySelector('#scBtnQl');
+    const optQlVal = overlay.querySelector('#scValQl');
+    const optDpRow = overlay.querySelector('#scRowDp');
+    const optDpBtn = overlay.querySelector('#scBtnDp');
+    const optDpVal = overlay.querySelector('#scValDp');
+    const IC_QL = '<svg width="18" height="18" viewBox="0 0 16 16"><rect x="2" y="9" width="3" height="5" fill="currentColor"/><rect x="6.5" y="6" width="3" height="8" fill="currentColor"/><rect x="11" y="3" width="3" height="11" fill="currentColor"/></svg>';
+    const IC_DP2 = '<svg width="18" height="18" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="4.5" height="4.5" fill="currentColor"/><rect x="9" y="2.5" width="4.5" height="4.5" fill="currentColor"/><rect x="2.5" y="9" width="4.5" height="4.5" fill="currentColor"/><rect x="9" y="9" width="4.5" height="4.5" fill="currentColor"/></svg>';
+    const IC_DP1 = '<svg width="18" height="18" viewBox="0 0 16 16"><rect x="2" y="2" width="2.4" height="2.4" fill="currentColor"/><rect x="6.8" y="2" width="2.4" height="2.4" fill="currentColor"/><rect x="11.6" y="2" width="2.4" height="2.4" fill="currentColor"/><rect x="2" y="6.8" width="2.4" height="2.4" fill="currentColor"/><rect x="6.8" y="6.8" width="2.4" height="2.4" fill="currentColor"/><rect x="11.6" y="6.8" width="2.4" height="2.4" fill="currentColor"/><rect x="2" y="11.6" width="2.4" height="2.4" fill="currentColor"/><rect x="6.8" y="11.6" width="2.4" height="2.4" fill="currentColor"/><rect x="11.6" y="11.6" width="2.4" height="2.4" fill="currentColor"/></svg>';
+    const QL_NAME = { low: 'НИЗКОЕ', mid: 'СРЕДНЕЕ', high: 'ВЫСОКОЕ' };
+    const QL_NEXT = { low: 'mid', mid: 'high', high: 'low' };
+    const paintQl = () => {
+      if (optQlBtn) optQlBtn.innerHTML = IC_QL;
+      if (optQlVal) optQlVal.textContent = QL_NAME[scQual] || scQual;
+    };
+    const setQl = (k) => {
+      if (!SC_QUALS[k] || k === scQual) return;
+      scQual = k;
+      scOptSet('scorch_qual', k);
+      scQualApply();
+      paintQl();
+    };
+    const paintDp = () => {
+      if (optDpBtn) optDpBtn.innerHTML = scDprCap ? IC_DP2 : IC_DP1;
+      if (optDpVal) optDpVal.textContent = scDprCap ? '×2 МАКС' : 'ПОЛНАЯ';
+    };
+    const setDp = (on) => {
+      const v = !!on;
+      if (v === scDprCap) return;
+      scDprCap = v;
+      scOptSet('scorch_dprcap', v ? '1' : '0');
+      paintDp();
+      resize();
+    };
+    if (optQlRow) optQlRow.addEventListener('pointerdown', (e) => e.stopPropagation());
+    if (optQlBtn) optQlBtn.onclick = (e) => { e.stopPropagation(); setQl(QL_NEXT[scQual] || 'high'); };
+    if (optDpRow) optDpRow.addEventListener('pointerdown', (e) => e.stopPropagation());
+    if (optDpBtn) optDpBtn.onclick = (e) => { e.stopPropagation(); setDp(!scDprCap); };
+    paintQl();
+    paintDp();
     // the media bar: system-media-style control over the external stream
     // (play/pause/stop on its element; next/prev via the host's optional
     // window.scMedia = {next, prev} hooks, else synthetic media-key events
@@ -4900,7 +4955,7 @@ function drawCaveShade() {
     if (!overlay) return;
     const r = cv.getBoundingClientRect();
     if (!r.width) { setTimeout(resize, 60); return; }
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = scDprEff();
     cv.width = r.width * dpr; cv.height = r.height * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const oW = Wc, oH = Hc;

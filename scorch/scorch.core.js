@@ -130,6 +130,44 @@ let ammoInv = {}, aiAmmo = {}, cur = 0, cur2 = 0, turn, state, turnOrder = 0;
 let roundOpener = 0;
 let shot = null, subshots = [], liquids = [], debris = [], remains = [], sinkers = [], windParts = [], comets = [], grains = [], wreckBits = [];
 let fx = [];
+// ================== GRAPHICS QUALITY ==================
+// one preset knob (LS scorch_qual: low/mid/high) scales the hot-path
+// budgets: fx particle caps (world.js), star + sky-dust counts, star
+// twinkle, projectile trail length, and a weather-particles switch
+// reserved for the weather patch. LS scorch_dprcap limits the render
+// device pixel ratio to 2 (phone x3/x4 screens). Both persist across
+// sessions; switching never restarts a round - the next draw picks the
+// new budgets up, and the DPR change rides the regular resize() path
+const SC_QUALS = {
+  low:  { fx: 0.4, star: 0.45, twinkle: 0, trail: 0.5, weather: 0 },
+  mid:  { fx: 0.7, star: 0.75, twinkle: 1, trail: 0.8, weather: 1 },
+  high: { fx: 1,   star: 1,    twinkle: 1, trail: 1,   weather: 1 }
+};
+let scQual = 'high', scDprCap = true;
+try {
+  const q = localStorage.getItem('scorch_qual');
+  if (q && SC_QUALS[q]) scQual = q;
+  scDprCap = localStorage.getItem('scorch_dprcap') !== '0';
+} catch (e) {}
+// derived budgets, refreshed by scQualApply(); read per frame by world/ui
+let fxMax = 380, fxMaxSoft = 340, starN = 130, skyDustN = 80, trailCap = 90;
+let qualTwinkle = 1, qualWeather = 1;
+function scQualApply() {
+  const q = SC_QUALS[scQual] || SC_QUALS.high;
+  fxMax = Math.round(380 * q.fx);
+  fxMaxSoft = Math.round(340 * q.fx);
+  starN = Math.round(130 * q.star);
+  skyDustN = Math.round(80 * q.star);
+  trailCap = Math.round(90 * q.trail);
+  qualTwinkle = q.twinkle;
+  qualWeather = q.weather;
+}
+scQualApply();
+// effective render DPR: native, capped at 2 while scDprCap is on
+function scDprEff() {
+  const d = window.devicePixelRatio || 1;
+  return scDprCap && d > 2 ? 2 : d;
+}
 let firePatches = [];
 let terraJobs = [];
 let events = [];

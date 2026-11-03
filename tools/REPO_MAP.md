@@ -30,25 +30,27 @@
 | data/stations_list.md | 16470 | 542 |
 | patches/AutoFMShift_001_trajectory-visibility.patch | 5647 | - |
 | patches/AutoFMShift_002_terrain-baking-caches.patch | 50173 | - |
+| patches/AutoFMShift_003_quality-dpr.patch | 16791 | - |
+| patches/AutoFMShift_scorch_план_улучшений (1).md | 24441 | 291 |
 | patches/AutoFMShift_scorch_план_улучшений.md | 13590 | 164 |
-| patches/PROGRESS.md | 5165 | 77 |
+| patches/PROGRESS.md | 8645 | 114 |
 | patches/patcher.py | 7367 | 179 |
 | scorch/index.html | 51388 | 858 |
-| scorch/scorch.bundle.js | 528653 | 11077 |
-| scorch/scorch.core.js | 46001 | 891 |
+| scorch/scorch.bundle.js | 534425 | 11171 |
+| scorch/scorch.core.js | 47705 | 929 |
 | scorch/scorch.credits.js | 474 | 3 |
 | scorch/scorch.js | 656 | 16 |
 | scorch/scorch.music.js | 62700 | 1374 |
 | scorch/scorch.svg | 3462 | - |
-| scorch/scorch.ui.js | 259053 | 4977 |
-| scorch/scorch.world.js | 169890 | 3823 |
+| scorch/scorch.ui.js | 263122 | 5032 |
+| scorch/scorch.world.js | 169983 | 3824 |
 | scorch/samples/ATTRIBUTION.txt | 355 | 6 |
 | scorch/samples/manifest.json | 658 | 45 |
 | tests/README.md | 712 | 8 |
 | tests/smoke.html | 10125 | 173 |
 | tests/syntax.html | 2461 | 55 |
 | tools/README.md | 2614 | 26 |
-| tools/REPO_MAP.md | 16960 | 152 |
+| tools/REPO_MAP.md | 17028 | 153 |
 | tools/build_scorch.py | 1766 | 57 |
 | tools/embed_attribution.py | 1508 | 46 |
 | tools/extract.py | 6872 | 243 |
@@ -60,41 +62,41 @@
 
 ## Порядок подключения: index.html
 
-1. script compat.js?v=0.9.3
-2. script cities.js?v=0.9.3
-3. script api.js?v=0.9.3
-4. script fmuse.js?v=0.9.3
-5. script core.js?v=0.9.3
-6. script exports.js?v=0.9.3
-7. script dial.js?v=0.9.3
-8. script player.js?v=0.9.3
-9. script scorch/scorch.js?v=0.9.3
-10. script app.js?v=0.9.3
-- link img/logo_100.png?v=0.9.3
+1. script compat.js?v=0.9.4
+2. script cities.js?v=0.9.4
+3. script api.js?v=0.9.4
+4. script fmuse.js?v=0.9.4
+5. script core.js?v=0.9.4
+6. script exports.js?v=0.9.4
+7. script dial.js?v=0.9.4
+8. script player.js?v=0.9.4
+9. script scorch/scorch.js?v=0.9.4
+10. script app.js?v=0.9.4
+- link img/logo_100.png?v=0.9.4
 - link data:image/svg+xml,%3Csvg xmlns=
-- link img/logo_100.png?v=0.9.3
+- link img/logo_100.png?v=0.9.4
 - link https://fonts.googleapis.com
 - link https://fonts.gstatic.com
 - link https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap
-- link style.css?v=0.9.3
+- link style.css?v=0.9.4
 
 ## Порядок подключения: scorch/index.html
 
-1. script scorch.core.js?v=0.9.3
-2. script scorch.music.js?v=0.9.3
-3. script scorch.credits.js?v=0.9.3
-4. script scorch.world.js?v=0.9.3
-5. script scorch.ui.js?v=0.9.3
-- link scorch.svg?v=0.9.3
+1. script scorch.core.js?v=0.9.4
+2. script scorch.music.js?v=0.9.4
+3. script scorch.credits.js?v=0.9.4
+4. script scorch.world.js?v=0.9.4
+5. script scorch.ui.js?v=0.9.4
+- link scorch.svg?v=0.9.4
 - link https://fonts.googleapis.com
 - link https://fonts.gstatic.com
 - link https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800;900&display=swap
 
 ## Порядок подключения: data/sandbox.html
 
-1. script ../api.js?v=0.9.3
-2. script ../fmuse.js?v=0.9.3
-3. script ../fetch_backup.js?v=0.9.3
+1. script ../api.js?v=0.9.4
+2. script ../fmuse.js?v=0.9.4
+3. script ../fetch_backup.js?v=0.9.4
 
 ## Индекс верхнеуровневых символов (kind:name:line)
 
@@ -128,11 +130,11 @@ var:FMUse:1
 ### player.js (54 симв.)
 var:stationStreamMap:2 var:audioPlayer:3 var:currentPlayingStation:4 var:currentStreamIndex:5 var:playTimeout:6 var:isSwitchingStream:7 var:titleRotationInterval:8 var:titleRotationStation:9 var:audioContext:10 var:analyser:11 var:sourceNode:12 var:spectrumCanvas:13 var:spectrumCtx:14 var:isRestoringPlayback:15 var:playbackToken:16 var:lastVolume:17 var:dialPlayerInView:18 fn:initHeaderPlayerSync:21 fn:setHeaderBrand:42 fn:loadStationsData:47 fn:hideStationButton:71 fn:setPlayerLoading:77 fn:cancelRestorePlayback:91 fn:restorePlayback:98 var:audioHandlers:126 fn:bindAudioEvents:128 fn:rebuildAudioElement:155 fn:attemptPlay:177 fn:tryPlayStation:287 fn:togglePlay:317 fn:skipStation:371 fn:skipPreset:426 fn:stopPlayer:511 fn:initAudioContext:520 var:spectrumRaf:541 var:spectrumBuf:542 fn:startSpectrum:544 fn:drawSpectrum:553 fn:updateMediaSession:600 var:nowPlayingTrack:632 var:metaAbort:633 var:metaStats:634 fn:metaTitleText:636 fn:setMeta:647 fn:updateMetaBtn:657 fn:stopTrackMeta:670 fn:setTrack:676 fn:startTrackMeta:686 fn:updatePlayerUI:734 fn:initMobilePlayerControls:920 fn:checkMarqueeScroll:995 fn:openStreamMenu:1024 fn:smartSkip:1087 fn:toggleMute:1108
 
-### scorch/scorch.bundle.js (394 симв.)
-var:__scBase:4 var:LS_KEY:8 var:LS_PROFILE:9 var:LS_LAST:10 var:LS_VOL:11 var:MAX_REC:12 var:ROUNDS_MAX:13 var:GRAV:14 var:VMAX:15 var:WINDF:16 var:TANK_HP:17 var:NCOL:18 var:DAY_CYCLE:19 var:TERR_DMG_MAX:20 var:FIERY:21 var:DIG_SPEED0:22 var:DIG_SPEED1:23 var:DIG_LEN:24 var:DIG_RADIUS_F:25 var:TUN_MAX:26 var:DIG_COLLAPSE_H:27 var:TURN_TIME:28 var:TURN_INTRO:29 var:LAST_STAND:32 var:AIM_MIN:34 var:LAVA_MELT:36 var:LAVA_FILL:37 var:CAVE_BIOMES:42 var:CRYSTAL_COLS:43 var:CAVE_FUEL:46 var:WATER_MODE:48 var:GMODE:50 var:ARSENAL:52 var:TERRAIN_WEAPONS:64 var:isTerr:65 var:BLAST_COL:67 var:BIOMES:74 var:BIOME_POOL:83 var:VOLC_BIOMES:85 var:LAVA_STYLES:86 var:TOD:92 var:TOD_KEYS:98 var:BANNERS:103 var:BANNER_COL:108 var:HULLS:111 var:HULL_COLORS:117 var:UNDER:122 var:ceil:123 var:caveLights:124 var:caveVents:125 var:volcano:126 var:lavaBits:127 var:cloudCount:128 var:groundPat:129 var:tod:130 var:cycleT:131 var:ammoInv:133 var:roundOpener:134 var:shot:135 var:fx:136 var:firePatches:137 var:terraJobs:138 var:events:139 var:stars:140 var:skyLight:141 var:digSid:142 var:dirtyA:143 var:terrVer:149 fn:terrMicro:150 var:raf:151 var:aim:152 var:seatAim:153 var:score:154 var:wins:155 var:drag:156 var:tctlOpen:157 var:moonCv:158 var:shake:159 var:touchUI:160 var:lastKillMethod:161 var:turnTimer:162 var:roundArmed:165 var:shotOwner:166 var:turnCard:167 var:driftT:168 var:AC:169 var:sVol:171 var:pockets:184 var:players:185 var:confirmClose:189 var:turnIntro:190 var:setupOpen:191 var:confirmAction:192 var:firstShooter:193 var:ripples:195 var:idlePh:196 var:aState:197 var:audioLive:198 var:extMode:201 var:extKilled:204 var:glints:205 var:scSel:208 var:clamp:209 var:R:210 var:ease:211 var:playerDir:212 var:M:213 var:isDayT:214 var:indCol:215 var:indColHi:216 var:biomeKey:218 var:biomeLabel:222 var:windKind:223 var:lav:225 var:hexTri:228 var:mixTri:229 var:isHumanSeat:233 var:activeTank:234 var:activeDir:235 var:ctlLive:239 var:aimTank:240 var:aimDir:241 var:canAct:244 var:canHurt:245 var:modalOpen:246 var:esc:247 var:hudSeat:248 var:blastRange:249 fn:askConfirm:252 fn:siteIsLight:262 fn:syncLightTheme:277 fn:hexA:280 fn:parseCol:284 fn:mixColA:289 var:rgbaStr:292 fn:sampleStops:293 fn:updateTod:298 fn:mixColor:320 fn:shade:324 var:hullSprites:333 fn:tankShadow:334 fn:buildHullSprite:339 fn:drawTurretCached:355 fn:drawTurretBody:380 fn:drawMiniTurret:616 fn:drawProjectileShape:627 fn:mulberry32:673 fn:makeNoise:674 var:fbm:684 fn:ensureAudio:687 var:sfxNoiseCache:700 ...(обрезано)
+### scorch/scorch.bundle.js (400 симв.)
+var:__scBase:4 var:LS_KEY:8 var:LS_PROFILE:9 var:LS_LAST:10 var:LS_VOL:11 var:MAX_REC:12 var:ROUNDS_MAX:13 var:GRAV:14 var:VMAX:15 var:WINDF:16 var:TANK_HP:17 var:NCOL:18 var:DAY_CYCLE:19 var:TERR_DMG_MAX:20 var:FIERY:21 var:DIG_SPEED0:22 var:DIG_SPEED1:23 var:DIG_LEN:24 var:DIG_RADIUS_F:25 var:TUN_MAX:26 var:DIG_COLLAPSE_H:27 var:TURN_TIME:28 var:TURN_INTRO:29 var:LAST_STAND:32 var:AIM_MIN:34 var:LAVA_MELT:36 var:LAVA_FILL:37 var:CAVE_BIOMES:42 var:CRYSTAL_COLS:43 var:CAVE_FUEL:46 var:WATER_MODE:48 var:GMODE:50 var:ARSENAL:52 var:TERRAIN_WEAPONS:64 var:isTerr:65 var:BLAST_COL:67 var:BIOMES:74 var:BIOME_POOL:83 var:VOLC_BIOMES:85 var:LAVA_STYLES:86 var:TOD:92 var:TOD_KEYS:98 var:BANNERS:103 var:BANNER_COL:108 var:HULLS:111 var:HULL_COLORS:117 var:UNDER:122 var:ceil:123 var:caveLights:124 var:caveVents:125 var:volcano:126 var:lavaBits:127 var:cloudCount:128 var:groundPat:129 var:tod:130 var:cycleT:131 var:ammoInv:133 var:roundOpener:134 var:shot:135 var:fx:136 var:SC_QUALS:145 var:scQual:150 var:fxMax:157 var:qualTwinkle:158 fn:scQualApply:159 fn:scDprEff:171 var:firePatches:175 var:terraJobs:176 var:events:177 var:stars:178 var:skyLight:179 var:digSid:180 var:dirtyA:181 var:terrVer:187 fn:terrMicro:188 var:raf:189 var:aim:190 var:seatAim:191 var:score:192 var:wins:193 var:drag:194 var:tctlOpen:195 var:moonCv:196 var:shake:197 var:touchUI:198 var:lastKillMethod:199 var:turnTimer:200 var:roundArmed:203 var:shotOwner:204 var:turnCard:205 var:driftT:206 var:AC:207 var:sVol:209 var:pockets:222 var:players:223 var:confirmClose:227 var:turnIntro:228 var:setupOpen:229 var:confirmAction:230 var:firstShooter:231 var:ripples:233 var:idlePh:234 var:aState:235 var:audioLive:236 var:extMode:239 var:extKilled:242 var:glints:243 var:scSel:246 var:clamp:247 var:R:248 var:ease:249 var:playerDir:250 var:M:251 var:isDayT:252 var:indCol:253 var:indColHi:254 var:biomeKey:256 var:biomeLabel:260 var:windKind:261 var:lav:263 var:hexTri:266 var:mixTri:267 var:isHumanSeat:271 var:activeTank:272 var:activeDir:273 var:ctlLive:277 var:aimTank:278 var:aimDir:279 var:canAct:282 var:canHurt:283 var:modalOpen:284 var:esc:285 var:hudSeat:286 var:blastRange:287 fn:askConfirm:290 fn:siteIsLight:300 fn:syncLightTheme:315 fn:hexA:318 fn:parseCol:322 fn:mixColA:327 var:rgbaStr:330 fn:sampleStops:331 fn:updateTod:336 fn:mixColor:358 fn:shade:362 var:hullSprites:371 fn:tankShadow:372 fn:buildHullSprite:377 fn:drawTurretCached:393 fn:drawTurretBody:418 fn:drawMiniTurret:654 ...(обрезано)
 
-### scorch/scorch.core.js (168 симв.)
-var:LS_KEY:4 var:LS_PROFILE:5 var:LS_LAST:6 var:LS_VOL:7 var:MAX_REC:8 var:ROUNDS_MAX:9 var:GRAV:10 var:VMAX:11 var:WINDF:12 var:TANK_HP:13 var:NCOL:14 var:DAY_CYCLE:15 var:TERR_DMG_MAX:16 var:FIERY:17 var:DIG_SPEED0:18 var:DIG_SPEED1:19 var:DIG_LEN:20 var:DIG_RADIUS_F:21 var:TUN_MAX:22 var:DIG_COLLAPSE_H:23 var:TURN_TIME:24 var:TURN_INTRO:25 var:LAST_STAND:28 var:AIM_MIN:30 var:LAVA_MELT:32 var:LAVA_FILL:33 var:CAVE_BIOMES:38 var:CRYSTAL_COLS:39 var:CAVE_FUEL:42 var:WATER_MODE:44 var:GMODE:46 var:ARSENAL:48 var:TERRAIN_WEAPONS:60 var:isTerr:61 var:BLAST_COL:63 var:BIOMES:70 var:BIOME_POOL:79 var:VOLC_BIOMES:81 var:LAVA_STYLES:82 var:TOD:88 var:TOD_KEYS:94 var:BANNERS:99 var:BANNER_COL:104 var:HULLS:107 var:HULL_COLORS:113 var:UNDER:118 var:ceil:119 var:caveLights:120 var:caveVents:121 var:volcano:122 var:lavaBits:123 var:cloudCount:124 var:groundPat:125 var:tod:126 var:cycleT:127 var:ammoInv:129 var:roundOpener:130 var:shot:131 var:fx:132 var:firePatches:133 var:terraJobs:134 var:events:135 var:stars:136 var:skyLight:137 var:digSid:138 var:dirtyA:139 var:terrVer:145 fn:terrMicro:146 var:raf:147 var:aim:148 var:seatAim:149 var:score:150 var:wins:151 var:drag:152 var:tctlOpen:153 var:moonCv:154 var:shake:155 var:touchUI:156 var:lastKillMethod:157 var:turnTimer:158 var:roundArmed:161 var:shotOwner:162 var:turnCard:163 var:driftT:164 var:AC:165 var:sVol:167 var:pockets:180 var:players:181 var:confirmClose:185 var:turnIntro:186 var:setupOpen:187 var:confirmAction:188 var:firstShooter:189 var:ripples:191 var:idlePh:192 var:aState:193 var:audioLive:194 var:extMode:197 var:extKilled:200 var:glints:201 var:scSel:204 var:clamp:205 var:R:206 var:ease:207 var:playerDir:208 var:M:209 var:isDayT:210 var:indCol:211 var:indColHi:212 var:biomeKey:214 var:biomeLabel:218 var:windKind:219 var:lav:221 var:hexTri:224 var:mixTri:225 var:isHumanSeat:229 var:activeTank:230 var:activeDir:231 var:ctlLive:235 var:aimTank:236 var:aimDir:237 var:canAct:240 var:canHurt:241 var:modalOpen:242 var:esc:243 var:hudSeat:244 var:blastRange:245 fn:askConfirm:248 fn:siteIsLight:258 fn:syncLightTheme:273 fn:hexA:276 fn:parseCol:280 fn:mixColA:285 var:rgbaStr:288 fn:sampleStops:289 fn:updateTod:294 fn:mixColor:316 fn:shade:320 var:hullSprites:329 fn:tankShadow:330 fn:buildHullSprite:335 fn:drawTurretCached:351 fn:drawTurretBody:376 fn:drawMiniTurret:612 fn:drawProjectileShape:623 fn:mulberry32:669 fn:makeNoise:670 var:fbm:680 fn:ensureAudio:683 var:sfxNoiseCache:696 fn:sfxNoise:697 fn:sfx:709 ...(обрезано)
+### scorch/scorch.core.js (174 симв.)
+var:LS_KEY:4 var:LS_PROFILE:5 var:LS_LAST:6 var:LS_VOL:7 var:MAX_REC:8 var:ROUNDS_MAX:9 var:GRAV:10 var:VMAX:11 var:WINDF:12 var:TANK_HP:13 var:NCOL:14 var:DAY_CYCLE:15 var:TERR_DMG_MAX:16 var:FIERY:17 var:DIG_SPEED0:18 var:DIG_SPEED1:19 var:DIG_LEN:20 var:DIG_RADIUS_F:21 var:TUN_MAX:22 var:DIG_COLLAPSE_H:23 var:TURN_TIME:24 var:TURN_INTRO:25 var:LAST_STAND:28 var:AIM_MIN:30 var:LAVA_MELT:32 var:LAVA_FILL:33 var:CAVE_BIOMES:38 var:CRYSTAL_COLS:39 var:CAVE_FUEL:42 var:WATER_MODE:44 var:GMODE:46 var:ARSENAL:48 var:TERRAIN_WEAPONS:60 var:isTerr:61 var:BLAST_COL:63 var:BIOMES:70 var:BIOME_POOL:79 var:VOLC_BIOMES:81 var:LAVA_STYLES:82 var:TOD:88 var:TOD_KEYS:94 var:BANNERS:99 var:BANNER_COL:104 var:HULLS:107 var:HULL_COLORS:113 var:UNDER:118 var:ceil:119 var:caveLights:120 var:caveVents:121 var:volcano:122 var:lavaBits:123 var:cloudCount:124 var:groundPat:125 var:tod:126 var:cycleT:127 var:ammoInv:129 var:roundOpener:130 var:shot:131 var:fx:132 var:SC_QUALS:141 var:scQual:146 var:fxMax:153 var:qualTwinkle:154 fn:scQualApply:155 fn:scDprEff:167 var:firePatches:171 var:terraJobs:172 var:events:173 var:stars:174 var:skyLight:175 var:digSid:176 var:dirtyA:177 var:terrVer:183 fn:terrMicro:184 var:raf:185 var:aim:186 var:seatAim:187 var:score:188 var:wins:189 var:drag:190 var:tctlOpen:191 var:moonCv:192 var:shake:193 var:touchUI:194 var:lastKillMethod:195 var:turnTimer:196 var:roundArmed:199 var:shotOwner:200 var:turnCard:201 var:driftT:202 var:AC:203 var:sVol:205 var:pockets:218 var:players:219 var:confirmClose:223 var:turnIntro:224 var:setupOpen:225 var:confirmAction:226 var:firstShooter:227 var:ripples:229 var:idlePh:230 var:aState:231 var:audioLive:232 var:extMode:235 var:extKilled:238 var:glints:239 var:scSel:242 var:clamp:243 var:R:244 var:ease:245 var:playerDir:246 var:M:247 var:isDayT:248 var:indCol:249 var:indColHi:250 var:biomeKey:252 var:biomeLabel:256 var:windKind:257 var:lav:259 var:hexTri:262 var:mixTri:263 var:isHumanSeat:267 var:activeTank:268 var:activeDir:269 var:ctlLive:273 var:aimTank:274 var:aimDir:275 var:canAct:278 var:canHurt:279 var:modalOpen:280 var:esc:281 var:hudSeat:282 var:blastRange:283 fn:askConfirm:286 fn:siteIsLight:296 fn:syncLightTheme:311 fn:hexA:314 fn:parseCol:318 fn:mixColA:323 var:rgbaStr:326 fn:sampleStops:327 fn:updateTod:332 fn:mixColor:354 fn:shade:358 var:hullSprites:367 fn:tankShadow:368 fn:buildHullSprite:373 fn:drawTurretCached:389 fn:drawTurretBody:414 fn:drawMiniTurret:650 fn:drawProjectileShape:661 ...(обрезано)
 
 ### scorch/scorch.credits.js (1 симв.)
 var:SC_CREDITS:2
@@ -144,9 +146,9 @@ var:SC_CREDITS:2
 var:LS_MVOL:4 var:LS_MSTATE:5 var:mVolSaved:6 var:mStopped:9 var:MTRACKS:12 var:MDRUM:251 fn:mNoteHz:252 fn:mAtom:258 fn:mParse:271 var:mNoiseBuf:323 var:MSAMP_BASE:326 var:MLEV:330 var:mJit:332 var:mVerb:333 fn:mMakeIR:336 fn:mCurve:352 var:MAMP:360 fn:mAmpGet:369 fn:mChorusGet:398 fn:mBusFree:421 fn:mSetupMaster:442 fn:mTeardownMaster:454 fn:mRoute:460 fn:mNoise:475 fn:mBody:491 fn:mMetalHat:503 var:MKIT:522 fn:mDrum:530 fn:mVib:560 fn:mNote:574 var:mKSCache:631 fn:mKSBuf:632 fn:mString:645 var:mS:674 var:mSampTried:675 fn:mSampLoad:677 fn:mSampPick:699 fn:mSampNote:710 fn:mGtrNote:746 fn:mEPiano:752 var:MLEGATO:782 var:MVOICE:784 var:MKITS:875 var:MSHOT:910 var:MFLY:923 var:mFly:936 fn:mBlastVol:938 fn:mNoiseBufGet:940 fn:shotLaunchSfx:949 fn:mFlyStop:975 fn:flySync:989 var:mOn:1052 var:mAnalyser:1053 var:mTrack:1054 var:mPart:1055 var:mSess:1056 var:mCache:1057 var:mPool:1058 fn:musicVol:1060 fn:musicSync:1061 fn:musicSetVol:1062 var:mSessActs:1068 fn:mSessionMeta:1076 fn:mSessionSet:1085 fn:mSessionSync:1100 fn:musicExternal:1111 fn:musicAnalyserOn:1118 fn:musicAnalyser:1119 fn:musicAlive:1120 fn:mgcd:1121 fn:mShuffle:1123 fn:mCompile:1132 fn:musicTrackDur:1146 fn:mNewBus:1151 fn:mCut:1161 fn:musicNext:1186 fn:musicPlayIdx:1203 fn:musicPause:1221 fn:musicResume:1226 fn:musicStopped:1236 fn:musicHalt:1238 fn:musicSkip:1246 fn:musicSeek:1248 fn:musicInfo:1262 fn:mStepSchedule:1269 fn:mTick:1311 fn:musicStart:1336 fn:musicStop:1361
 
 ### scorch/scorch.ui.js (9 симв.)
-fn:rrectPath:2 var:eclipseF:1385 var:sunDim:1386 var:scOptions:1389 var:uiOpenSetup:1390 var:uiOpenHelp:1391 var:uiCloseOptions:1392 var:scDebug:1396 fn:drawCaveShade:1397
+fn:rrectPath:2 var:eclipseF:1389 var:sunDim:1390 var:scOptions:1393 var:uiOpenSetup:1394 var:uiOpenHelp:1395 var:uiCloseOptions:1396 var:scDebug:1400 fn:drawCaveShade:1401
 
 ### scorch/scorch.world.js (127 симв.)
-var:ARCH:3 var:gauss:4 var:worm:6 var:junks:7 var:moonSys:9 var:wormPlan:10 var:junkPlan:11 var:JUNK_SKIP:17 var:JUNK_DOUBLE:18 var:JUNK_T1:19 var:JUNK_T2:20 var:rgt:22 var:planetMask:26 fn:genSky:29 fn:buildGroundTex:49 fn:genTerrain:146 var:colAt:396 fn:surfaceAt:397 var:ceilAt:399 fn:slopeAt:400 fn:inVoid:401 fn:shotBlocked:402 fn:floorAt:412 fn:inVolcCone:420 fn:coneTopAt:427 fn:nearVolcano:428 fn:volcScan:433 fn:emitLavaFrom:458 fn:spawnLFlow:469 fn:nearCrater:476 fn:volcAgitate:484 fn:volcBreach:501 fn:landLava:565 fn:stepLavaBits:576 var:WP:609 var:WB:610 var:wPhaseB:611 fn:waterReset:612 fn:ensureWaterFx:614 fn:readAudio:640 fn:spawnRipple:695 fn:pushRipple:709 fn:stepWater:719 fn:waterAt:800 fn:placeTanks:810 fn:newRound:1050 fn:announceTurn:1106 fn:handOverTurn:1112 fn:syncSeatAim:1123 fn:craterMask:1126 fn:subsideColumn:1178 fn:carve:1192 fn:carveLine:1225 fn:collapseHoles:1233 fn:slump:1255 fn:smoothGround:1292 fn:digTrench:1325 fn:addTerrDmg:1336 fn:popDmg:1352 fn:ceilingCrush:1361 fn:growStalactite:1390 fn:growCeilColumn:1412 fn:hitVents:1437 fn:eruptVent:1445 fn:stepTerra:1463 fn:hitFx:1691 fn:heatHits:1698 fn:igniteAt:1703 fn:ignitePocket:1713 fn:pocketDetonate:1733 fn:pushBlastFx:1767 fn:boomsAt:1777 fn:nukeStrike:1872 fn:spawnChunks:1891 fn:spawnDust:1903 fn:spawnDirtFall:1913 fn:spawnDrops:1918 fn:spawnSed:1924 fn:spawnWisps:1930 fn:spawnEmbers:1936 fn:stepPlasmaOrbs:1949 fn:stepFx:1976 fn:stepWreckBits:2136 fn:integrate:2167 fn:currentInv:2173 fn:currentCur:2174 fn:setCurrentCur:2175 fn:fire:2177 fn:fire2:2191 fn:launch:2205 fn:aiPickWeapon:2230 fn:aiTurn:2241 fn:simulateShot:2291 fn:digEnter:2306 fn:digCollapse:2323 fn:digMotion:2342 fn:updateProjectile:2400 fn:updateLiquid:2531 fn:resolveHit:2548 fn:endTurnWaterSink:2741 fn:wetHit:2747 fn:enterLastStand:2802 fn:damageTank:2809 fn:killTank:2833 fn:obliterateTank:2853 fn:tankParts:2888 fn:endTurn:2894 fn:endRound:2905 fn:resolveRound:2910 fn:newGrain:2971 fn:bakeGrain:2988 fn:stepGrains:2999 fn:spawnWorm:3043 fn:buildWormPath:3069 fn:collapseWormTunnel:3118 fn:stepWorm:3137 fn:stepJunks:3266 fn:garbageStrike:3298 fn:junkLand:3326 fn:genPlanetMask:3357 fn:genMoonSys:3560 fn:stepMoonSys:3575 fn:start:3580 fn:loop:3594 fn:step:3599 var:turnReady:3822 var:boomsIdle:3823
+var:ARCH:3 var:gauss:4 var:worm:6 var:junks:7 var:moonSys:9 var:wormPlan:10 var:junkPlan:11 var:JUNK_SKIP:17 var:JUNK_DOUBLE:18 var:JUNK_T1:19 var:JUNK_T2:20 var:rgt:22 var:planetMask:26 fn:genSky:29 fn:buildGroundTex:49 fn:genTerrain:146 var:colAt:396 fn:surfaceAt:397 var:ceilAt:399 fn:slopeAt:400 fn:inVoid:401 fn:shotBlocked:402 fn:floorAt:412 fn:inVolcCone:420 fn:coneTopAt:427 fn:nearVolcano:428 fn:volcScan:433 fn:emitLavaFrom:458 fn:spawnLFlow:469 fn:nearCrater:476 fn:volcAgitate:484 fn:volcBreach:501 fn:landLava:565 fn:stepLavaBits:576 var:WP:609 var:WB:610 var:wPhaseB:611 fn:waterReset:612 fn:ensureWaterFx:614 fn:readAudio:640 fn:spawnRipple:695 fn:pushRipple:709 fn:stepWater:719 fn:waterAt:800 fn:placeTanks:810 fn:newRound:1050 fn:announceTurn:1106 fn:handOverTurn:1112 fn:syncSeatAim:1123 fn:craterMask:1126 fn:subsideColumn:1178 fn:carve:1192 fn:carveLine:1225 fn:collapseHoles:1233 fn:slump:1255 fn:smoothGround:1292 fn:digTrench:1325 fn:addTerrDmg:1336 fn:popDmg:1352 fn:ceilingCrush:1361 fn:growStalactite:1390 fn:growCeilColumn:1412 fn:hitVents:1437 fn:eruptVent:1445 fn:stepTerra:1463 fn:hitFx:1691 fn:heatHits:1698 fn:igniteAt:1703 fn:ignitePocket:1713 fn:pocketDetonate:1733 fn:pushBlastFx:1767 fn:boomsAt:1777 fn:nukeStrike:1872 fn:spawnChunks:1891 fn:spawnDust:1903 fn:spawnDirtFall:1913 fn:spawnDrops:1918 fn:spawnSed:1924 fn:spawnWisps:1930 fn:spawnEmbers:1936 fn:stepPlasmaOrbs:1949 fn:stepFx:1976 fn:stepWreckBits:2137 fn:integrate:2168 fn:currentInv:2174 fn:currentCur:2175 fn:setCurrentCur:2176 fn:fire:2178 fn:fire2:2192 fn:launch:2206 fn:aiPickWeapon:2231 fn:aiTurn:2242 fn:simulateShot:2292 fn:digEnter:2307 fn:digCollapse:2324 fn:digMotion:2343 fn:updateProjectile:2401 fn:updateLiquid:2532 fn:resolveHit:2549 fn:endTurnWaterSink:2742 fn:wetHit:2748 fn:enterLastStand:2803 fn:damageTank:2810 fn:killTank:2834 fn:obliterateTank:2854 fn:tankParts:2889 fn:endTurn:2895 fn:endRound:2906 fn:resolveRound:2911 fn:newGrain:2972 fn:bakeGrain:2989 fn:stepGrains:3000 fn:spawnWorm:3044 fn:buildWormPath:3070 fn:collapseWormTunnel:3119 fn:stepWorm:3138 fn:stepJunks:3267 fn:garbageStrike:3299 fn:junkLand:3327 fn:genPlanetMask:3358 fn:genMoonSys:3561 fn:stepMoonSys:3576 fn:start:3581 fn:loop:3595 fn:step:3600 var:turnReady:3823 var:boomsIdle:3824
 
 ### style.css: ~348 блоков CSS

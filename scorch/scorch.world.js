@@ -467,7 +467,7 @@ function emitLavaFrom(cr, burst) {
   });
 }
 function spawnLFlow(cr) {
-  if (fx.length > 340) return;
+  if (fx.length > fxMaxSoft) return;
   const sl = slopeAt(cr.x);
   const dir = sl > 0.02 ? 1 : sl < -0.02 ? -1 : (Math.sign(cr.nx) || 1);
   const y0 = surfaceAt(cr.x) - 2;
@@ -709,7 +709,7 @@ function spawnRipple(kind, level) {
 function pushRipple(x, amp) {
   if (ripples.length >= WP.maxRipples + 4) ripples.shift();
   ripples.push({ x, radius: 6, amp, speed: WP.speed * 0.8, decay: WP.decay, width: 260, t: 0 });
-  if (amp >= 6 && fx.length < 380) {
+  if (amp >= 6 && fx.length < fxMax) {
     const y = waterAt(x);
     fx.push({ k: 'wring', x, y, r: 2, vr: 65, t: 0, life: 0.9 });
     fx.push({ k: 'wring', x, y, r: 2, vr: 38, t: 0, life: 1.5 });
@@ -1184,7 +1184,7 @@ function subsideColumn(i, quiet) {
   c.top += drop;
   c.h0 = 0; c.h1 = 0; c.sid = 0;
   c.surf *= 0.7;
-  if (!quiet && Math.random() < 0.5 && fx.length < 380) fx.push({ k: 'dust', x: i * cols.step, y: c.top, vx: R(-10, 10), vy: -R(10, 40), r: R(2, 5), t: 0, life: R(0.5, 1.1), col: M().dustCol });
+  if (!quiet && Math.random() < 0.5 && fx.length < fxMax) fx.push({ k: 'dust', x: i * cols.step, y: c.top, vx: R(-10, 10), vy: -R(10, 40), r: R(2, 5), t: 0, life: R(0.5, 1.1), col: M().dustCol });
   dirtyA = Math.min(dirtyA, i); dirtyB = Math.max(dirtyB, i + 1); terrVer++;
   return drop;
 }
@@ -1281,7 +1281,7 @@ function slump(i0, i1, rounds) {
   }
   dirtyA = Math.min(dirtyA, i0); dirtyB = Math.max(dirtyB, i1); terrVer++;
   for (let i = i0; i <= i1; i += 3) {
-    if (Math.random() < 0.4 && fx.length < 380) fx.push({ k: 'dust', x: i * cols.step, y: surfaceAt(i * cols.step) - 2, vx: R(-8, 8), vy: -R(6, 20), r: R(2, 4), t: 0, life: R(0.5, 1), col: M().dustCol });
+    if (Math.random() < 0.4 && fx.length < fxMax) fx.push({ k: 'dust', x: i * cols.step, y: surfaceAt(i * cols.step) - 2, vx: R(-8, 8), vy: -R(6, 20), r: R(2, 4), t: 0, life: R(0.5, 1), col: M().dustCol });
   }
 }
 
@@ -1350,7 +1350,7 @@ function addTerrDmg(i, dmg, src) {
   if (t.hp <= 0) killTank(i, 'crush');
 }
 function popDmg(t, dmg) {
-  if (dmg < 1 || fx.length > 380) return;
+  if (dmg < 1 || fx.length > fxMax) return;
   fx.push({ k: 'hp', x: t.x + R(-8, 8), y: t.y - 36, val: Math.round(dmg), t: 0, life: 2.8 });
 }
 
@@ -1916,25 +1916,25 @@ function spawnDirtFall(x, r, col) {
   }
 }
 function spawnDrops(x, y, n, sp) {
-  if (fx.length > 380) return;
+  if (fx.length > fxMax) return;
   for (let k = 0; k < n; k++) {
     fx.push({ k: 'drop', x: x + R(-4, 4), y: y - 2, vx: R(-sp * 0.6, sp * 0.6), vy: -R(sp * 0.5, sp * 1.05), t: 0, life: R(0.6, 1.3) });
   }
 }
 function spawnSed(x, y, n) {
-  if (fx.length > 380) return;
+  if (fx.length > fxMax) return;
   for (let k = 0; k < n; k++) {
     fx.push({ k: 'sed', x: x + R(-7, 7), y: y + R(-4, 4), vx: R(-6, 6), vy: R(3, 13), t: 0, life: R(1.4, 3.2), s: R(1, 2.2) });
   }
 }
 function spawnWisps(x, y, n) {
-  if (fx.length > 380) return;
+  if (fx.length > fxMax) return;
   for (let k = 0; k < n; k++) {
     fx.push({ k: 'wisp', x: x + R(-5, 5), y: y - 2, vx: R(-8, 8), vy: -R(14, 32), ph: R(0, 6.28), t: 0, life: R(0.9, 1.8) });
   }
 }
 function spawnEmbers(x, y, n, r) {
-  if (fx.length > 360) return;
+  if (fx.length > fxMaxSoft) return;
   for (let k = 0; k < n; k++) {
     fx.push({
       k: 'ember',
@@ -1967,7 +1967,7 @@ function stepPlasmaOrbs(dt) {
     if (f.eatT > 0.3) {
       f.eatT = 0;
       craterMask(f.x, f.r * 0.45, 0.22, 'blast', 'star', 1);
-      if (Math.random() < 0.5 && fx.length < 380) fx.push({ k: 'wisp', x: f.x + R(-8, 8), y: f.y - 4, vx: R(-6, 6), vy: -R(14, 30), ph: R(0, 6.28), t: 0, life: R(0.6, 1.2) });
+      if (Math.random() < 0.5 && fx.length < fxMax) fx.push({ k: 'wisp', x: f.x + R(-8, 8), y: f.y - 4, vx: R(-6, 6), vy: -R(14, 30), ph: R(0, 6.28), t: 0, life: R(0.6, 1.2) });
       igniteAt(f.x, f.y + 10, 14);
     }
   }
@@ -2034,8 +2034,9 @@ function stepFx(dt) {
   }
   for (let i = fxLen0; i < fx.length; i++) fx[fxW++] = fx[i];
   fx.length = fxW;
-  if (fx.length > 600) {
-    let over = fx.length - 600, cw = 0;
+  const fxCeil = Math.round(600 * fxMax / 380);
+  if (fx.length > fxCeil) {
+    let over = fx.length - fxCeil, cw = 0;
     for (let i = 0; i < fx.length; i++) {
       const f = fx[i];
       if (over > 0 && (f.k === 'dust' || f.k === 'smoke' || f.k === 'vsmoke' || f.k === 'wisp' || f.k === 'sed' || f.k === 'bubble' || f.k === 'drop' || f.k === 'splash' || f.k === 'wring')) { over--; continue; }
@@ -2399,7 +2400,7 @@ function digMotion(p, dt) {
 
 function updateProjectile(p, dt) {
   if (!p.inWater) p.trail.push({ x: p.x, y: p.y, t: gt });
-  while (p.trail.length > 90 || (p.trail.length && gt - p.trail[0].t > trailLife(p.w))) p.trail.shift();
+  while (p.trail.length > trailCap || (p.trail.length && gt - p.trail[0].t > trailLife(p.w))) p.trail.shift();
   p.rot += dt * 6;
   if (p.y < p.apex) p.apex = p.y;
 
@@ -2512,12 +2513,12 @@ function updateProjectile(p, dt) {
       p.vy *= (1 - dt * 2.4);
       p.vx *= (1 - dt * 1.8);
       if (p.w.water === 'sink') {
-        if (fx.length < 380 && Math.random() < dt * 4) fx.push({ k: 'bubble', x: p.x + R(-3, 3), y: p.y - 5, vy: -R(25, 55), wob: R(0, 6.28), t: 0, life: R(1, 2), s: R(1, 2.2) });
+        if (fx.length < fxMax && Math.random() < dt * 4) fx.push({ k: 'bubble', x: p.x + R(-3, 3), y: p.y - 5, vy: -R(25, 55), wob: R(0, 6.28), t: 0, life: R(1, 2), s: R(1, 2.2) });
         const fl = inVoid(p.x, p.y) ? (colAt(p.x).h1 || surf) : surf;
         if (p.y >= fl) { p.dead = true; p.sunkSilent = true; return; }
         return;
       }
-      if (fx.length < 380 && Math.random() < dt * 9) fx.push({ k: 'bubble', x: p.x + R(-3, 3), y: p.y - 5, vy: -R(25, 55), wob: R(0, 6.28), t: 0, life: R(1, 2), s: R(1, 2.6) });
+      if (fx.length < fxMax && Math.random() < dt * 9) fx.push({ k: 'bubble', x: p.x + R(-3, 3), y: p.y - 5, vy: -R(25, 55), wob: R(0, 6.28), t: 0, life: R(1, 2), s: R(1, 2.6) });
       const fl = inVoid(p.x, p.y) ? (colAt(p.x).h1 || surf) : surf;
       if (p.y >= fl) { p.dead = true; p.wet = true; p.bed = true; return; }
       return;
