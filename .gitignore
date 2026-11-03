@@ -1,5 +1,7 @@
 ﻿# Personal/Private folders
 temp/
+patches/
+*.bat
 
 # OS generated files
 .DS_Store

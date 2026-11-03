@@ -9,6 +9,15 @@ let junks = [];
 let moonSys = null;
 let wormPlan = { q: 0, at: [], n: 0 };
 let junkPlan = { q: 0, at: [], n: 0 };
+// orbital junk tuning: how often the rain happens and when. jq is a
+// uniform 0..1 roll each round: jq <= JUNK_SKIP -> no junk; jq >
+// JUNK_DOUBLE -> two strikes, otherwise one. Windows are round-relative
+// seconds (rgt). Upstream defaults: JUNK_SKIP 0.7 / JUNK_DOUBLE 0.92 /
+// [90,220] [240,320] - junk in ~30% of rounds, never before second 90
+const JUNK_SKIP = 0.3;      // 0.3 = junk in ~70% of rounds (was 0.7 -> ~30%)
+const JUNK_DOUBLE = 0.85;   // above this roll -> two strikes (was 0.92)
+const JUNK_T1 = [15, 60];  // 1st strike window, s (was [90, 220])
+const JUNK_T2 = [90, 170]; // 2nd strike window, s (was [240, 320])
 // round-relative clock for the event plans
 let rgt = 0;
 // PROCEDURAL PLANET MASK for the moon-biome skies: a per-round land/ocean
@@ -1060,10 +1069,10 @@ function newRound(first) {
   updateTod();
   shot = null; subshots = []; liquids = []; debris = []; remains = []; terraJobs = []; events = []; sinkers = []; fx = []; firePatches = []; wreckBits = []; worm = null; junks = [];
   rgt = 0;
-  // rare-event plans: 0-2 sightings per ~5 minutes, never early; the
-  // times are ROUND-RELATIVE (rgt — the cumulative game clock gt made
-  // the worm spawn at second 0 of every round after the first); test
-  // summons bypass the plans
+  // rare-event plans: the times are ROUND-RELATIVE (rgt — the cumulative
+  // game clock gt made the worm spawn at second 0 of every round after
+  // the first); test summons bypass the plans. Junk frequency/timing is
+  // tuned via the JUNK_* constants near the top of this file
   wormPlan = { q: 0, at: [], n: 0 };
   junkPlan = { q: 0, at: [], n: 0 };
   // the worm: ~once per two rounds (it only lives in desert/rust, so per
@@ -1072,7 +1081,7 @@ function newRound(first) {
   if (wq > 0.5) { wormPlan.q = 1; wormPlan.at = [R(70, 200)]; }
   if (!UNDER) {
     const jq = Math.random();
-    if (jq > 0.7) { junkPlan.q = jq > 0.92 ? 2 : 1; junkPlan.at = [R(90, 220), R(240, 320)]; }
+    if (jq > JUNK_SKIP) { junkPlan.q = jq > JUNK_DOUBLE ? 2 : 1; junkPlan.at = [R(JUNK_T1[0], JUNK_T1[1]), R(JUNK_T2[0], JUNK_T2[1])]; }
   }
   windParts = []; comets = []; grains = []; lavaBits = []; lastHitInfo = null; killed = null; lastKillMethod = 'weapon'; lastShotApex = 0;
   shake = 0;
