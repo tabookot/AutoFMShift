@@ -174,10 +174,12 @@ const wx = {
   on: 0, kind: 0, pow: 0, storm: 0, n: 0, gx: 0, gy: 0, rebolt: 0,
   boltT: 0, flashT: 0, nextBolt: 10,
   sat: 0, satX: 0, satY: 0, satV: 0, satPh: 0,
-  p: [], boltP: []
+  brN: 0, brL: [5, 5], p: [], boltP: [], brA: [], brB: []
 };
 for (let i = 0; i < 220; i++) wx.p.push({ x: 0, y: 0, vx: 0, vy: 0, ph: 0, sz: 1 });
 for (let i = 0; i < 14; i++) wx.boltP.push({ x: 0, y: 0 });
+// lightning side branches, rewritten in place per strike (brN = count)
+for (let i = 0; i < 5; i++) { wx.brA.push({ x: 0, y: 0 }); wx.brB.push({ x: 0, y: 0 }); }
 
 // effective render DPR: native, capped at 2 while scDprCap is on
 function scDprEff() {
@@ -199,6 +201,9 @@ let dirtyA = 0, dirtyB = 0;
 let terrVer = 0, terrMicroT = -1;
 function terrMicro() { if (gt - terrMicroT > 0.15) { terrMicroT = gt; terrVer++; } }
 let raf = null, last = 0, gt = 0, skyT = 0, cloudOff = 0;
+// fps meter: a 2 Hz smoothed value fed by world.js step(), shown at the
+// head of the HUD event line
+let fpsV = 0, fpsN = 0, fpsT = 0;
 let aim = { ang: 45, pow: 55 }, aiAim = 55;
 let seatAim = [{ ang: 45, pow: 55 }, { ang: 45, pow: 55 }];
 let score = 0, shots = 0, shots2 = 0, roundStart = 0, round = 1;

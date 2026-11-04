@@ -130,6 +130,8 @@ function rrectPath(c, x, y, w, h, r) {
     drawSinkers();
     drawTanks();
     drawWater();
+    drawRainCrowns();
+    drawTankLights();
     // the cave: darkness swallows the solid scene, then the baked lights
     // burn their pools back into it; glowing things (shots, fire, fx) are
     // drawn ABOVE the darkness so they read in the gloom
@@ -970,38 +972,50 @@ function rrectPath(c, x, y, w, h, r) {
       });
       ctx.globalAlpha = 1;
     }
-    // meteors: a two-pass tail (wide faint glow, narrow bright core) and
-    // a hot head
+    // meteors: a tapered additive tail (the gradient dies out along the
+    // motion) and a hot flickering head with a soft bloom
     ctx.lineCap = 'round';
     comets.forEach(c => {
       const cp = c.t / c.life;
       const sz = c.sz || 1.5;
       const fade = 1 - cp;
-      const tx = c.x - c.vx * 0.85, ty = c.y - c.vy * 0.85;
-      ctx.strokeStyle = `rgba(160,200,255,${(0.3 * fade * starA).toFixed(3)})`;
-      ctx.lineWidth = sz * 2.4;
+      const fl = 0.8 + 0.2 * Math.sin(skyT * 27 + c.t * 31);
+      const tLen = 0.06 + sz * 0.05;
+      const tx = c.x - c.vx * tLen, ty = c.y - c.vy * tLen;
+      const tg = ctx.createLinearGradient(c.x, c.y, tx, ty);
+      tg.addColorStop(0, `rgba(228,240,255,${(0.8 * fade * fl * starA).toFixed(3)})`);
+      tg.addColorStop(0.5, `rgba(160,200,255,${(0.3 * fade * fl * starA).toFixed(3)})`);
+      tg.addColorStop(1, 'rgba(120,160,255,0)');
+      ctx.strokeStyle = tg;
+      ctx.lineWidth = sz * 1.8;
       ctx.beginPath();
       ctx.moveTo(c.x, c.y);
       ctx.lineTo(tx, ty);
       ctx.stroke();
-      ctx.strokeStyle = `rgba(225,240,255,${(0.85 * fade * starA).toFixed(3)})`;
-      ctx.lineWidth = sz;
-      ctx.beginPath();
-      ctx.moveTo(c.x, c.y);
-      ctx.lineTo(tx, ty);
-      ctx.stroke();
-      ctx.fillStyle = `rgba(255,255,255,${(fade * 0.9 * starA).toFixed(3)})`;
+      ctx.fillStyle = `rgba(255,255,255,${(0.95 * fade * starA).toFixed(3)})`;
       ctx.beginPath(); ctx.arc(c.x, c.y, sz * 1.1, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = `rgba(190,215,255,${(0.3 * fade * starA).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(c.x, c.y, sz * 2.6, 0, Math.PI * 2); ctx.fill();
     });
     ctx.lineCap = 'butt';
     ctx.lineWidth = 1;
-    // a rare blinking satellite crossing the night sky
+    // a rare satellite: a small hull with solar panels and a blinking
+    // beacon crossing the night sky - the cross flare rides the peaks
     if (wx.sat && starA > 0.1) {
       const bl = Math.sin(skyT * 5.2 + wx.satPh);
-      ctx.globalAlpha = (bl > 0.25 ? 0.85 : bl > -0.6 ? 0.3 : 0.12) * starA;
-      ctx.fillStyle = '#dfe6ee';
-      ctx.fillRect(wx.satX - 0.8, wx.satY - 0.8, 1.6, 1.6);
+      ctx.globalAlpha = (bl > 0.25 ? 0.9 : bl > -0.6 ? 0.4 : 0.16) * starA;
+      ctx.fillStyle = '#aeb9c6';
+      ctx.fillRect(wx.satX - 2.4, wx.satY - 1, 4.8, 2);
+      ctx.fillStyle = '#7d8ea3';
+      ctx.fillRect(wx.satX - 7.6, wx.satY - 1.7, 4.6, 3.4);
+      ctx.fillRect(wx.satX + 3, wx.satY - 1.7, 4.6, 3.4);
+      ctx.fillStyle = '#3c4a5c';
+      ctx.fillRect(wx.satX - 7.6, wx.satY - 0.3, 4.6, 0.6);
+      ctx.fillRect(wx.satX + 3, wx.satY - 0.3, 4.6, 0.6);
       if (bl > 0.25) {
+        ctx.fillStyle = '#ff6e5a';
+        ctx.fillRect(wx.satX + 2.4, wx.satY - 0.8, 1.6, 1.6);
+        ctx.fillStyle = '#e6edf5';
         ctx.fillRect(wx.satX - 3.5, wx.satY - 0.4, 7, 0.8);
         ctx.fillRect(wx.satX - 0.4, wx.satY - 3.5, 0.8, 7);
       }
@@ -1088,37 +1102,39 @@ function rrectPath(c, x, y, w, h, r) {
       // mask's dy maps onto the tilted axis, so continents drawn from it
       // sit correctly against the tilted poles
       const cyOff = (dy) => dy;
-      // noise-perturbed closed outline, periodic in the angle (no seam);
-      // cx0 lets the continents drift off the axis, the poles stay at 0
-      const capPath = (cx0, cy0, rx, ry, sd, sc) => {
+      // the visible arc of one parallel for the baked-in axis tilt
+      // (cos 0.62 = the pole's projected height): endpoints sit ON the
+      // limb, the apex is the arc's highest point - latitude bands and
+      // polar caps follow the sphere, no flat "cut" ovals anywhere
+      const PL_TILT = 0.9021, PL_CTH = 0.62;
+      const parArc = (phi, stroke, alpha) => {
+        const te = Math.tan(phi) * Math.tan(PL_TILT);
+        if (Math.abs(te) >= 0.92) return;
+        const xE = pr * Math.cos(phi) * Math.sqrt(1 - te * te);
+        const yE = -pr * Math.sin(phi) / PL_CTH;
+        const yA = -pr * Math.sin(phi + PL_TILT);
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = pr * 0.085;
         ctx.beginPath();
-        for (let v = 0; v <= 26; v++) {
-          const a4 = v / 26 * Math.PI * 2;
-          const rr = 1 + Math.sin(a4 * 3 + noise(sd) * 6.28) * 0.09
-                   + Math.sin(a4 * 5 + noise(sd + 9) * 6.28) * 0.06
-                   + Math.sin(a4 * 2 + noise(sd + 5) * 6.28) * 0.07;
-          const px3 = cx0 + Math.cos(a4) * rx * rr * sc;
-          const py3 = cy0 + Math.sin(a4) * ry * rr * sc;
-          if (v === 0) ctx.moveTo(px3, py3);
-          else ctx.lineTo(px3, py3);
-        }
-        ctx.closePath();
+        ctx.moveTo(-xE, yE);
+        ctx.quadraticCurveTo(0, 2 * yA - yE, xE, yE);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
       };
       // OCEAN WORLD: a deep water base — the gradient is CENTERED so no
-      // stray light blob shows in the seas; lighter latitude wave bands
+      // stray light blob shows in the seas; soft latitude wave bands
       const og = ctx.createRadialGradient(0, 0, pr * 0.4, 0, 0, pr);
       og.addColorStop(0, '#4b9db3');
       og.addColorStop(0.65, '#2f7d95');
       og.addColorStop(1, '#1c5a70');
       ctx.fillStyle = og;
       ctx.beginPath(); ctx.arc(0, 0, pr, 0, Math.PI * 2); ctx.fill();
-      for (let b = 0; b < 8; b++) {
-        const yy = -pr + (b + 0.5) / 8 * pr * 2;
-        ctx.fillStyle = `rgba(${b & 1 ? '70,150,170' : '130,200,215'},${(0.08 + noise(b * 5.1) * 0.08).toFixed(3)})`;
-        ctx.beginPath();
-        ctx.ellipse(0, yy, pr * (0.98 - Math.abs(yy) / pr * 0.28), pr * 0.08, 0, 0, Math.PI * 2);
-        ctx.fill();
+      const PL_BANDS = [-0.55, -0.32, -0.08, 0.16, 0.42];
+      for (let b = 0; b < PL_BANDS.length; b++) {
+        parArc(PL_BANDS[b], b & 1 ? 'rgb(70,150,170)' : 'rgb(130,200,215)', 0.10 + noise(b * 5.1) * 0.07);
       }
+      ctx.lineWidth = 1;
       // DRY CONTINENTS — from the PROCEDURAL SPHERICAL MASK (see
       // genPlanetMask, world.js): the disc is a hemisphere in its own
       // 2-D grid; each cell samples the mask via its (dx,dy,z), takes
@@ -1193,24 +1209,40 @@ function rrectPath(c, x, y, w, h, r) {
         ctx.drawImage(drawSky._pcv, px2 - pr, py2 - pr, pr * 2, pr * 2);
         ctx.restore();
       }
-      // polar caps, both CENTRED on the axis (local vertical of the ring
-      // frame): the north pole HIGH — the end tipped toward the viewer;
-      // the south one sits just past the limb, only its upper edge
-      // peeks out. Feathered by two extra outline passes
-      ctx.fillStyle = 'rgba(238,246,252,0.92)';
-      capPath(0, -pr * 0.6, pr * 0.44, pr * 0.3, 11, 1);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(238,246,252,0.35)';
-      capPath(0, -pr * 0.6, pr * 0.44, pr * 0.3, 11, 1.13);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(238,246,252,0.16)';
-      capPath(0, -pr * 0.6, pr * 0.44, pr * 0.3, 11, 1.28);
-      ctx.fill();
+      // polar caps as TRUE spherical caps: the north one is the limb arc
+      // between the cap-parallel's endpoints closed by the parallel
+      // itself (it hugs the sphere, no pasted oval), feathered by two
+      // wider passes; the south one is a crescent sliver just past the
+      // lower limb, only its upper edge peeking out
+      const capFill = (phi, col) => {
+        const te = Math.tan(phi) * Math.tan(PL_TILT);
+        const xE = pr * Math.cos(phi) * Math.sqrt(Math.max(0, 1 - te * te));
+        const yE = -pr * Math.sin(phi) / PL_CTH;
+        const yA = -pr * Math.sin(phi + PL_TILT);
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.moveTo(-xE, yE);
+        ctx.arc(0, 0, pr, Math.atan2(yE, -xE), Math.atan2(yE, xE), false);
+        ctx.quadraticCurveTo(0, 2 * yA - yE, -xE, yE);
+        ctx.closePath();
+        ctx.fill();
+      };
+      capFill(0.25, 'rgba(238,246,252,0.92)');
+      capFill(0.19, 'rgba(238,246,252,0.35)');
+      capFill(0.13, 'rgba(238,246,252,0.16)');
       ctx.fillStyle = 'rgba(238,246,252,0.8)';
-      capPath(0, pr * 0.97, pr * 0.24, pr * 0.09, 47, 1);
+      ctx.beginPath();
+      ctx.moveTo(-pr * 0.30, pr * 0.954);
+      ctx.arc(0, 0, pr, Math.PI / 2 + 0.305, Math.PI / 2 - 0.305, true);
+      ctx.quadraticCurveTo(0, pr * 0.90, -pr * 0.30, pr * 0.954);
+      ctx.closePath();
       ctx.fill();
       ctx.fillStyle = 'rgba(238,246,252,0.25)';
-      capPath(0, pr * 0.97, pr * 0.24, pr * 0.09, 47, 1.18);
+      ctx.beginPath();
+      ctx.moveTo(-pr * 0.42, pr * 0.908);
+      ctx.arc(0, 0, pr, Math.PI / 2 + 0.44, Math.PI / 2 - 0.44, true);
+      ctx.quadraticCurveTo(0, pr * 0.84, -pr * 0.42, pr * 0.908);
+      ctx.closePath();
       ctx.fill();
       ctx.restore();
       // no hard night side — the luminary crosses the sky IN FRONT of the
@@ -1390,9 +1422,12 @@ function rrectPath(c, x, y, w, h, r) {
       // shared vertical profile: bright head under the curtain path,
       // tail fading out before mid-sky (no hard bottom edge)
       const rg = c2.createLinearGradient(0, 0, 0, TH);
-      rg.addColorStop(0, 'rgba(120,255,190,0)');
-      rg.addColorStop(0.2, 'rgba(120,255,190,0.55)');
-      rg.addColorStop(0.55, 'rgba(96,240,214,0.22)');
+      // a faint violet fringe rides the very top of the curtain - the
+      // classic green -> teal -> violet stack instead of a flat two-tone
+      rg.addColorStop(0, 'rgba(158,122,255,0.14)');
+      rg.addColorStop(0.1, 'rgba(120,255,190,0.08)');
+      rg.addColorStop(0.28, 'rgba(120,255,190,0.55)');
+      rg.addColorStop(0.6, 'rgba(96,240,214,0.22)');
       rg.addColorStop(1, 'rgba(80,220,255,0)');
       c2.fillStyle = rg;
       for (let x = 8; x < TW - 8; x += 14) {
@@ -1491,18 +1526,35 @@ function rrectPath(c, x, y, w, h, r) {
       const B = wx.boltP;
       // re-strike flicker: the channel strobates while it decays
       const fl = wx.boltT > 0.7 ? 1 : 0.55 + 0.45 * Math.sin(wx.boltT * 47);
-      ctx.beginPath();
-      ctx.moveTo(B[0].x, B[0].y);
-      for (let i = 1; i < B.length; i++) ctx.lineTo(B[i].x, B[i].y);
-      ctx.strokeStyle = `rgba(150,185,255,${(0.22 * wx.boltT * fl).toFixed(3)})`;
-      ctx.lineWidth = 11;
-      ctx.stroke();
-      ctx.strokeStyle = `rgba(210,225,255,${(0.55 * wx.boltT * fl).toFixed(3)})`;
-      ctx.lineWidth = 4;
-      ctx.stroke();
-      ctx.strokeStyle = `rgba(248,250,255,${(0.95 * wx.boltT * fl).toFixed(3)})`;
-      ctx.lineWidth = 1.6;
-      ctx.stroke();
+      // three tone passes over a channel that TAPERS toward the ground
+      const tone = ['rgba(140,168,255,', 'rgba(205,222,255,', 'rgba(248,250,255,'];
+      const wBase = [11.5, 4.2, 1.7];
+      const bAl = [0.18, 0.55, 0.95];
+      for (let pass = 0; pass < 3; pass++) {
+        ctx.strokeStyle = tone[pass] + (bAl[pass] * wx.boltT * fl).toFixed(3) + ')';
+        for (let i2 = 1; i2 < B.length; i2++) {
+          // the channel visibly halves toward the ground
+          ctx.lineWidth = Math.max(0.5, wBase[pass] * (1.35 - 1.05 * (i2 / (B.length - 1))));
+          ctx.beginPath();
+          ctx.moveTo(B[i2 - 1].x, B[i2 - 1].y);
+          ctx.lineTo(B[i2].x, B[i2].y);
+          ctx.stroke();
+        }
+      }
+      // side branches: thinner, same tones, fading with the channel
+      for (let bi = 0; bi < wx.brN; bi++) {
+        const BR = bi ? wx.brB : wx.brA;
+        const bLn = Math.max(2, wx.brL[bi] || BR.length);
+        ctx.beginPath();
+        ctx.moveTo(BR[0].x, BR[0].y);
+        for (let i2 = 1; i2 < bLn; i2++) ctx.lineTo(BR[i2].x, BR[i2].y);
+        ctx.strokeStyle = tone[0] + (0.18 * wx.boltT * fl).toFixed(3) + ')';
+        ctx.lineWidth = 4.5;
+        ctx.stroke();
+        ctx.strokeStyle = tone[2] + (0.6 * wx.boltT * fl).toFixed(3) + ')';
+        ctx.lineWidth = 1.3;
+        ctx.stroke();
+      }
       // impact bloom where the channel meets the relief
       if (wx.boltT > 0.35) {
         const bk = (wx.boltT - 0.35) / 0.65;
@@ -1517,22 +1569,71 @@ function rrectPath(c, x, y, w, h, r) {
     if (!kind || !qualWeather) return;
     const n = wx.n;
     if (kind === 1) {
-      ctx.strokeStyle = 'rgba(178,200,228,0.34)';
+      // two depth layers: near streaks long and clear, the far veil
+      // short and faint - rain reads as volume, not a hatch
+      const n1 = (n * 0.58) | 0;
       ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(188,208,232,0.42)';
       ctx.beginPath();
-      for (let i = 0; i < n; i++) {
+      for (let i = 0; i < n1; i++) {
         const p = wx.p[i];
         ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.x - p.vx * 0.038, p.y - (560 + p.vy * 180) * 0.038);
+        ctx.lineTo(p.x - p.vx * 0.030, p.y - (640 + p.vy * 200) * 0.030);
+      }
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(158,182,212,0.20)';
+      ctx.beginPath();
+      for (let i = n1; i < n; i++) {
+        const p = wx.p[i];
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - p.vx * 0.019, p.y - (500 + p.vy * 150) * 0.019);
       }
       ctx.stroke();
     } else {
-      ctx.fillStyle = kind === 2 ? 'rgba(235,242,250,0.85)' : 'rgba(176,170,164,0.6)';
+      // snow: soft twinkling flakes; ash: cold flakes with a rare
+      // living ember - per-particle alpha via globalAlpha, no string
+      // rebuilds in the frame
+      const snow2 = kind === 2;
+      const wx_sty = snow2 ? 'rgba(238,244,252,0.9)' : 'rgba(186,180,172,0.62)';
+      ctx.fillStyle = wx_sty;
       for (let i = 0; i < n; i++) {
         const p = wx.p[i];
-        ctx.fillRect(p.x, p.y, p.sz, p.sz);
+        const tw = 0.75 + 0.25 * Math.sin(gt * (snow2 ? 1.9 : 1.2) + p.ph * 5);
+        if (!snow2 && i % 13 === 0) {
+          ctx.fillStyle = 'rgba(255,128,48,0.85)';
+          ctx.globalAlpha = clamp(0.35 + 0.55 * Math.sin(gt * 2.3 + p.ph), 0.15, 0.95);
+          ctx.fillRect(p.x, p.y, p.sz + 0.4, p.sz + 0.4);
+          ctx.fillStyle = wx_sty;
+        } else {
+          ctx.globalAlpha = tw;
+          ctx.fillRect(p.x, p.y, p.sz, p.sz);
+        }
       }
+      ctx.globalAlpha = 1;
     }
+  }
+  // rain landing crowns: drawn ABOVE the relief and the water - the
+  // splash belongs to the surface it hits, so it cannot ride the sky
+  // pass (the far hills and the terrain would swallow it whole)
+  function drawRainCrowns() {
+    if (!wx.on || UNDER || wx.kind !== 1 || !qualWeather) return;
+    const n = wx.n;
+    ctx.strokeStyle = 'rgba(205,225,245,0.55)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < n; i += 4) {
+      const p = wx.p[i];
+      const sy = waterAt(p.x) < surfaceAt(p.x) ? waterAt(p.x) : surfaceAt(p.x);
+      const d2 = p.y - sy;
+      if (d2 < -16 || d2 > 5) continue;
+      const u = (d2 + 16) / 21;
+      const w2 = 1 + u * 2.8;
+      ctx.moveTo(p.x - w2, sy - u * 1.4);
+      ctx.lineTo(p.x - w2 * 0.45, sy - u * 3.2);
+      ctx.moveTo(p.x + w2, sy - u * 1.4);
+      ctx.lineTo(p.x + w2 * 0.45, sy - u * 3.2);
+    }
+    ctx.stroke();
   }
 
 
@@ -1920,7 +2021,8 @@ function drawCaveShade() {
   // pulsing magma veins, twinkles, burning seams, burn/melt strips, lava
   // pools, swaying flora, cave vents and volcano craters
   let terrCv = null, terrCx = null;
-  let terrKV = -1, terrKW = 0, terrKH = 0, terrKD = 0, terrKB = null, terrKS = 0, terrKQ = -1;
+  let refrCv = null, refrCx = null; // water refraction scratch (drawWater)
+  let terrKV = -1, terrKW = 0, terrKH = 0, terrKD = 0, terrKB = null, terrKS = 0, terrKQ = -1, terrKL = -1;
   const terrSilhouette = () => {
     ctx.beginPath();
     ctx.moveTo(-30, Hc + 30);
@@ -2116,6 +2218,76 @@ function drawCaveShade() {
         ctx.fillRect(x, c.top, w, 2.5);
       }
     }
+    // ============ RELIEF SHADOWS: cast by the live luminary ============
+    // Sun by day, moon by night; every column walks a short ray toward
+    // the light and darkens when a higher column stands in it, so
+    // slopes, crater walls and cliff feet get volume. The direction is
+    // quantized into the bake key (terrKL) and rides DAY_CYCLE with the
+    // 1/48 day grain. Caves have no luminary - skipped
+    if (!UNDER) {
+      let shLx, shLy, shNight;
+      if (dayness > 0.4) {
+        const sp = cycleT >= 0.95 ? (cycleT - 0.95) / 0.55 : (cycleT + 0.05) / 0.55;
+        shLx = -60 + sp * (Wc + 120);
+        shLy = Hc * (0.30 - Math.sin(clamp(sp, 0, 1) * Math.PI) * 0.20);
+        shNight = false;
+      } else {
+        const mp = cycleT >= 0.51 && cycleT <= 0.97 ? (cycleT - 0.53) / 0.44 : -0.35;
+        shLx = -60 + mp * (Wc + 120);
+        shLy = Hc * (0.30 - Math.sin(clamp(mp, 0, 1) * Math.PI) * 0.18);
+        shNight = true;
+      }
+      const shElev = clamp((Hc * 0.30 - shLy) / (Hc * 0.17), 0, 1);
+      if (shLx > -40 && shLx < Wc + 40 && shElev > 0.02) {
+        // ray rise per px: a high luminary -> short crisp shadows, a
+        // low one -> long soft ones; the moon casts a cooler, fainter
+        // shade than the sun
+        const steep = 0.26 + shElev * 1.55;
+        const aMax = shNight ? 0.16 : 0.20 + 0.11 * shElev;
+        const shCol = shNight ? '10,14,30' : '12,14,20';
+        const st = cols.step;
+        // the shade is a SURFACE SKIN, not a soil stain: 4 thin slices
+        // fade out over ~20 px under each shaded column's top; the
+        // columns are batched by 8 alpha buckets so the whole pass
+        // costs a few dozen batched fills (the cut-away body below
+        // stays untouched - the luminary lights its top band only)
+        const SK_D = [-2, 3, 8, 13, 18];
+        const SK_A = [1, 0.5, 0.25, 0.09];
+        const skB = [];
+        for (let q = 0; q < 8; q++) skB.push([[], [], [], []]);
+        for (let i = 0; i < N; i++) {
+          const x = i * st;
+          const sd = shLx > x ? 1 : -1; // march toward the light
+          const topI = cols[i].top;
+          let hit = 0;
+          for (let k = 1; k <= 90; k++) {
+            const j = i + sd * k;
+            if (j < 0 || j >= N) break;
+            if (cols[j].top < topI - k * st * steep) { hit = k; break; }
+          }
+          if (hit) {
+            // penumbra: a nearer blocker reads darker; the bucket
+            // queues the column for batched drawing after the march
+            const a = aMax * clamp(1.25 - hit / 110, 0.4, 1);
+            const q = Math.min(7, (a / aMax * 8) | 0);
+            const B2 = skB[q];
+            B2[0].push(x, topI); B2[1].push(x, topI); B2[2].push(x, topI); B2[3].push(x, topI);
+          }
+        }
+        // batched skin fill: <= 8 alpha buckets x 4 fade slices - a
+        // few dozen fill() calls for the whole pass, ~20 px falloff
+        for (let q = 0; q < 8; q++) {
+          for (let sl = 0; sl < 4; sl++) {
+            const arr = skB[q][sl];
+            if (!arr.length) continue;
+            ctx.fillStyle = `rgba(${shCol},${(aMax * ((q + 0.5) / 8) * SK_A[sl]).toFixed(3)})`;
+            ctx.beginPath();
+            for (let r = 0; r < arr.length; r += 2) ctx.rect(arr[r], arr[r + 1] + SK_D[sl], st + 0.5, 5);
+            ctx.fill();
+          }
+        }
+      }
+    }
     // tunnel voids
     {
       let i = 0;
@@ -2235,6 +2407,8 @@ function drawCaveShade() {
     ctx = main;
     terrKV = terrVer; terrKW = Wc; terrKH = Hc; terrKD = dpr;
     terrKB = biome; terrKS = seed; terrKQ = Math.round(dayness * 48);
+    // 8th key field: the quantized light azimuth for the relief shadows
+    terrKL = UNDER ? 0 : Math.round(cycleT * 47.9);
   }
   function drawTerrain() {
     const N = cols.length;
@@ -2242,7 +2416,9 @@ function drawCaveShade() {
     const un = biome.under || { strata: [[biome.sub[1], 26], [biome.sub[2], 54]], wobble: 8, dec: 'root', dep: 'dot', twink: '255,255,255', twN: 0 };
     const dpr = scDprEff();
     const dq = UNDER ? 0 : Math.round(dayness * 48);
-    if (!terrCv || terrKV !== terrVer || terrKW !== Wc || terrKH !== Hc || terrKD !== dpr || terrKB !== biome || terrKS !== seed || terrKQ !== dq) bakeTerrain();
+    // light azimuth quantum: the relief shadows re-bake as it moves
+    const lq = UNDER ? 0 : Math.round(cycleT * 47.9);
+    if (!terrCv || terrKV !== terrVer || terrKW !== Wc || terrKH !== Hc || terrKD !== dpr || terrKB !== biome || terrKS !== seed || terrKQ !== dq || terrKL !== lq) bakeTerrain();
     // the whole static relief in one blit, then the living layers in
     // their original paint order
     ctx.drawImage(terrCv, 0, 0, Wc, Hc);
@@ -2470,6 +2646,36 @@ function drawCaveShade() {
         ];
       }
     }
+    // ============ REFRACTION: the drowned hull wobbles ============
+    // bands of the already-rendered scene under a submerged tank are
+    // re-blitted with a sine offset before the translucent water body
+    // covers them - the hull's underwater part reads as shifted through
+    // the water. The live canvas never draws onto ITSELF (a self-blit
+    // forces a full-surface sync in the software rasterizer, ~1.5 ms a
+    // piece): the region is read once into a tiny scratch canvas, and
+    // the slice blits read from that. Only the top of the drowned hull
+    // wobbles - refraction dies out with depth
+    tanks.forEach(t => {
+      if (!t || t.dead) return;
+      const ct = colAt(t.x);
+      if (ct.h1 > 0 && t.y >= ct.h0 - 2) return; // dry floor inside a void
+      const wy0 = waterAt(t.x);
+      const yb = Math.min(t.y + 5, wy0 + 32, Hc);
+      if (yb <= wy0 + 4) return; // nothing under the surface
+      if (!refrCv) { refrCv = document.createElement('canvas'); refrCv.width = 32; refrCv.height = 32; refrCx = refrCv.getContext('2d'); }
+      const dprR = scDprEff();
+      const x0 = clamp(Math.round(t.x - 15), 2, Wc - 32);
+      const yTop = Math.ceil(wy0 + 3);
+      const hR = Math.min(36, Math.ceil(yb - yTop));
+      refrCx.clearRect(0, 0, 32, 32);
+      refrCx.drawImage(cv, x0 * dprR, yTop * dprR, 30 * dprR, hR * dprR, 0, 0, 30, hR);
+      for (let y = yTop; y < yb; y += 4) {
+        const off = Math.sin(gt * 2.1 + y * 0.3) * (1.8 + (y - wy0) * 0.03);
+        const h2 = Math.min(4, yb - y);
+        if (h2 <= 0) break;
+        ctx.drawImage(refrCv, 0, y - yTop, 30, h2, x0 + off, y, 30, h2);
+      }
+    });
     const g = ctx.createLinearGradient(0, waterLevel - 14, 0, Hc * 0.98);
     g.addColorStop(0, `rgba(${sc[0]},${sc[1]},${sc[2]},0.5)`);
     g.addColorStop(0.45, `rgba(${(sc[0] * 0.45 + dc[0] * 0.55) | 0},${(sc[1] * 0.45 + dc[1] * 0.55) | 0},${(sc[2] * 0.45 + dc[2] * 0.55) | 0},0.66)`);
@@ -2613,6 +2819,36 @@ function drawCaveShade() {
     ctx.translate(0, 1.6);
     surfPath(); ctx.stroke();
     ctx.restore();
+    // ============ SHORE FOAM: breathing surf at the waterline ============
+    // pinned to the dry->wet shoreline transitions; every tick is a
+    // deterministic hash of (column, time), no per-frame state
+    for (let k = 1; k < N; k++) {
+      const wet = cols[k].top > waterLevel;
+      if (wet === (cols[k - 1].top > waterLevel)) continue;
+      const fx2 = k * cols.step;
+      const fy2 = waterAt(fx2) - 1.2;
+      for (let j = -2; j <= 2; j++) {
+        const a = 0.71 + 0.29 * Math.sin(gt * 2.6 + k * 1.7 + j * 1.3);
+        if (a <= 0.05) continue;
+        ctx.globalAlpha = a;
+        ctx.fillStyle = j & 1 ? 'rgba(225,238,248,1)' : 'rgba(248,252,255,1)';
+        ctx.fillRect(fx2 + j * 3 + Math.sin(gt * 2.6 + k + j) * 1.6 - 1.7, fy2 - (j & 1 ? 1.8 : 0.5), 3.6, 1.5);
+      }
+    }
+    // open-water drift: sparse foam dashes riding the whole visible
+    // waterline, each breathing on its own (column, time) hash
+    for (let k = 0; k < N; k += 7) {
+      if (WATER_MODE !== 2 && cols[k].top <= waterLevel) continue;
+      const fx3 = k * cols.step;
+      if (noise(k * 3.7) < 0.35) continue; // sparse presence, stable per column
+      const fy3 = waterAt(fx3) - 1;
+      const a = 0.32 + 0.30 * Math.sin(gt * 2.2 + k * 2.9);
+      if (a <= 0.08) continue;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = 'rgba(242,248,253,1)';
+      ctx.fillRect(fx3 + Math.sin(gt * 1.3 + k) * 2 - 2, fy3 - (noise(k * 9.1) > 0.5 ? 1.2 : 0.4), 4.4, 1.3);
+    }
+    ctx.globalAlpha = 1;
   const starA = UNDER ? 0 : clamp(((1 - dayness) - 0.25) / 0.5, 0, 1);
     if (starA > 0.35) {
       ctx.fillStyle = `rgba(230,240,255,${(0.5 * starA).toFixed(3)})`;
@@ -2634,6 +2870,23 @@ function drawCaveShade() {
         ctx.fillStyle = `rgba(${skyLight.col},${(baseA * (1 - k * 0.09)).toFixed(3)})`;
         ctx.fillRect(skyLight.x - w2 / 2 + wob, yy, w2, 1.6);
       }
+      // micro-sparkles: an additive shiver around the light's azimuth
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (let q = 0; q < 22; q++) {
+        const h1 = noise(q * 12.9 + 3), h2 = noise(q * 7.31 + 41);
+        const gx2 = skyLight.x + (h1 - 0.5) * (26 + q * 1.4);
+        if (WATER_MODE !== 2 && surfaceAt(gx2) <= waterLevel + 3) continue;
+        const y2 = waterAt(gx2) + 2 + (q % 6) * 4.5;
+        if (surfaceAt(gx2) <= y2) continue;
+        const tw = Math.sin(gt * (2.4 + h1 * 2.4) + q * 2.1 + h2 * 6);
+        if (tw < 0.55) continue;
+        ctx.globalAlpha = clamp((tw - 0.55) * 2.4, 0, 1) * LI * (0.4 + h2 * 0.6);
+        ctx.fillStyle = 'rgba(255,246,226,1)';
+        ctx.fillRect(gx2 - 2, y2, 4, 1.3);
+      }
+      ctx.restore();
+      ctx.globalAlpha = 1;
     }
   }
   
@@ -3195,6 +3448,140 @@ function drawCaveShade() {
     });
   }
   
+  // ============ NIGHT TANK LIGHTS: headlight cone + cabin glow ============
+  // Surface nights only - caves keep their own baked lighting. The cone
+  // reuses the cave searchlight recipe (a march to the first surface or
+  // water contact, layered fills, a contact glow); intensity ramps with
+  // darkness so dusk stays unlit, a full night reads the tanks, and an
+  // eclipse wakes them early. Gradients are cached per tank geometry -
+  // no per-frame gradient allocations
+  function drawTankLights() {
+    if (UNDER) return;
+    const k = clamp((0.35 - dayness) / 0.30, 0, 1) + eclipseF * 0.75;
+    if (k <= 0.03) return;
+    tanks.forEach((t, i) => {
+      if (!t || t.dead || t.dying) return;
+      // the beam rides the BARREL axis (the turret's displayed aim),
+      // not the hull heading - the lamp lights where the gun points,
+      // so night aiming is actually possible
+      const dir = i === 0 ? playerDir() : (tanks[1].x < tanks[0].x ? 1 : -1);
+      const dAng = t.dispAng === undefined ? 45 : t.dispAng;
+      const aR = dAng * Math.PI / 180;
+      const bx = dir * Math.cos(aR), by = -Math.sin(aR);
+      // turret pivot, kept in sync with drawTurretBody's pivY table
+      const pv = t.hull === 'stealth' ? -13 : t.hull === 'heavy' ? -12 : t.hull === 'retro' ? -18 : t.hull === 'howitzer' ? -15 : (t.hull === 'rail' || t.hull === 'bunker') ? -13 : -14;
+      const ox = t.x, oy = t.y + pv;
+      if (oy > waterAt(t.x)) return; // a drowned lamp shines no more
+      // march the beam to the first surface / water contact; a miss
+      // (over a ridge rim or off-screen) just lets the cone die out
+      // in the air - no floating end spot
+      let hx = ox, hy = oy, hitW = false, hitS = false;
+      for (let s2 = 8; s2 < 300; s2 += 4) {
+        const px = ox + bx * s2, py = oy + by * s2;
+        hx = px; hy = py;
+        if (px < 2 || px > Wc - 2) break;
+        if (py >= waterAt(px) && surfaceAt(px) > waterLevel + 2) { hitW = true; break; }
+        if (py >= surfaceAt(px) - 1) { hitS = true; break; }
+      }
+      const kk = (t.x / 2 | 0) + '|' + (t.y / 2 | 0) + '|' + (hx / 2 | 0) + '|' + (hy / 2 | 0) + '|' + dir + '|' + Math.round(dAng);
+      let C = t._hl;
+      if (!C || C.kk !== kk) {
+        const coneG = (a0, a1) => {
+          const g = ctx.createLinearGradient(ox, oy, hx, hy);
+          g.addColorStop(0, `rgba(255,214,150,${a0})`);
+          g.addColorStop(0.7, `rgba(255,214,150,${a1})`);
+          g.addColorStop(1, 'rgba(255,214,150,0)');
+          return g;
+        };
+        const radG = (x, y, r, a) => {
+          const g = ctx.createRadialGradient(x, y, 1, x, y, r);
+          g.addColorStop(0, `rgba(255,222,170,${a})`);
+          g.addColorStop(1, 'rgba(255,222,170,0)');
+          return g;
+        };
+        C = t._hl = {
+          kk,
+          g1: coneG(0.20, 0.06), g2: coneG(0.32, 0.10),
+          head: radG(ox, oy, 9, 0.70), cab: radG(t.x, t.y - 16, 14, 0.42),
+          band: radG(hx, hy, 16, 0.36)
+        };
+      }
+      const K = clamp(k, 0, 1.4) * (0.86 + 0.14 * Math.sin(gt * 11 + i * 2.4));
+      const nx = -by, ny = bx;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = K;
+      // two nested cone fills, then the lamp head and the cabin glow
+      const cone = (g, w2) => {
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(ox + nx * 3, oy + ny * 3);
+        ctx.lineTo(hx + nx * w2, hy + ny * w2);
+        ctx.lineTo(hx - nx * w2, hy - ny * w2);
+        ctx.lineTo(ox - nx * 3, oy - ny * 3);
+        ctx.closePath(); ctx.fill();
+      };
+      cone(C.g1, 22);
+      cone(C.g2, 11);
+      ctx.fillStyle = C.head;
+      ctx.beginPath(); ctx.arc(ox, oy, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = C.cab;
+      ctx.beginPath(); ctx.arc(t.x, t.y - 16, 13, 0, Math.PI * 2); ctx.fill();
+      // the contact glow and the lit patch ride the surface contour and
+      // show ONLY on a real hit (the cave searchlight's bandGlow
+      // recipe); a beam ending mid-air fades to nothing instead
+      if (hitS || hitW) {
+        ctx.fillStyle = C.band;
+        ctx.beginPath(); ctx.arc(hx, hy, 16, 0, Math.PI * 2); ctx.fill();
+        const bw = clamp(hx - 26, 2, Wc - 2), bw2 = clamp(hx + 26, 2, Wc - 2);
+        const bg2 = ctx.createLinearGradient(bw, 0, bw2, 0);
+        bg2.addColorStop(0, 'rgba(255,214,150,0)');
+        bg2.addColorStop(0.5, 'rgba(255,222,170,' + Math.min(1, 0.4 * K).toFixed(3) + ')');
+        bg2.addColorStop(1, 'rgba(255,214,150,0)');
+        ctx.strokeStyle = bg2;
+        ctx.lineCap = 'round';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        const edgeY = hitW ? waterAt : surfaceAt;
+        ctx.moveTo(bw, edgeY(bw));
+        for (let px2b = bw + cols.step; px2b <= bw2; px2b += cols.step) ctx.lineTo(px2b, edgeY(px2b));
+        ctx.stroke();
+        ctx.lineCap = 'butt';
+        ctx.lineWidth = 1;
+      }
+      // whatever the beam touches catches the light: a tank standing
+      // in the cone gets a warm additive bloom over its hull, fading
+      // with the beam's own decay along its length
+      const bl2 = Math.hypot(hx - ox, hy - oy) || 1;
+      tanks.forEach((t2, j) => {
+        if (j === i || !t2 || t2.dead || t2.dying) return;
+        const rx = t2.x - ox, ry = (t2.y - 10) - oy;
+        const s3 = rx * bx + ry * by;
+        if (s3 < 10 || s3 > bl2) return;
+        if (Math.abs(rx * by - ry * bx) > 9 + 22 * (s3 / bl2)) return;
+        const fade = 1 - s3 / bl2;
+        const kk2 = (t2.x / 4 | 0) + '|' + (t2.y / 4 | 0) + '|' + ((fade * 24) | 0);
+        let G = t2._hlG;
+        if (!G || G.kk !== kk2) {
+          const rg = ctx.createRadialGradient(t2.x, t2.y - 10, 2, t2.x, t2.y - 10, 20);
+          rg.addColorStop(0, 'rgba(255,228,170,' + (0.2 + 0.5 * fade).toFixed(3) + ')');
+          rg.addColorStop(1, 'rgba(255,222,170,0)');
+          G = t2._hlG = { kk: kk2, g: rg };
+        }
+        ctx.globalAlpha = clamp(K * (0.45 + 0.55 * fade), 0, 1);
+        ctx.fillStyle = G.g;
+        ctx.beginPath(); ctx.arc(t2.x, t2.y - 10, 20, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = K;
+      });
+      // a lit hatch: one warm bright pair of pixels over the hull
+      ctx.globalAlpha = Math.min(1, K * 0.9);
+      ctx.fillStyle = 'rgba(255,235,190,0.9)';
+      ctx.fillRect(t.x - 1.5, t.y - 21, 3, 2);
+      ctx.restore();
+    });
+    ctx.globalAlpha = 1;
+  }
+
   function drawTrail(p) {
     const n = p.trail.length;
     if (!n) return;
@@ -3489,33 +3876,13 @@ function drawCaveShade() {
   // count as dark; caves keep the warm cave look and skip sampling.
   // The band LUT rebuilds only when the biome or the day-cycle quantum
   // changes, so aim frames stay allocation-free.
-  const AIM_HALO_DARK = 'rgba(15,30,55,0.8)'; // rim over a light background
-  const AIM_HALO_LIGHT = 'rgba(255,255,255,0.85)'; // rim over a dark background
-  const AIM_HI_DARK = '#b34a00'; // indColHi() day flavor
-  const AIM_HI_LIGHT = '#ffb020'; // indColHi() night flavor
-  const AIM_LUM_BANDS = 12;
-  let aimLumB = null, aimLumP = -1, aimLumSky = null, aimLumGround = 0;
-  function aimLumSync() {
-    const p = Math.round(cycleT * 512);
-    if (aimLumB === biome && aimLumP === p) return;
-    aimLumB = biome;
-    aimLumP = p;
-    const pal = biome.pal;
-    aimLumSky = [];
-    for (let b = 0; b <= AIM_LUM_BANDS; b++) {
-      const u = b / AIM_LUM_BANDS;
-      let c = sampleStops(tod.stops, u);
-      if (pal && pal.day) c = mixColA(c, sampleStops(pal.day, u), dayness);
-      aimLumSky.push((0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255);
-    }
-    const s = parseCol(biome.surf);
-    aimLumGround = (0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2]) / 255;
-  }
-  function aimBgLum(x, y) {
-    const c = colAt(x);
-    if (y >= c.top) return (c.h1 > 0 && y >= c.h0 - 2 && y < c.h1) ? 0 : aimLumGround;
-    return aimLumSky[clamp(Math.round((y / Hc) * AIM_LUM_BANDS), 0, AIM_LUM_BANDS)];
-  }
+  // one fixed marker scheme everywhere: a dark outer rim carries light
+  // backgrounds, a white ring carries dark ones, the amber core sits on
+  // both - no per-dot background sampling is left (the tone flips used
+  // to blend into scenes whose local background the sample missed)
+  const AIM_HALO_DARK = 'rgba(12,18,28,0.78)';
+  const AIM_HALO_LIGHT = 'rgba(255,255,255,0.92)';
+  const AIM_CORE = '#ffa028';
   // trajectory cache: the 140-step integration reruns only when the aim
   // inputs move — angle, power, gun position, assist toggle or a terrain
   // revision; the pulsing dots themselves stay live (they animate on gt)
@@ -3551,48 +3918,62 @@ function drawCaveShade() {
       }
       aimPtN = n;
     }
-    if (!UNDER) aimLumSync();
-    for (let i = 5; i < aimPtN; i += 6) {
-      const q = aimPts[i];
-      // two-layer dot: tone flips with the LOCAL background (dark bg ->
-      // light marker), rim always contrasts the core; alpha pulse keeps
-      // a visibility floor instead of fading the dots out
-      const darkBg = UNDER || aimBgLum(q.x, q.y) < 0.5;
-      ctx.globalAlpha = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(gt * 4 - i * 0.22));
-      ctx.fillStyle = UNDER ? 'rgba(255,196,110,0.8)' : darkBg ? AIM_HALO_LIGHT : AIM_HALO_DARK;
-      ctx.beginPath(); ctx.arc(q.x, q.y, 3.4, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = UNDER ? '#ff9b2f' : darkBg ? AIM_HI_LIGHT : AIM_HI_DARK;
-      ctx.beginPath(); ctx.arc(q.x, q.y, 2, 0, Math.PI * 2); ctx.fill();
-    }
+    // three batched layers: dark rim + white ring + amber core, all
+    // dots breathing together; one fill per layer, no per-dot state
+    // changes. The pulse keeps a visibility floor, never fading out
+    ctx.globalAlpha = 0.62 + 0.38 * (0.5 + 0.5 * Math.sin(gt * 4));
+    ctx.fillStyle = AIM_HALO_DARK;
+    ctx.beginPath();
+    for (let i = 5; i < aimPtN; i += 6) { const q = aimPts[i]; ctx.moveTo(q.x + 3.6, q.y); ctx.arc(q.x, q.y, 3.6, 0, Math.PI * 2); }
+    ctx.fill();
+    ctx.fillStyle = AIM_HALO_LIGHT;
+    ctx.beginPath();
+    for (let i = 5; i < aimPtN; i += 6) { const q = aimPts[i]; ctx.moveTo(q.x + 2.7, q.y); ctx.arc(q.x, q.y, 2.7, 0, Math.PI * 2); }
+    ctx.fill();
+    ctx.fillStyle = AIM_CORE;
+    ctx.beginPath();
+    for (let i = 5; i < aimPtN; i += 6) { const q = aimPts[i]; ctx.moveTo(q.x + 1.7, q.y); ctx.arc(q.x, q.y, 1.7, 0, Math.PI * 2); }
+    ctx.fill();
     ctx.globalAlpha = 1;
     if (aimHasHit) {
-      const darkBg = UNDER || aimBgLum(aimHitP.x, aimHitP.y) < 0.5;
-      // contrast rim under the accent stroke keeps the cross readable
-      ctx.strokeStyle = UNDER ? 'rgba(255,196,110,0.9)' : darkBg ? AIM_HALO_LIGHT : AIM_HALO_DARK;
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(aimHitP.x - 5, aimHitP.y - 5); ctx.lineTo(aimHitP.x + 5, aimHitP.y + 5);
-      ctx.moveTo(aimHitP.x + 5, aimHitP.y - 5); ctx.lineTo(aimHitP.x - 5, aimHitP.y + 5);
-      ctx.stroke();
-      ctx.strokeStyle = UNDER ? '#ff9b2f' : darkBg ? AIM_HI_LIGHT : AIM_HI_DARK;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(aimHitP.x - 5, aimHitP.y - 5); ctx.lineTo(aimHitP.x + 5, aimHitP.y + 5);
-      ctx.moveTo(aimHitP.x + 5, aimHitP.y - 5); ctx.lineTo(aimHitP.x - 5, aimHitP.y + 5);
-      ctx.stroke();
-      ctx.globalAlpha = 0.5;
+      // same fixed scheme: dark underlay, white ring, amber accent
+      const hitX = () => {
+        ctx.moveTo(aimHitP.x - 5, aimHitP.y - 5); ctx.lineTo(aimHitP.x + 5, aimHitP.y + 5);
+        ctx.moveTo(aimHitP.x + 5, aimHitP.y - 5); ctx.lineTo(aimHitP.x - 5, aimHitP.y + 5);
+      };
+      ctx.strokeStyle = AIM_HALO_DARK;
+      ctx.lineWidth = 4.4;
+      ctx.beginPath(); hitX(); ctx.stroke();
+      ctx.strokeStyle = AIM_HALO_LIGHT;
+      ctx.lineWidth = 2.6;
+      ctx.beginPath(); hitX(); ctx.stroke();
+      ctx.strokeStyle = AIM_CORE;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); hitX(); ctx.stroke();
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = AIM_HALO_LIGHT;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath(); ctx.arc(aimHitP.x, aimHitP.y, ARSENAL[currentCur()].r * 0.4, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = AIM_CORE;
+      ctx.lineWidth = 1.1;
       ctx.beginPath(); ctx.arc(aimHitP.x, aimHitP.y, ARSENAL[currentCur()].r * 0.4, 0, Math.PI * 2); ctx.stroke();
       ctx.globalAlpha = 1;
     }
-    if (aimPtN && Math.abs(wind) > 0.8 && !UNDER) {
+    if (aimPtN && Math.abs(wind) > 0.8) {
+      // the glyph raster is cached, so text arrows stay cheaper than
+      // stroked chevrons; the fixed three-tone contrast rides the same
+      // dark / light / accent scheme as the dots
       const ch = wind < 0 ? '‹' : '›';
-      const darkBg = aimBgLum(aimApex.x, aimApex.y) < 0.5;
+      const wtxt = ch.repeat(Math.round(Math.abs(wind)));
       ctx.font = 'bold 13px Orbitron, monospace';
-      ctx.strokeStyle = darkBg ? AIM_HALO_LIGHT : AIM_HALO_DARK;
-      ctx.lineWidth = 3;
-      ctx.strokeText(ch.repeat(Math.round(Math.abs(wind))), aimApex.x - 14, aimApex.y - 10);
-      ctx.fillStyle = darkBg ? AIM_HI_LIGHT : AIM_HI_DARK;
-      ctx.fillText(ch.repeat(Math.round(Math.abs(wind))), aimApex.x - 14, aimApex.y - 10);
+      ctx.strokeStyle = AIM_HALO_DARK;
+      ctx.lineWidth = 4;
+      ctx.strokeText(wtxt, aimApex.x - 14, aimApex.y - 10);
+      ctx.strokeStyle = AIM_HALO_LIGHT;
+      ctx.lineWidth = 2;
+      ctx.strokeText(wtxt, aimApex.x - 14, aimApex.y - 10);
+      ctx.fillStyle = AIM_CORE;
+      ctx.fillText(wtxt, aimApex.x - 14, aimApex.y - 10);
     }
     if (drag && drag.moved) {
       const cy = t.y - 12;
@@ -3601,15 +3982,18 @@ function drawCaveShade() {
       ctx.setLineDash([3, 5]);
       ctx.beginPath(); ctx.moveTo(t.x, cy); ctx.lineTo(drag.x, drag.y); ctx.stroke();
       ctx.setLineDash([]);
-      // power arc: contrast rim underlay + accent stroke
-      const darkBg = UNDER || aimBgLum(t.x, cy - 16) < 0.5;
-      ctx.strokeStyle = UNDER ? 'rgba(255,196,110,0.9)' : darkBg ? AIM_HALO_LIGHT : AIM_HALO_DARK;
-      ctx.globalAlpha = 0.35;
-      ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.arc(t.x, cy, 14 + aim.pow * 0.45, 0, Math.PI * 2); ctx.stroke();
-      ctx.strokeStyle = UNDER ? '#ff9b2f' : darkBg ? AIM_HI_LIGHT : AIM_HI_DARK;
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(t.x, cy, 14 + aim.pow * 0.45, 0, Math.PI * 2); ctx.stroke();
+      // power arc: dark underlay + white ring + accent
+      const arcPath = () => { ctx.beginPath(); ctx.arc(t.x, cy, 14 + aim.pow * 0.45, 0, Math.PI * 2); };
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = AIM_HALO_DARK;
+      ctx.lineWidth = 4.6;
+      arcPath(); ctx.stroke();
+      ctx.strokeStyle = AIM_HALO_LIGHT;
+      ctx.lineWidth = 2.8;
+      arcPath(); ctx.stroke();
+      ctx.strokeStyle = AIM_CORE;
+      ctx.lineWidth = 1.6;
+      arcPath(); ctx.stroke();
       ctx.globalAlpha = 1;
       const label = `${Math.round(aim.ang)}\u00b0  ${Math.round(aim.pow)}`;
       ctx.font = '700 12px Orbitron, monospace';
@@ -3662,7 +4046,8 @@ function drawCaveShade() {
     const shd = (t) => t && t.shield > 0 ? ' <i class="sc-shd"></i>' : '';
     setHtml(H.you, `${biomeLabel()}${UNDER ? ' · пещера' : ''}&nbsp;&nbsp;<span style="color:${players[0].col}">${esc(players[0].name)}</span> <b style="color:${hpCol}">${Math.max(0, Math.round(t0 ? t0.hp : 0))}</b>${shd(t0)}`);
     setHtml(H.enemy, `<span style="color:${players[1].col}">${esc(players[1].name)}</span> <b style="color:${hpCol}">${Math.max(0, Math.round(t1 ? t1.hp : 0))}</b>${shd(t1)}`);
-    setTxt(H.lasthit, lastHitInfo || '');
+    // the event line leads with the live fps meter (2 Hz refresh)
+    setTxt(H.lasthit, 'FPS ' + (fpsV || '--') + (lastHitInfo ? ' · ' + lastHitInfo : ''));
     const strength = Math.round(Math.abs(wind));
     const ch = wind < 0 ? '‹' : '›';
     const daySky = isDayT();

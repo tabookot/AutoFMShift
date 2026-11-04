@@ -3616,10 +3616,31 @@ function genBolt() {
   const y0 = R(6, Hc * 0.12);
   for (let i = 0; i <= m; i++) {
     const u = i / m;
-    B[i].x = px + R(-26, 30) * (1 - u * 0.55);
-    B[i].y = y0 + (gy - y0) * (u * u);
+    B[i].x = px + R(-34, 38) * (0.55 + Math.random() * 0.9);
+    B[i].y = y0 + (gy - y0) * Math.pow(u, 1.6);
   }
   B[m].x = px; B[m].y = gy;
+  // 1-2 short kinked side branches off the mid-channel, each with its
+  // own length (3-5 points) and step size - they taper away under the
+  // stroke passes and make the strike read real
+  const mkb = (BR, i0, cnt) => {
+    let bx = B[i0].x, by = B[i0].y;
+    const side = Math.random() < 0.5 ? 1 : -1;
+    for (let q = 0; q < cnt; q++) {
+      bx += side * R(4, 16) * (1 - q * 0.08);
+      by += R(10, 26) * (1 - q * 0.1);
+      BR[q].x = bx; BR[q].y = by;
+    }
+    return cnt;
+  };
+  wx.brL[0] = 3 + (Math.random() * 3 | 0);
+  mkb(wx.brA, 4 + (Math.random() * 3 | 0), wx.brL[0]);
+  wx.brN = 1;
+  if (Math.random() < 0.6) {
+    wx.brL[1] = 2 + (Math.random() * 3 | 0);
+    mkb(wx.brB, 7 + (Math.random() * 3 | 0), wx.brL[1]);
+    wx.brN = 2;
+  }
   wx.gx = px; wx.gy = gy;
 }
 
@@ -3700,6 +3721,9 @@ function loop(t) {
 }
 function step(dt) {
   gt += dt; rgt += dt; skyT += dt; cloudOff += windDir * 6 * dt;
+  // fps meter: a 0.5 s window of frames feeds the HUD event line
+  fpsN++; fpsT += dt;
+  if (fpsT >= 0.5) { fpsV = Math.round(fpsN / fpsT); fpsN = 0; fpsT = 0; }
   cycleT = (cycleT + dt / DAY_CYCLE) % 1;
   todT += dt;
   if (todT > 0.25) { todT = 0; updateTod(); }
@@ -3867,7 +3891,8 @@ function step(dt) {
 
   const nn = 1 - dayness;
   if (!UNDER && nn > 0.6 && Math.random() < dt * 0.08) {
-    comets.push({ x: R(0, Wc * 1.1), y: R(10, Hc * 0.3), vx: -R(160, 380), vy: R(30, 110), t: 0, life: R(0.8, 2), sz: R(1, 2.4) });
+    const ltr = Math.random() < 0.3;
+    comets.push({ x: ltr ? -30 : R(0, Wc * 1.1), y: R(10, Hc * 0.28), vx: ltr ? R(180, 360) : -R(160, 380), vy: ltr ? R(50, 130) : R(30, 110), t: 0, life: R(0.8, 2), sz: R(1, 2.4) });
   }
   comets.forEach(c => { c.x += c.vx * dt; c.y += c.vy * dt; c.t += dt; });
   {
