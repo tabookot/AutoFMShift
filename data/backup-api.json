@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1793702074184,
+  "exportDate": 1793788734314,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -9966,7 +9966,13 @@
           "deletedAt": null
         },
         {
-          "name": "Радио 7 На Семи Холмах",
+          "name": "Пилот РадиоМ-Радио",
+          "freq": 102.7,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Радио 7 на семи холмах",
           "freq": 106.3,
           "isDeleted": false,
           "deletedAt": null
@@ -10026,13 +10032,19 @@
           "deletedAt": null
         },
         {
+          "name": "Радио Monte Carlo",
+          "freq": 95.5,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
           "name": "Ретро FM",
           "freq": 102.2,
           "isDeleted": false,
           "deletedAt": null
         },
         {
-          "name": "Русское радио",
+          "name": "Русское Радио",
           "freq": 100.6,
           "isDeleted": false,
           "deletedAt": null
@@ -10052,12 +10064,6 @@
         {
           "name": "Love Radio",
           "freq": 105.5,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
-          "name": "Monte Carlo",
-          "freq": 95.5,
           "isDeleted": false,
           "deletedAt": null
         },
@@ -12447,6 +12453,12 @@
       "type": "station",
       "city": "Владимир",
       "name": "план Регион-Медиа",
+      "reason": "glitch_protect"
+    },
+    {
+      "type": "station",
+      "city": "Тверь",
+      "name": "Пилот Радио\nМ-Радио",
       "reason": "glitch_protect"
     },
     {

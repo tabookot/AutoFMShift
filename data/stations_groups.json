@@ -563,6 +563,13 @@
     ]
   },
   {
+    "mainName": "Пилот РадиоМ-Радио",
+    "count": 1,
+    "variants": [
+      "Пилот РадиоМ-Радио"
+    ]
+  },
+  {
     "mainName": "Питер FM",
     "count": 2,
     "variants": [
@@ -1425,6 +1432,15 @@
     ]
   },
   {
+    "mainName": "Радио Monte Carlo",
+    "count": 26,
+    "variants": [
+      "Радио Monte Carlo",
+      "Monte Carlo",
+      "Радио Monte-Carlo"
+    ]
+  },
+  {
     "mainName": "Радио № 1",
     "count": 1,
     "variants": [
@@ -1746,15 +1762,6 @@
     "count": 1,
     "variants": [
       "Mix FM"
-    ]
-  },
-  {
-    "mainName": "Monte Carlo",
-    "count": 26,
-    "variants": [
-      "Monte Carlo",
-      "Радио Monte Carlo",
-      "Радио Monte-Carlo"
     ]
   },
   {
