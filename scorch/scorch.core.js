@@ -212,6 +212,13 @@ let drag = null, killed = null, helpOpen = false, lastHitInfo = null;
 let tctlOpen = false;
 let moonCv = null, moonCtx = null, giantCv = null, giantCtx = null, giantKey = '';
 let shake = 0;
+// PATCH 6 camera: a soft zoom-in onto a big blast's epicentre; camZ eases
+// back to 1.0 on its own (draw() drives the transform, camStep the easing)
+let camZ = 1, camZTgt = 1, camZX = 0, camZY = 0, camFX = 0, camFY = 0, camKT = 0;
+// kill-shot slow-mo: fxR stretches ONLY the fx/particle clock (stepFx and
+// the visual clocks); turn timers, projectile physics and terrain stay
+// real-time
+let slowT = 0, fxR = 1;
 let touchUI = false, tctlEl = null, angRange = null, powRange = null, angVal = null, powVal = null, hudRefs = null, apEl = null, apBuf = null;
 let lastKillMethod = 'weapon', lastShotApex = 0, lastWeapon = 'MISSILE';
 let turnTimer = 0, warnedAt = {};
@@ -439,7 +446,7 @@ function drawTurretBody(c, x, y, col, o) {
   const ang = o.ang === undefined ? 45 : o.ang;
   const hpF = clamp(o.hpF || 0, 0, 1);
   const wreck = !!o.wreck;
-  const rec = clamp(o.recoil || 0, 0, 1);
+  const rec = clamp(o.recoil || 0, 0, 1.35);
   const tilt = o.tilt || 0;
   const sd = o.seed || 0;
   const hull = o.hull || 'classic';

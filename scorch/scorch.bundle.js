@@ -216,6 +216,13 @@ let drag = null, killed = null, helpOpen = false, lastHitInfo = null;
 let tctlOpen = false;
 let moonCv = null, moonCtx = null, giantCv = null, giantCtx = null, giantKey = '';
 let shake = 0;
+// PATCH 6 camera: a soft zoom-in onto a big blast's epicentre; camZ eases
+// back to 1.0 on its own (draw() drives the transform, camStep the easing)
+let camZ = 1, camZTgt = 1, camZX = 0, camZY = 0, camFX = 0, camFY = 0, camKT = 0;
+// kill-shot slow-mo: fxR stretches ONLY the fx/particle clock (stepFx and
+// the visual clocks); turn timers, projectile physics and terrain stay
+// real-time
+let slowT = 0, fxR = 1;
 let touchUI = false, tctlEl = null, angRange = null, powRange = null, angVal = null, powVal = null, hudRefs = null, apEl = null, apBuf = null;
 let lastKillMethod = 'weapon', lastShotApex = 0, lastWeapon = 'MISSILE';
 let turnTimer = 0, warnedAt = {};
@@ -443,7 +450,7 @@ function drawTurretBody(c, x, y, col, o) {
   const ang = o.ang === undefined ? 45 : o.ang;
   const hpF = clamp(o.hpF || 0, 0, 1);
   const wreck = !!o.wreck;
-  const rec = clamp(o.recoil || 0, 0, 1);
+  const rec = clamp(o.recoil || 0, 0, 1.35);
   const tilt = o.tilt || 0;
   const sd = o.seed || 0;
   const hull = o.hull || 'classic';
@@ -3685,7 +3692,7 @@ function addTerrDmg(i, dmg, src) {
 }
 function popDmg(t, dmg) {
   if (dmg < 1 || fx.length > fxMax) return;
-  fx.push({ k: 'hp', x: t.x + R(-8, 8), y: t.y - 36, val: Math.round(dmg), t: 0, life: 2.8 });
+  fx.push({ k: 'hp', x: t.x + R(-8, 8), y: t.y - 36, val: Math.round(dmg), t: 0, life: 2.8, big: dmg >= 50 ? 1 : 0 });
 }
 
 // ============ CAVE: ceiling rupture + fossil vents ============
@@ -3804,9 +3811,11 @@ function stepTerra(dt) {
       if (c.isCrater) {
         cols[c.i].surf = 0;
         cols[c.i].burn = Math.max(cols[c.i].burn, 0.9 * k);
+        // the soot decal: grows with the bowl, baked at the column top
+        cols[c.i].scorch = Math.max(cols[c.i].scorch || 0, k);
         if (c.melt) cols[c.i].melt = Math.max(cols[c.i].melt || 0, c.melt * k);
       }
-      if (c.isRim) cols[c.i].surf *= 0.985;
+      if (c.isRim) { cols[c.i].surf *= 0.985; cols[c.i].scorch = Math.max(cols[c.i].scorch || 0, 0.55 * k); }
       if (c.fill && k > 0.15) { cols[c.i].h1 = 0; cols[c.i].h0 = 0; cols[c.i].sid = 0; }
     });
     const live = j.cols.some(c => j.t < c.delay + c.dur);
@@ -3859,8 +3868,10 @@ function stepTerra(dt) {
       dirtyA = 2; dirtyB = N - 2; terrMicro();
     }
   }
+  const rainOn = wx.on === 1 && wx.kind === 1 && !UNDER;
+  const burnDecay = rainOn ? 0.22 : 0.05;
   cols.forEach(c => {
-    if (c.burn > 0) c.burn = Math.max(0, c.burn - dt * 0.05);
+    if (c.burn > 0) c.burn = Math.max(0, c.burn - dt * burnDecay);
     if (c.melt > 0) c.melt = Math.max(0, c.melt - dt * 0.06);
   });
   // ============ LIQUID LAVA POOLS ============
@@ -3889,6 +3900,16 @@ function stepTerra(dt) {
         if (tk.y > c.top - c.lava - 8 && tk.y < c.top + 10) {
           damageTank(ti, 8 * dt, 'lava', x, c.top - c.lava);
           if (Math.random() < dt * 2.5) firePatches.push({ x: tk.x + R(-3, 3), y: tk.y - 2, life: R(0.5, 1.1), volc: true });
+        }
+      });
+      // a seam lying under a live lava bed slowly heats through the
+      // rock until it blows a geyser through the crater floor; the scan
+      // is a handful of pockets, so it runs every hot frame ungated
+      pockets.forEach(pk2 => {
+        if (pk2.state !== 0) return;
+        if (Math.abs(pk2.cx - x) < Math.max(14, pk2.ra * 0.55) && pk2.y0 > c.top && pk2.y0 - c.top < 46) {
+          pk2.warm = (pk2.warm || 0) + dt * 2.2;
+          if (pk2.warm > 2.4) ignitePocket(pk2, 12, 'lava');
         }
       });
       const s = c.top - c.lava;
@@ -4058,6 +4079,19 @@ function ignitePocket(pk, r, kind) {
   fx.push({ k: 'flash', x: pk.cx, y: pk.cy, r: 12, t: 0, life: 0.12, col: '#ff9a3a' });
   lastHitInfo = pk.mode === 2 ? 'лавовый гейзер из залежи!' : 'залежь воспламенилась!';
   beep(pk.mode === 2 ? 300 : 520, 0.09, 0.13);
+  // THE GAS RISES: a lit seam vents through its roof, and the column
+  // above it burns as the gas climbs past - EVERY seam higher in the
+  // same column catches, with the delay being the climb time through
+  // the rock between the roofs. Each lit seam schedules its own climb
+  // in turn, so a stack lights bottom-up like a fuse; the state check
+  // at fire time skips anything already lit or blown by then
+  pockets.forEach(pk2 => {
+    if (pk2 === pk || pk2.state !== 0) return;
+    if (pk2.x1 < pk.x0 - 10 || pk2.x0 > pk.x1 + 10) return; // outside the column
+    if (pk2.y1 > pk.y0 + 4) return;                         // not above our roof
+    const climb = (pk.y0 - pk2.y1) / 150 + 0.45 + R(0, 0.5);
+    schedule(() => { if (pk2.state === 0) ignitePocket(pk2, 12, 'fire'); }, climb);
+  });
 }
 
 // a seam going up all at once: staged blasts scaled by its size, a carved
@@ -4073,7 +4107,7 @@ function pocketDetonate(pk) {
   for (let k = 0; k < n; k++) {
     schedule(() => {
       const bx = cx + (k / (n - 1) - 0.5) * wP * 0.85;
-      boomsAt(bx, surfaceAt(bx) - 6, Math.min((big ? 30 : 20) + wP * 0.2, 160), 'nuke', big ? 3 : 2, false, true);
+      boomsAt(bx, surfaceAt(bx) - 6, Math.min((big ? 30 : 20) + wP * 0.2, 160), 'nuke', big ? 3 : 2, false, true, true);
     }, 0.1 + k * 0.15);
   }
   schedule(() => {
@@ -4088,6 +4122,30 @@ function pocketDetonate(pk) {
     slump(sa, sb, 10);
     spawnDirtFall(cx, Math.min(150, wP * 1.1));
     spawnEmbers(cx, surfaceAt(cx) - 10, big ? 24 : 14, wP * 0.5);
+    // CHAIN REACTION: the shockwave jumps ONLY the thinnest walls. A
+    // neighbour counts when its body all but touches ours (edge-to-edge
+    // rock gap under ~2 columns), never merely "somewhere on screen";
+    // the two NEAREST such seams catch with a stagger, each detonating
+    // in its own right - a wide rock layer stops the front cold. (A
+    // burning seam still spreads its gas upward - see ignitePocket)
+    const gapX = (a, b) => Math.max(0, Math.max(a.x0 - b.x1, b.x0 - a.x1));
+    const gapY = (a, b) => Math.max(0, Math.max(a.y0 - b.y1, b.y0 - a.y1));
+    pockets
+      .filter(pk2 => {
+        if (pk2 === pk || pk2.state !== 0) return false;
+        const dx = gapX(pk, pk2), dy = gapY(pk, pk2);
+        return dx < 46 && dy < 46 && (dx < 22 || dy < 22);
+      })
+      .sort((a, b) => (gapX(pk, a) * gapX(pk, a) + gapY(pk, a) * gapY(pk, a)) - (gapX(pk, b) * gapX(pk, b) + gapY(pk, b) * gapY(pk, b)))
+      .slice(0, 2)
+      .forEach((pk2, ci) => {
+        schedule(() => {
+          if (pk2.state !== 0) return;
+          // the wall is thin enough for the pressure front: the
+          // neighbour goes up all at once, not as a slow burn
+          ignitePocket(pk2, (pk2.x1 - pk2.x0) * 0.75, pk2.dep > 90 ? 'lava' : 'fire');
+        }, 0.25 + ci * 0.22 + R(0, 0.3));
+      });
     for (let k = 0; k < (big ? 5 : 3); k++) {
       const fxp = R(pk.x0, pk.x1);
       firePatches.push({ x: fxp, y: surfaceAt(fxp) - 2, life: R(2.5, 5), soft: 1 });
@@ -4098,6 +4156,39 @@ function pocketDetonate(pk) {
 }
 
 // the layered blast signature: jagged STAR + SPARK fan + CRACKLE ring
+// PATCH 6 camera: aim a soft zoom at a blast epicentre. camStep (called
+// from step()) eases camZ toward the target while the hold lasts, then
+// relaxes it back to 1.0; a fresh kick cannot pre-empt a live one.
+// camFocus CLAMPS the zoom window inside the painted scene: every layer
+// bakes to exactly the screen rect, so an unclamped focus near an edge
+// would frame the unrendered strip past it (stale pixels, garbage). With
+// the clamp the window is always a sub-rect of a normal frame - the
+// zoom can never ask the renderer for pixels it does not paint
+function camFocus() {
+  const hw = Wc / (2 * camZ), hh = Hc / (2 * camZ);
+  camFX = clamp(Wc / 2 + (camZX - Wc / 2) * 0.75, hw, Wc - hw);
+  camFY = clamp(Hc / 2 + (camZY - Hc / 2) * 0.75, hh, Hc - hh);
+}
+function camKick(x, y, z, hold) {
+  if (camKT > 0 && camZ > 1.02) return;
+  camZTgt = clamp(z, 1, 1.16);
+  camZX = x; camZY = y;
+  camKT = 1 + (hold || 1);
+  if (camZ < 1.001) camZ = 1.001;
+  camFocus();
+}
+function camStep(dt) {
+  if (camKT > 0) {
+    camKT -= dt;
+    camZ += (camZTgt - camZ) * Math.min(1, dt * 9);
+  } else {
+    camZ += (1 - camZ) * Math.min(1, dt * 5);
+    if (camZ < 1.0005) camZ = 1;
+  }
+  camFocus();
+  // the pointer must map 1:1 the instant a human aims again
+  if (state === 'aim' && isHumanSeat(turn) && turnIntro <= 0 && camKT <= 0) { camZ = 1; camKT = 0; camFX = Wc / 2; camFY = Hc / 2; }
+}
 function pushBlastFx(x, y, r, style, nuke) {
   const acc = BLAST_COL[style] || '255,190,110';
   fx.push({ k: 'star', x, y, r, t: 0, life: nuke ? 0.5 : 0.34, col: acc, spikes: Math.round(6 + r / 12), rot: R(0, 6.28) });
@@ -4108,7 +4199,7 @@ function pushBlastFx(x, y, r, style, nuke) {
   return acc;
 }
 
-function boomsAt(x, y, r, style, dmg, noTerr, noDouble) {
+function boomsAt(x, y, r, style, dmg, noTerr, noDouble, pBoom) {
   dmg = dmg || 0;
   const m = M();
   const nuke = style === 'nuke';
@@ -4118,7 +4209,16 @@ function boomsAt(x, y, r, style, dmg, noTerr, noDouble) {
   const ceilY = ceilAt(x);
   const hitCeil = UNDER && (y - ceilY) < (surfaceAt(x) - y);
   hitFx(x, y, r, nuke);
-  igniteAt(x, y, r);
+  // a seam detonation's own booms are the CASCADE CARRIER: their
+  // ignition reach is cut to near-contact (a quarter of the dig radius,
+  // capped at 26), so a sweeping giant seam lights only what it all but
+  // touches; weapon blasts keep the full radius - a direct hit on a
+  // seam is the shooter's reward, not collateral of a distant cascade
+  igniteAt(x, y, pBoom ? Math.min(26, r * 0.3) : r);
+  // a big blast earns a light zoom onto its epicentre
+  if (r >= 56 && !noTerr) camKick(x, y, 1.045 + Math.min(0.11, r / 900), 0.4 + r / 400);
+  // a burst through the shaft mouth closes the invitation
+  if (aiTun && Math.hypot(x - aiTun.x, y - aiTun.y) < 60) aiTun = null;
   if (UNDER) {
     hitVents(x, y, r);
     // a blast tearing into the lamp's mount (or a direct hit on the
@@ -4309,7 +4409,6 @@ function stepPlasmaOrbs(dt) {
 
 function stepFx(dt) {
   shake = Math.max(0, shake - dt * (4 + shake * 4));
-  stepPlasmaOrbs(dt);
   // fx: in-place compaction — the old filter+concat rebuilt two arrays
   // every frame; particles spawned by the step itself move down behind
   // the compacted block, exactly like the old tail concat kept them
@@ -4334,6 +4433,16 @@ function stepFx(dt) {
       if (UNDER && f.y < ceilAt(f.x)) f.vy = Math.abs(f.vy) * 0.4;
     }
     if (f.k === 'jet') { f.h = Math.min(f.hMax, (f.h === undefined ? f.hMax * 0.25 : f.h) + f.hMax * dt * 1.8); }
+    if (f.k === 'case') {
+      f.vy += GRAV * 0.9 * dt;
+      f.x += f.vx * dt; f.y += f.vy * dt;
+      f.rot += f.vr * dt;
+      if (f.vy > 0 && f.y >= surfaceAt(f.x) - 1) {
+        f.y = surfaceAt(f.x) - 1;
+        if (Math.abs(f.vy) > 60) { f.vy = -f.vy * 0.35; f.vx *= 0.5; f.vr *= 0.4; }
+        else { f.vy = 0; f.vx *= 1 - dt * 6; f.vr *= 1 - dt * 6; }
+      }
+    }
     if (f.k === 'lflow') {
       const sl = slopeAt(f.x);
       f.vx += sl * 55 * dt;
@@ -4436,8 +4545,11 @@ function stepFx(dt) {
     if (rm.wreck === 1) { rm.wt = (rm.wt || 0) + dt; if (rm.wt > 4) rm.wreck = 2; }
   });
   const burnN = [0, 0];
+  const rainFire = wx.on === 1 && wx.kind === 1 && !UNDER;
   firePatches = firePatches.filter(fp => {
-    fp.life -= dt;
+    // rain beats the flames out: ground fire dies ~3x faster, oily
+    // napalm keeps a little more of its bite than soft seam fires
+    fp.life -= dt * (rainFire ? (fp.soft ? 3.2 : 2.2) : 1);
     const fy = fp.volc && fp.y !== undefined ? fp.y : surfaceAt(fp.x);
     // ANY ground fire — napalm flames or lava fires alike — heats the seam
     // beneath it; lava-kind fires light the geyser variant
@@ -4542,12 +4654,17 @@ function launch(t, ang, pow, dir, w, who) {
   shotOwner = tanks.indexOf(t);
   roundArmed = true;
   if (shotOwner) shots2++;
-  t.recoil = 1;
   // last stand: this is the dying fighter's ONE shot
   if (t.dying) { t.lsShot = true; t.lsUntil = Math.min(t.lsUntil, gt + 1.5); }
   const tipX = t.x + Math.cos(rad) * 24 * dir;
   const tipY = t.y - 14 - Math.sin(rad) * 24;
+  // heavy shells shove the barrel deeper into the cradle
+  t.recoil = (w.type === 'nuke' || w.type === 'death') ? 1.3 : 1;
   fx.push({ k: 'flash', x: tipX, y: tipY, r: 11, t: 0, life: 0.08 });
+  // warm bloom: one additive wash lights the shooter's ridge and deck
+  fx.push({ k: 'mglow', x: tipX, y: tipY, r: 30 + w.r * 0.35, t: 0, life: 0.13 });
+  // spent brass: kicked off the breech, spins, bounces, cools out
+  fx.push({ k: 'case', x: t.x + Math.cos(rad) * 6 * dir, y: t.y - 14 - Math.sin(rad) * 6, vx: -Math.sin(rad) * R(24, 40) - dir * 12 + wind * 3, vy: -Math.cos(rad) * R(26, 44) - R(24, 44), rot: R(0, 6.28), vr: R(-16, 16), t: 0, life: R(2.2, 3.4) });
   for (let k = 0; k < 3; k++) fx.push({ k: 'smoke', x: tipX - Math.cos(rad) * (6 + k * 5) * dir, y: tipY + Math.sin(rad) * (6 + k * 5) + R(-2, 2), r: 2.5 + k, t: 0, life: R(0.5, 0.9) });
   fx.push({ k: 'dust', x: t.x, y: t.y, vx: R(-10, 10), vy: -14, r: 4, t: 0, life: 0.5, col: M().dustCol });
   lastWeapon = w.key;
@@ -4562,6 +4679,15 @@ function launch(t, ang, pow, dir, w, who) {
   draw();
 }
 
+// the AI's remembered digger shaft: mouth point, heading and expiry
+let aiTun = null;
+// compact ricochet spark burst: roller touchdown, mid-air intercepts
+function sparkFx(x, y, r, col, n) {
+  if (fx.length > fxMax) return;
+  const pts = [];
+  for (let k = 0; k < n; k++) pts.push({ a: R(-2.8, 0.3), l: R(0.25, 0.7), w: R(0.8, 1.8), spin: R(-2, 2) });
+  fx.push({ k: 'spark', x, y, r, t: 0, life: 0.34, col, pts });
+}
 function aiPickWeapon() {
   const pool = [];
   pool.push(ARSENAL[0], ARSENAL[0]);
@@ -4570,6 +4696,9 @@ function aiPickWeapon() {
   if (aiAmmo.PLASMA > 0) pool.push(ARSENAL[4]);
   if (aiAmmo.ROLLER > 0) pool.push(ARSENAL[6]);
   if (aiAmmo.NAPALM > 0) pool.push(ARSENAL[5]);
+  // the cluster finally gets its chance: a spread finisher for a worn
+  // foe, and a last-round area sweep
+  if (aiAmmo.MIRV > 0 && (tanks[0].hp > 30 || round >= ROUNDS_MAX - 1)) pool.push(ARSENAL[9]);
   if (aiAmmo.NUKE > 0 && round >= ROUNDS_MAX - 1) pool.push(ARSENAL[3]);
   return pool[(Math.random() * pool.length) | 0];
 }
@@ -4578,28 +4707,34 @@ function aiTurn() {
   turn = 3;
   const me = tanks[1], foe = tanks[0];
   const dir = foe.x > me.x ? 1 : -1;
-  let w = aiPickWeapon();
+  // the AI recalls its own digger shaft: a fresh mouth near the foe is an
+  // open invitation — a plain missile dropped INTO the hole rides the
+  // void and bursts at its floor; the search below just swaps the aim
+  // target to the mouth, the error budget stays untouched
+  const tun = aiTun && gt < aiTun.until && Math.abs(aiTun.x - foe.x) < 130 && Math.random() < 0.6 ? aiTun : null;
+  let w = tun ? ARSENAL[0] : aiPickWeapon();
+  const aimX = tun ? tun.x + (tun.vx || 0) * 24 : foe.x;
   let best = null;
   // mobile guard: the aim grid is searched SYNCHRONOUSLY (up to ~2600
   // simulated flights) — a slow phone freezes for seconds, which reads
   // as a hang right after big blasts settle and the PC's turn begins.
   // Hard wall-clock cap on the search
   const tSearch = performance.now();
-  for (let strat = 0; strat < 4; strat++) {
-    const angBase = [35, 45, 55, 65][strat];
+  for (let strat = 0; strat < 5; strat++) {
+    const angBase = [14, 35, 45, 55, 65][strat];
     for (let ang = angBase - 10; ang <= angBase + 10; ang += 2) {
       if (performance.now() - tSearch > 200) break;
       for (let p = 10; p <= 100; p += 3) {
         const sim = simulateShot(me.x, me.y - 12, ang, p, dir, w.wind);
-        if (sim && (!best || Math.abs(sim.x - foe.x) < best.dist)) best = { ang, p, dist: Math.abs(sim.x - foe.x) };
+        if (sim && (!best || Math.abs(sim.x - aimX) < best.dist)) best = { ang, p, dist: Math.abs(sim.x - aimX) };
       }
     }
   }
   if (!best) best = { ang: 45, p: 60, dist: 999 };
   const pit = Math.min(surfaceAt(foe.x - 40), surfaceAt(foe.x + 40)) - foe.y;
-  if (aiAmmo.DIRT > 0 && pit > 24 && best.dist < 50 && Math.random() < 0.75) {
+  if (!tun && aiAmmo.DIRT > 0 && pit > 24 && best.dist < 50 && Math.random() < 0.75) {
     w = ARSENAL[8];
-  } else if (aiAmmo.DIGGER > 0 && (best.dist > 90 || (me.y - foe.y > 60 && best.dist > 40)) && Math.random() < 0.65) {
+  } else if (!tun && aiAmmo.DIGGER > 0 && (best.dist > 90 || (me.y - foe.y > 60 && best.dist > 40)) && Math.random() < 0.65) {
     const dy = (me.y - 14) - (foe.y + 24);
     const dx = Math.abs(foe.x - me.x);
     best = { ang: clamp(Math.round(Math.atan2(dy, Math.max(30, dx)) * 180 / Math.PI), 8, 55), p: clamp(Math.round(Math.hypot(dx, dy) / 8.5), 15, 92), dist: 0 };
@@ -4649,6 +4784,8 @@ function digEnter(p) {
   let dx = p.vx / sp, dy = clamp(p.vy / sp, -0.55, 0.55);
   const n = Math.hypot(dx, dy) || 1;
   p.dvx = dx / n; p.dvy = dy / n;
+  // the AI recalls the shaft it just opened (mouth + heading + expiry)
+  if (p.owner === 1) aiTun = { x: p.x, y: p.y, vx: p.dvx, vy: p.dvy, until: gt + 75 };
   sfx(0.5);
   shake = Math.min(10, shake + 2.5);
   for (let k = 0; k < 8; k++) {
@@ -4812,6 +4949,7 @@ function updateProjectile(p, dt) {
       const c = colAt(p.x);
       if (c.h1 > 0 && c.h0 <= c.top + 2) { p.rollDrop = true; return; }
       if (c.lava > 2) { p.dead = true; p.y = surf - 4; return; } // rolled into a lava pool: detonate
+      if (!p.sparked) { p.sparked = 1; sparkFx(p.x, p.y - 3, 13, '255,214,120', 4); }
       if (surf > waterLevel + 4) { p.dead = true; p.wet = true; return; }
       const sl = slopeAt(p.x);
       p.vx += sl * 1200 * dt;
@@ -4888,6 +5026,7 @@ function resolveHit(p) {
   lastShotApex = p.apex || 0;
   if (p.intercept) {
     boomsAt(p.intercept.x, p.intercept.y, Math.max(20, w.r * 0.55), 'missile', Math.round(w.dmg * 0.7));
+    sparkFx(p.intercept.x, p.intercept.y, 16, '255,214,120', 5);
     for (let k = 0; k < 6; k++) {
       if (lavaBits.length > 55) break;
       lavaBits.push({ x: p.intercept.x + R(-3, 3), y: p.intercept.y, vx: R(-90, 90), vy: -R(60, 160), t: 0, life: R(1.2, 2.2), s: R(1.4, 2.4) });
@@ -5170,6 +5309,12 @@ function killTank(i, cause, style, overkill) {
   if (t.dead) return;
   if (cause === 'weapon' && state === 'aim' && turn === i && !t.dying) { enterLastStand(i); return; }
   t.dead = true; t.dying = false; killed = i; lastKillMethod = cause;
+  // PATCH 6: the finishing shot earns a beat of slow-mo — only the fx
+  // clock stretches; turn timers, physics and terrain stay real-time.
+  // The camera leans in with it: a small zoom onto the kill, then the
+  // ease back out to the full screen (camKick refuses to pre-empt a
+  // live blast zoom, so a big finish keeps its own, stronger framing)
+  if (cause === 'weapon' && slowT <= 0) { slowT = 0.6; camKick(t.x, t.y - 10, 1.055, 0.75); }
   if (cause === 'drown') {
     sinkers.push({ x: t.x, y: t.y, t: 0, col: t.col, hull: t.hull });
     fx.push({ k: 'splash', x: t.x, y: waterAt(t.x), r: 14, t: 0, life: 0.5 });
@@ -5926,7 +6071,7 @@ function rollWeather() {
   wx.pow = R(0.45, 1);
   // storms: heavy rain on the living worlds, dry heat-lightning on the
   // burnt ones; snow stays calm - the arctic night belongs to the aurora
-  wx.storm = (kind === 1 || kind === 3) && wx.pow > 0.6 && Math.random() < (kind === 3 ? 0.4 : 0.5) ? 1 : 0;
+  wx.storm = (kind === 1 || kind === 3) && wx.pow > 0.55 && Math.random() < (kind === 3 ? 0.55 : 0.65) ? 1 : 0;
   if (wx.storm) wx.nextBolt = R(2.5, 6);
   wx.on = 1;
   const P = wx.p;
@@ -5981,8 +6126,8 @@ function genBolt() {
 // to the top; lightning strikes storms only and the flash always decays
 // in ~0.17 s (it can never stick); the satellite is a rare night crosser
 function stepWeather(dt) {
-  wx.boltT = Math.max(0, wx.boltT - dt * 9);
-  wx.flashT = Math.max(0, wx.flashT - dt * 6);
+  wx.boltT = Math.max(0, wx.boltT - dt * 3);
+  wx.flashT = Math.max(0, wx.flashT - dt * 3.5);
   if (wx.sat) {
     wx.satX += wx.satV * dt;
     if (wx.satX < -60 || wx.satX > Wc + 60) wx.sat = 0;
@@ -5998,12 +6143,12 @@ function stepWeather(dt) {
   if (wx.storm) {
     wx.nextBolt -= dt;
     if (wx.nextBolt <= 0) {
-      wx.nextBolt = R(5, 11);
+      wx.nextBolt = R(4, 8);
       wx.boltT = 1; wx.flashT = 1;
       genBolt();
-      wx.rebolt = Math.random() < 0.35 ? 1 : 0;
+      wx.rebolt = Math.random() < 0.45 ? 1 : 0;
     }
-    if (wx.rebolt && wx.boltT <= 0.55) { wx.rebolt = 0; wx.boltT = 0.85; genBolt(); }
+    if (wx.rebolt && wx.boltT <= 0.62) { wx.rebolt = 0; wx.boltT = 1; genBolt(); }
   }
   const rain = wx.kind === 1, snow = wx.kind === 2;
   const drift = windDir * (rain ? 130 : snow ? 170 : 90);
@@ -6028,6 +6173,18 @@ function stepWeather(dt) {
       if (p.y > Hc + 20) { p.y = R(-60, -10); p.x = R(-60, Wc * 1.08); }
     }
     if (p.x < -80) p.x += Wc + 140; else if (p.x > Wc + 80) p.x -= Wc + 140;
+  }
+  // rain kisses the water: sparse small rings feed the height field;
+  // on a lava crust the drop dies in a short-lived wisp of steam
+  if (rain && Math.random() < dt * 7) {
+    const rx = R(4, Wc - 4);
+    if (waterAt(rx) < surfaceAt(rx) - 3) pushRipple(rx, R(1, 2.4));
+    else {
+      const ci = clamp(Math.round(rx / cols.step), 0, cols.length - 1);
+      if (cols[ci].lava > 2 && fx.length < fxMax) {
+        fx.push({ k: 'wisp', x: rx, y: surfaceAt(rx) - 2, vx: R(-3, 3), vy: -R(16, 30), ph: R(0, 6.28), t: 0, life: R(0.7, 1.4) });
+      }
+    }
   }
 }
 
@@ -6057,6 +6214,9 @@ function step(dt) {
   // fps meter: a 0.5 s window of frames feeds the HUD event line
   fpsN++; fpsT += dt;
   if (fpsT >= 0.5) { fpsV = Math.round(fpsN / fpsT); fpsN = 0; fpsT = 0; }
+  camStep(dt);
+  if (slowT > 0) { slowT -= dt; fxR += (0.3 - fxR) * Math.min(1, dt * 12); }
+  else fxR += (1 - fxR) * Math.min(1, dt * 2.8);
   cycleT = (cycleT + dt / DAY_CYCLE) % 1;
   todT += dt;
   if (todT > 0.25) { todT = 0; updateTod(); }
@@ -6145,7 +6305,8 @@ function step(dt) {
     sinkers.length = w;
   }
   stepTerra(dt * 2.2);
-  stepFx(dt * 1.6);
+  stepPlasmaOrbs(dt * 1.6);
+  stepFx(dt * 1.6 * fxR);
   stepWater(dt);
   stepLavaBits(dt);
   stepWreckBits(dt);
@@ -6294,7 +6455,11 @@ function rrectPath(c, x, y, w, h, r) {
   }
   function ptrPos(e) {
     const r = cv.getBoundingClientRect();
-    return { x: (e.clientX - r.left) * (Wc / r.width), y: (e.clientY - r.top) * (Hc / r.height) };
+    let x = (e.clientX - r.left) * (Wc / r.width), y = (e.clientY - r.top) * (Hc / r.height);
+    // undo the blast camera's transform, so aiming maps 1:1; camFocus
+    // refreshes the clamped focus first - the very numbers draw() uses
+    if (camZ > 1.001) { camFocus(); x = (x - Wc / 2) / camZ + camFX; y = (y - Hc / 2) / camZ + camFY; }
+    return { x, y };
   }
   function trailLife(w) {
     switch (w.type) {
@@ -6405,6 +6570,17 @@ function rrectPath(c, x, y, w, h, r) {
     const shx = sh ? (noise(gt * 61) - 0.5) * 2 * sh : 0;
     const shy = sh ? (noise(gt * 47 + 9.7) - 0.5) * 2 * sh : 0;
     ctx.save();
+    // PATCH 6 blast camera: punch in toward the epicentre, hold the
+    // beat, ease back out to the full screen. camFocus (kept fresh by
+    // camStep every frame) CLAMPS the window inside the painted scene,
+    // so the zoom never frames the unrendered strip past the screen
+    // edge; the shake rides INSIDE the camera, where the sky's bake
+    // margin already covers it
+    if (camZ > 1.001) {
+      ctx.translate(Wc / 2, Hc / 2);
+      ctx.scale(camZ, camZ);
+      ctx.translate(-camFX, -camFY);
+    }
     if (sh) ctx.translate(shx, shy);
     drawSky();
     drawFarHills();
@@ -6417,11 +6593,14 @@ function rrectPath(c, x, y, w, h, r) {
     drawTanks();
     drawWater();
     drawRainCrowns();
-    drawTankLights();
+    drawBoltHit();
     // the cave: darkness swallows the solid scene, then the baked lights
     // burn their pools back into it; glowing things (shots, fire, fx) are
     // drawn ABOVE the darkness so they read in the gloom
     if (UNDER) drawCaveShade();
+    // the headlight cone reads above the cave gloom (and above the water
+    // tint on the surface) - a lamp cuts through its own darkness
+    drawTankLights();
     if (shot) drawShot(shot);
     subshots.forEach(drawShot);
     drawLiquids();
@@ -7364,13 +7543,25 @@ function rrectPath(c, x, y, w, h, r) {
       const syP = Hc * (0.30 - Math.sin(clamp(spP, 0, 1) * Math.PI) * 0.20);
       const dsE = Math.hypot(sxP - px2, syP - py2);
       if (dsE < pr + 26) eclipseF = Math.max(eclipseF, clamp((pr + 26 - dsE) / 52, 0, 1));
-      // the ring's back half, hidden by the disc afterwards
+      // the ring's back half, hidden by the disc afterwards: a dusty
+      // rubble field baked once per size, blitted in two clipped halves
+      if (!drawSky._rCv || drawSky._rK !== Math.round(pr)) {
+        // THE SCRAP-IRON RING: heavy rust and ochre dust with bright
+        // glints - the planet's own corroded continents, shattered; a
+        // wider reach and a 1.55 density/alpha boost make the band read
+        // clearly even against the day sky
+        drawSky._rCv = bakeRing(pr * 1.7, 0.36 / 1.7, '172,84,44', '240,152,92', 1.55);
+        drawSky._rK = Math.round(pr);
+      }
       ctx.save();
       ctx.translate(px2, py2);
       ctx.rotate(-0.3);
-      ctx.strokeStyle = 'rgba(180,120,80,0.5)';
-      ctx.lineWidth = Math.max(2, pr * 0.1);
-      ctx.beginPath(); ctx.ellipse(0, 0, pr * 1.5, pr * 0.32, 0, Math.PI, Math.PI * 2); ctx.stroke();
+      const rw2 = drawSky._rCv.width / 2, rh2 = drawSky._rCv.height / 2;
+      ctx.beginPath();
+      ctx.rect(-rw2, -rh2, rw2 * 2, rh2);
+      ctx.clip();
+      ctx.globalAlpha = 0.95;
+      ctx.drawImage(drawSky._rCv, -rw2, -rh2);
       ctx.restore();
       const ag = ctx.createRadialGradient(px2 - pr * 0.4, py2 - pr * 0.35, pr * 0.2, px2, py2, pr);
       ag.addColorStop(0, '#e0be74');
@@ -7542,12 +7733,12 @@ function rrectPath(c, x, y, w, h, r) {
       ctx.save();
       ctx.translate(px2, py2);
       ctx.rotate(-0.3);
-      ctx.strokeStyle = 'rgba(180,120,80,0.5)';
-      ctx.lineWidth = Math.max(2, pr * 0.1);
-      ctx.beginPath(); ctx.ellipse(0, 0, pr * 1.5, pr * 0.32, 0, 0, Math.PI); ctx.stroke();
-      ctx.globalAlpha = 0.35;
-      ctx.lineWidth = Math.max(1, pr * 0.04);
-      ctx.beginPath(); ctx.ellipse(0, 0, pr * 1.32, pr * 0.27, 0, 0, Math.PI); ctx.stroke();
+      const rw3 = drawSky._rCv.width / 2, rh3 = drawSky._rCv.height / 2;
+      ctx.beginPath();
+      ctx.rect(-rw3, 0, rw3 * 2, rh3);
+      ctx.clip();
+      ctx.globalAlpha = 0.95;
+      ctx.drawImage(drawSky._rCv, -rw3, -rh3);
       ctx.restore();
       const rim = ctx.createRadialGradient(px2, py2, pr * 0.92, px2, py2, pr * 1.14);
       rim.addColorStop(0, 'rgba(180,220,240,0)');
@@ -7609,15 +7800,19 @@ function rrectPath(c, x, y, w, h, r) {
       }
       const gs = 96 * (gr / 34);
       ctx.drawImage(giantCv, gx - gs / 2, gy - gs / 2, gs, gs);
+      if (!drawSky._gCv || drawSky._gK !== Math.round(gr)) {
+        const gc = parseCol(gg.ring);
+        drawSky._gCv = bakeRing(gr * 1.75, 0.34 / 1.75, `${gc[0] | 0},${gc[1] | 0},${gc[2] | 0}`, `${Math.min(255, (gc[0] | 0) + 50)},${Math.min(255, (gc[1] | 0) + 50)},${Math.min(255, (gc[2] | 0) + 50)}`);
+        drawSky._gK = Math.round(gr);
+      }
       ctx.save();
       ctx.translate(gx, gy);
       ctx.rotate(-0.32);
-      ctx.strokeStyle = gg.ring;
-      ctx.lineWidth = Math.max(2, gr * 0.12);
-      ctx.beginPath(); ctx.ellipse(0, 0, gr * 1.75, gr * 0.34, 0, 0, Math.PI); ctx.stroke();
-      ctx.globalAlpha = 0.5;
-      ctx.lineWidth = Math.max(1, gr * 0.05);
-      ctx.beginPath(); ctx.ellipse(0, 0, gr * 1.45, gr * 0.26, 0, 0, Math.PI); ctx.stroke();
+      const gw2 = drawSky._gCv.width / 2, gh2 = drawSky._gCv.height / 2;
+      ctx.beginPath();
+      ctx.rect(-gw2, 0, gw2 * 2, gh2);
+      ctx.clip();
+      ctx.drawImage(drawSky._gCv, -gw2, -gh2);
       ctx.restore();
     }
     const drawClouds = (nearPass) => {
@@ -7637,13 +7832,28 @@ function rrectPath(c, x, y, w, h, r) {
         const ly = cy - lr * 0.3 - lift + Math.sin(b * 2.3 + c * 1.7) * 3;
         return [lx, ly, lr];
       };
+      // irregular puffs: an 8-point wobbled polygon per lobe instead
+      // of flat discs; lobes split into two brightness buckets, so the
+      // colouring reads uneven, mottled
+      const puff = (b) => {
+        const [lx, ly, lr] = lob(b, 0, 0);
+        const sd = c * 31 + b * 7;
+        ctx.moveTo(lx + lr, ly);
+        for (let v = 1; v < 8; v++) {
+          const an = v / 8 * Math.PI * 2;
+          const rr = lr * (0.68 + noise(sd + v * 2.3) * 0.5);
+          ctx.lineTo(lx + Math.cos(an) * rr, ly + Math.sin(an) * rr * 0.82);
+        }
+        ctx.closePath();
+      };
       ctx.fillStyle = `rgba(${cl[0] | 0},${cl[1] | 0},${cl[2] | 0},${a.toFixed(3)})`;
       ctx.beginPath();
-      for (let b = 0; b < lobes; b++) { const [lx, ly, lr] = lob(b, 0, 0); ctx.moveTo(lx + lr, ly); ctx.arc(lx, ly, lr, 0, Math.PI * 2); }
+      for (let b = 0; b < lobes; b++) { if (noise(c * 5 + b) > 0.42) continue; puff(b); }
       ctx.fill();
-      ctx.fillStyle = `rgba(${cl[0] | 0},${cl[1] | 0},${cl[2] | 0},${(a * 0.95).toFixed(3)})`;
+      const cl2 = mixColA(cl, [255, 255, 255, 1], 0.16);
+      ctx.fillStyle = `rgba(${cl2[0] | 0},${cl2[1] | 0},${cl2[2] | 0},${Math.min(1, a * 1.04).toFixed(3)})`;
       ctx.beginPath();
-      for (let b = 1; b < lobes - 1; b += 2) { const [lx, ly, lr] = lob(b, 0.5, cw * 0.07); ctx.moveTo(lx + lr, ly); ctx.arc(lx, ly, lr, 0, Math.PI * 2); }
+      for (let b = 0; b < lobes; b++) { if (noise(c * 5 + b) <= 0.42) continue; puff(b); }
       ctx.fill();
       const dk = mixColA(cl, [16, 20, 32, 1], 0.45);
       ctx.fillStyle = `rgba(${dk[0] | 0},${dk[1] | 0},${dk[2] | 0},${(a * 0.8).toFixed(3)})`;
@@ -7688,10 +7898,76 @@ function rrectPath(c, x, y, w, h, r) {
   // up. The tile (one canvas, rebuilt per height; width equals the wave
   // period so it loops seamlessly) bakes the wave envelope into the ray
   // alphas - a frame costs a few drawImage calls, no allocations
+  // per-biome aurora palettes: arctic keeps the classic green -> teal
+  // curtain; xeno gets its own magenta -> violet one with a cyan fringe
+  const AUR_PAL = {
+    arctic: { rib: ['92,255,166', '60,232,210'], fringe: '158,122,255', head: '120,255,190', tail: '96,240,214', edge: '80,220,255' },
+    xeno: { rib: ['255,120,225', '170,110,255'], fringe: '110,225,255', head: '255,150,235', tail: '190,130,255', edge: '140,240,255' }
+  };
+  // a real debris ring is thousands of specks, not a clean ellipse
+  // stroke: baked ONCE per size into an offscreen tile (density noise,
+  // two Cassini-style gaps, a width wobble, a bright speckle), then
+  // just blitted - back half before the disc, front half after it
+  function bakeRing(rOut, flat, base, speck, boost) {
+    // boost scales BOTH the rubble count and the per-speck alpha, so a
+    // call can ask for a band that reads clearly against a bright sky
+    const bst = boost || 1;
+    const RW = Math.ceil(rOut * 2.6), RH = Math.ceil(rOut * flat * 2 + 10);
+    const cv = document.createElement('canvas');
+    cv.width = RW; cv.height = RH;
+    const c2 = cv.getContext('2d');
+    const cX = RW / 2, cY = RH / 2;
+    const rIn = rOut * 0.74;
+    // the dust haze: a dense pass of sub-pixel motes at low alpha -
+    // from afar the band reads as a continuous dusty ring (a bright
+    // day sky swallows isolated specks), up close it stays grainy
+    const n2 = Math.max(700, (rOut * 30 * bst) | 0);
+    for (let i = 0; i < n2; i++) {
+      const t = Math.random() * Math.PI * 2;
+      let u = Math.random();
+      u = u < 0.82 ? u / 0.82 * 0.86 : 0.86 + (u - 0.82) / 0.18 * 0.14;
+      const g1 = Math.abs(u - 0.38), g2 = Math.abs(u - 0.74);
+      if (g1 < 0.05 - u * 0.02 || g2 < 0.035) continue;
+      const a = (rIn + u * (rOut - rIn)) * (0.9 + noise(t * 3.1) * 0.18);
+      const x = cX + Math.cos(t) * a;
+      const y = cY + Math.sin(t) * a * flat;
+      const b = noise(t * 5.3 + u * 7);
+      c2.fillStyle = `rgba(${base},${(0.1 + b * 0.16).toFixed(3)})`;
+      c2.fillRect(x, y, 1.3, 1.1);
+    }
+    const n = Math.max(900, (rOut * 22 * bst) | 0);
+    for (let i = 0; i < n; i++) {
+      const t = Math.random() * Math.PI * 2;
+      // radial profile: a broad band plus a thin outer skirt, two gaps
+      // cut it; density wobbles with the angle like a real rubble field
+      let u = Math.random();
+      u = u < 0.82 ? u / 0.82 * 0.86 : 0.86 + (u - 0.82) / 0.18 * 0.14;
+      const g1 = Math.abs(u - 0.38), g2 = Math.abs(u - 0.74);
+      if (g1 < 0.05 - u * 0.02 || g2 < 0.035) continue;
+      const a = (rIn + u * (rOut - rIn)) * (0.9 + noise(t * 3.1) * 0.18);
+      const x = cX + Math.cos(t) * a;
+      const y = cY + Math.sin(t) * a * flat;
+      const b = noise(t * 7.7 + u * 13);
+      const al = Math.min(0.92, (0.22 + b * 0.5) * bst);
+      // three tiers: the bulk rubble, the brighter dust wash, and a
+      // sparse GLINT layer - fresh sheared metal catching the starlight
+      if (b > 0.88) {
+        c2.fillStyle = `rgba(${speck},${Math.min(1, al * 1.3).toFixed(3)})`;
+        c2.fillRect(x, y, 2.1, 1.7);
+      } else {
+        c2.fillStyle = b > 0.72 ? `rgba(${speck},${(al * 0.9).toFixed(3)})` : `rgba(${base},${al.toFixed(3)})`;
+        const s = 0.6 + b * 1.2;
+        c2.fillRect(x, y, s, s * 0.8);
+      }
+    }
+    return cv;
+  }
   function drawAurora(starA) {
-    if (biomeKey() !== 'arctic' || starA < 0.12) return;
+    const ap = AUR_PAL[biomeKey()];
+    if (!ap || starA < 0.12) return;
     const rayLen = Hc * 0.46;
-    if (!drawSky._aur || drawSky._aurH !== Hc) {
+    if (!drawSky._aur || drawSky._aurH !== Hc || drawSky._aurB !== biomeKey()) {
+      drawSky._aurB = biomeKey();
       const mk = (col, a1, a2) => {
         const g = ctx.createLinearGradient(0, Hc * 0.04, 0, Hc * 0.5);
         g.addColorStop(0, `rgba(${col},0)`);
@@ -7700,30 +7976,52 @@ function rrectPath(c, x, y, w, h, r) {
         g.addColorStop(1, `rgba(${col},0)`);
         return g;
       };
-      drawSky._aur = [mk('92,255,166', 0.55, 0.24), mk('60,232,210', 0.38, 0.16)];
+      drawSky._aur = [mk(ap.rib[0], 0.55, 0.24), mk(ap.rib[1], 0.38, 0.16)];
       const TW = 560, TH = Math.max(2, Math.ceil(rayLen * 0.52));
       const cv = document.createElement('canvas');
       cv.width = TW; cv.height = TH;
       const c2 = cv.getContext('2d');
-      // shared vertical profile: bright head under the curtain path,
-      // tail fading out before mid-sky (no hard bottom edge)
-      const rg = c2.createLinearGradient(0, 0, 0, TH);
-      // a faint violet fringe rides the very top of the curtain - the
-      // classic green -> teal -> violet stack instead of a flat two-tone
-      rg.addColorStop(0, 'rgba(158,122,255,0.14)');
-      rg.addColorStop(0.1, 'rgba(120,255,190,0.08)');
-      rg.addColorStop(0.28, 'rgba(120,255,190,0.55)');
-      rg.addColorStop(0.6, 'rgba(96,240,214,0.22)');
-      rg.addColorStop(1, 'rgba(80,220,255,0)');
-      c2.fillStyle = rg;
-      for (let x = 8; x < TW - 8; x += 14) {
-        const w = Math.pow(0.5 + 0.5 * Math.sin(x * (Math.PI * 2 / TW)), 2.2);
-        const a = 0.08 + w * 0.62;
-        if (a < 0.1) continue;
-        c2.globalAlpha = a;
-        c2.fillRect(x - 2.2, 0, 4.4, TH);
-        if (w > 0.72) { c2.globalAlpha = a * 0.4; c2.fillRect(x - 6, 0, 12, TH); }
+      // ragged curtain: each ray is its own creature - own length, own
+      // width, its own lean and its own gradient (the fringe colour
+      // rides its very top); a wider fainter core pass blurs the old
+      // hard bars into a soft breathe. All params are periodic in the
+      // ray count, so the tile still loops seamlessly; each ray is also
+      // stamped at +/-TW so edge-leaners wrap instead of clipping
+      const nR = 50;
+      const pA = (i, k2, ph) => Math.sin(i / nR * Math.PI * 2 * k2 + ph);
+      for (let i = 0; i < nR; i++) {
+        const env = Math.pow(0.5 + 0.5 * pA(i, 1, 0), 2.2);
+        const a = 0.1 + env * 0.85;
+        if (a < 0.12) continue;
+        const sd = 0.5 + 0.5 * pA(i, 2, 1.7);
+        const len = TH * (0.42 + 0.58 * sd);
+        const wd = 2 + 4.4 * (0.5 + 0.5 * pA(i, 3, 2.9));
+        const lean = 7 * pA(i, 1, 0.6) * (len / TH);
+        const yTop = 2 + (1 - len / TH) * 12 * (0.5 + 0.5 * pA(i, 5, 0.2));
+        const col = pA(i, 4, 1.1) > 0 ? ap.head : ap.tail;
+        const g2 = c2.createLinearGradient(0, yTop, 0, yTop + len);
+        g2.addColorStop(0, `rgba(${ap.fringe},${(a * 0.55).toFixed(3)})`);
+        g2.addColorStop(0.14 + sd * 0.12, `rgba(${col},${Math.min(1, a * 0.95).toFixed(3)})`);
+        g2.addColorStop(0.55, `rgba(${ap.tail},${(a * 0.55).toFixed(3)})`);
+        g2.addColorStop(1, `rgba(${ap.edge},0)`);
+        c2.fillStyle = g2;
+        for (let ci2 = -1; ci2 <= 1; ci2++) {
+          const x = (i / nR) * TW + ci2 * TW;
+          if (x + wd * 3 + 9 < 0 || x - wd * 3 - 9 > TW) continue;
+          c2.globalAlpha = 1;
+          c2.beginPath();
+          c2.moveTo(x - wd * 2.4 + lean, yTop);
+          c2.lineTo(x + wd * 1.1, yTop + 2);
+          c2.lineTo(x + wd * 0.4 + lean, yTop + len);
+          c2.lineTo(x - wd * 1.7 + lean, yTop + len);
+          c2.closePath();
+          c2.fill();
+          // a wide soft core blurs the ray into a curtain fold
+          c2.globalAlpha = a * 0.6;
+          c2.fillRect(x - wd * 1.9 + lean, yTop, wd * 3.8, len);
+        }
       }
+      c2.globalAlpha = 1;
       drawSky._aurCv = cv; drawSky._aurTW = TW;
       drawSky._aurH = Hc;
     }
@@ -7732,7 +8030,7 @@ function rrectPath(c, x, y, w, h, r) {
     const breath = 0.72 + 0.28 * Math.sin(skyT * 0.3) + surge * 0.9;
     ctx.globalCompositeOperation = 'lighter';
     for (let r = 0; r < 2; r++) {
-      const a = Math.min(0.5, [0.34, 0.22][r] * starA * breath);
+      const a = Math.min(0.55, [0.44, 0.3][r] * starA * breath);
       if (a < 0.01) continue;
       ctx.globalAlpha = a;
       ctx.strokeStyle = drawSky._aur[r];
@@ -7754,7 +8052,7 @@ function rrectPath(c, x, y, w, h, r) {
     const nL = qualWeather ? 2 : 1;
     for (let L = 0; L < nL; L++) {
       const v = L ? -19 : 47;
-      ctx.globalAlpha = Math.min(0.9, (L ? 0.4 : 0.8) * starA * breath);
+      ctx.globalAlpha = Math.min(0.92, (L ? 0.5 : 0.95) * starA * breath);
       let sx = ((skyT * v) % TW + TW) % TW - TW;
       for (; sx < Wc; sx += TW) ctx.drawImage(drawSky._aurCv, sx, 0, TW, TH);
     }
@@ -7841,14 +8139,8 @@ function rrectPath(c, x, y, w, h, r) {
         ctx.lineWidth = 1.3;
         ctx.stroke();
       }
-      // impact bloom where the channel meets the relief
-      if (wx.boltT > 0.35) {
-        const bk = (wx.boltT - 0.35) / 0.65;
-        ctx.fillStyle = `rgba(210,225,255,${(0.3 * bk).toFixed(3)})`;
-        ctx.beginPath(); ctx.arc(wx.gx, wx.gy, 5 + 14 * (1 - bk), 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = `rgba(248,250,255,${(0.5 * bk).toFixed(3)})`;
-        ctx.beginPath(); ctx.arc(wx.gx, wx.gy, 2.5 + 6 * (1 - bk), 0, Math.PI * 2); ctx.fill();
-      }
+      // the impact bloom itself moved to drawBoltHit: drawn in the sky
+      // pass it landed BEHIND the relief and the far ridges ate it
       ctx.lineWidth = 1;
     }
     const kind = wx.on && !UNDER ? wx.kind : 0;
@@ -7897,6 +8189,21 @@ function rrectPath(c, x, y, w, h, r) {
       }
       ctx.globalAlpha = 1;
     }
+  }
+  // the strike's ground contact, drawn ABOVE the relief: the channel
+  // itself rides the sky pass, the impact bloom belongs to the surface
+  // it hits - a short flicker, never a stuck glow
+  function drawBoltHit() {
+    if (UNDER || wx.boltT <= 0.35) return;
+    const bk = (wx.boltT - 0.35) / 0.65;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.7 + 0.3 * Math.sin(wx.boltT * 47);
+    ctx.fillStyle = `rgba(205,222,255,${(0.32 * bk).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(wx.gx, wx.gy, 6 + 26 * (1 - bk), 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = `rgba(248,250,255,${(0.5 * bk).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(wx.gx, wx.gy, 3 + 10 * (1 - bk), 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
   }
   // rain landing crowns: drawn ABOVE the relief and the water - the
   // splash belongs to the surface it hits, so it cannot ride the sky
@@ -8574,6 +8881,30 @@ function drawCaveShade() {
         }
       }
     }
+    // ============ SCORCH DECALS: charred blast bowls ============
+    // a fresh crater keeps a soot rim baked into the ground skin until
+    // the soil moves again (craterMask grows cols[].scorch with the
+    // job; the hot cooling edge above it stays the live burn strip).
+    // Batched by 4 alpha buckets - a couple of fill() calls total
+    {
+      const scB = [[], [], [], []];
+      for (let i = 0; i < N; i++) {
+        const s2 = cols[i].scorch || 0;
+        if (s2 < 0.05) continue;
+        scB[Math.min(3, (s2 * 4) | 0)].push(i);
+      }
+      for (let q = 0; q < 4; q++) {
+        const arr = scB[q];
+        if (!arr.length) continue;
+        ctx.fillStyle = `rgba(16,11,8,${(0.2 + q * 0.14).toFixed(3)})`;
+        ctx.beginPath();
+        for (let r2 = 0; r2 < arr.length; r2++) {
+          const i = arr[r2];
+          ctx.rect(i * cols.step, cols[i].top, cols.step + 0.5, 5 + 14 * (cols[i].scorch || 0));
+        }
+        ctx.fill();
+      }
+    }
     // tunnel voids
     {
       let i = 0;
@@ -9202,14 +9533,27 @@ function drawCaveShade() {
       const p = f.t / f.life;
       const a = 1 - p;
       const yy = f.y - ease(p) * 34;
-      ctx.font = '700 18px Orbitron, monospace';
+      // heavy hits read heavy: >= 50 pops in fat red with a short scale
+      const big = f.val >= 50;
+      const pop = big && p < 0.12 ? 1 + (1 - p / 0.12) * 0.35 : 1;
+      ctx.font = `700 ${big ? 26 : 18}px Orbitron, monospace`;
       ctx.textAlign = 'center';
       ctx.globalAlpha = clamp(a * 1.4, 0, 1);
-      ctx.strokeStyle = 'rgba(0,0,0,0.8)';
-      ctx.lineWidth = 4;
-      ctx.strokeText('-' + f.val, f.x, yy);
-      ctx.fillStyle = f.val >= 25 ? '#ff5a4a' : '#ffd23f';
-      ctx.fillText('-' + f.val, f.x, yy);
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = big ? 5 : 4;
+      if (pop !== 1) {
+        ctx.save();
+        ctx.translate(f.x, yy);
+        ctx.scale(pop, pop);
+        ctx.strokeText('-' + f.val, 0, 0);
+        ctx.fillStyle = '#ff3b2d';
+        ctx.fillText('-' + f.val, 0, 0);
+        ctx.restore();
+      } else {
+        ctx.strokeText('-' + f.val, f.x, yy);
+        ctx.fillStyle = big ? '#ff3b2d' : f.val >= 25 ? '#ff5a4a' : '#ffd23f';
+        ctx.fillText('-' + f.val, f.x, yy);
+      }
       ctx.globalAlpha = 1;
       ctx.textAlign = 'left';
     });
@@ -9330,6 +9674,33 @@ function drawCaveShade() {
         ctx.fillStyle = '#fff';
         ctx.beginPath(); ctx.arc(f.x, f.y, f.r * 0.3 * (0.6 + p * 0.6), 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
+      } else if (f.k === 'mglow') {
+        // muzzle bloom: one warm additive wash over the shooter's ridge
+        const a0 = Math.max(0, 1 - p);
+        if (!f.g) {
+          f.g = ctx.createRadialGradient(f.x, f.y, 2, f.x, f.y, f.r);
+          f.g.addColorStop(0, 'rgba(255,224,160,0.55)');
+          f.g.addColorStop(0.4, 'rgba(255,170,80,0.28)');
+          f.g.addColorStop(1, 'rgba(255,120,50,0)');
+        }
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = a0;
+        ctx.fillStyle = f.g;
+        ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      } else if (f.k === 'case') {
+        // spent brass: a spinning 2x5 fleck, dimming as it cools out
+        const a0 = clamp(1.2 - p, 0, 1);
+        ctx.save();
+        ctx.translate(f.x, f.y);
+        ctx.rotate(f.rot);
+        ctx.globalAlpha = a0 * 0.95;
+        ctx.fillStyle = '#c9a54a';
+        ctx.fillRect(-1, -2.5, 2, 5);
+        ctx.fillStyle = '#8a6a2c';
+        ctx.fillRect(-1, -2.5, 2, 1.6);
+        ctx.restore();
       } else if (f.k === 'skyflash') {
         ctx.fillStyle = f.col + (f.a * scFlashK * (1 - p) * (1 - p)).toFixed(3) + ')';
         ctx.fillRect(-40, -40, Wc + 80, Hc + 80);
@@ -9403,12 +9774,21 @@ function drawCaveShade() {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = a * 0.75;
-        const g = ctx.createLinearGradient(0, f.y, 0, f.y - h);
-        g.addColorStop(0, 'rgba(255,190,80,0.85)');
-        g.addColorStop(0.5, 'rgba(255,90,30,0.5)');
-        g.addColorStop(1, 'rgba(200,40,10,0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(f.x - f.w * 0.5 * flick, f.y - h, f.w * flick, h);
+        if (!f.g) {
+          f.g = ctx.createLinearGradient(0, f.y, 0, f.y - f.hMax);
+          f.g.addColorStop(0, 'rgba(255,190,80,0.85)');
+          f.g.addColorStop(0.5, 'rgba(255,90,30,0.5)');
+          f.g.addColorStop(1, 'rgba(200,40,10,0)');
+        }
+        ctx.fillStyle = f.g;
+        // ragged fire column: jittered rows, each with its own width
+        // and horizontal drift - the old single fillRect read as a bar
+        const nJ = 7;
+        for (let s2 = 0; s2 < nJ; s2++) {
+          const sd2 = f.x * 0.13 + s2 * 3.1;
+          const wJ = f.w * flick * (0.55 + 0.8 * noise(sd2 + gt * 2.1)) * (1 - 0.45 * (s2 / nJ));
+          ctx.fillRect(f.x + (noise(sd2 * 2.1 + gt * 1.7) - 0.5) * f.w * 0.8 - wJ * 0.5, f.y - h * ((s2 + 1) / nJ), wJ, h / nJ + 1.5);
+        }
         ctx.restore();
       } else if (f.k === 'lflow') {
         const L = lav();
@@ -9551,7 +9931,8 @@ function drawCaveShade() {
       } else if (f.k === 'smoke') {
         const r = f.r * (1 + p * 1.2);
         ctx.fillStyle = `rgba(62,58,54,${0.2 * (1 - p)})`;
-        ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, Math.PI * 2); ctx.fill();
+        blobPath(f.x, f.y, r, f.x * 0.37 + f.y * 0.11);
+        ctx.fill();
       } else if (f.k === 'wisp') {
         ctx.strokeStyle = `rgba(226,238,244,${(0.18 * (1 - p)).toFixed(3)})`;
         ctx.lineWidth = 2;
@@ -9582,18 +9963,30 @@ function drawCaveShade() {
         ctx.fillStyle = `rgba(225,242,252,${0.4 * a})`;
         ctx.beginPath(); ctx.ellipse(f.x, f.y - 2, f.r * 0.3, 4 + p * 3, 0, 0, Math.PI * 2); ctx.fill();
       } else if (f.k === 'mush') {
-        ctx.globalAlpha = 0.5 * (1 - p * 0.8);
         const rise = ease(p) * f.r * 0.9;
         const capY = f.y - rise;
         ctx.fillStyle = 'rgba(120,105,95,0.55)';
         for (let b = 0; b < 5; b++) {
           const a = b / 5 * Math.PI * 2 + gt * 0.3;
+          // per-lobe alpha/size jitter: the cap reads as tumbling
+          // smoke, not one even shell
+          ctx.globalAlpha = 0.5 * (1 - p * 0.8) * (0.7 + noise(b * 3.3 + f.x * 0.7) * 0.55);
           ctx.beginPath();
-          ctx.ellipse(f.x + Math.cos(a) * f.r * 0.4, capY + Math.sin(a) * f.r * 0.12, f.r * (0.55 - b * 0.06), f.r * (0.3 - b * 0.03), 0, 0, Math.PI * 2);
+          ctx.ellipse(f.x + Math.cos(a) * f.r * 0.4, capY + Math.sin(a) * f.r * 0.12, f.r * (0.55 - b * 0.06) * (0.85 + noise(b * 7.1) * 0.3), f.r * (0.3 - b * 0.03) * (0.85 + noise(b * 5.3 + 3) * 0.3), 0, 0, Math.PI * 2);
           ctx.fill();
         }
+        // the stem: a ragged leaning stack of jittered blocks, width
+        // breathing per row - no clean rectangle column
         ctx.fillStyle = 'rgba(100,88,78,0.5)';
-        ctx.fillRect(f.x - f.r * 0.2, capY, f.r * 0.4, rise + f.r * 0.4);
+        const hSt = rise + f.r * 0.4;
+        const nSt = Math.max(4, (hSt / 13) | 0);
+        for (let s2 = 0; s2 < nSt; s2++) {
+          ctx.globalAlpha = 0.5 * (1 - p * 0.8) * (0.8 + noise(s2 * 4.9 + f.x) * 0.4);
+          const sy = capY + hSt * (s2 / nSt);
+          const sd2 = f.x * 0.31 + s2 * 7.7;
+          const wS = f.r * (0.13 + 0.12 * noise(sd2)) * (0.45 + 0.55 * (s2 / nSt)) + 2;
+          ctx.fillRect(f.x + (noise(sd2 * 1.9) - 0.5) * f.r * 0.18 - wS, sy, wS * 2, hSt / nSt + 2);
+        }
         ctx.globalAlpha = 1;
       } else if (f.k === 'splash') {
         ctx.strokeStyle = `rgba(200,230,255,${0.7 * (1 - p)})`;
@@ -9710,6 +10103,7 @@ function drawCaveShade() {
         hpF, recoil: t.recoil || 0, seed: i * 7 + 3, hull: t.hull, cache: true
       });
       ctx.restore();
+      drawTankSunShade(t);
       if (t.dying) {
         const pu = 0.5 + Math.sin(gt * 9) * 0.3;
         ctx.strokeStyle = `rgba(255,80,50,${pu.toFixed(2)})`;
@@ -9734,16 +10128,60 @@ function drawCaveShade() {
     });
   }
   
-  // ============ NIGHT TANK LIGHTS: headlight cone + cabin glow ============
-  // Surface nights only - caves keep their own baked lighting. The cone
+  // celestial light on the hulls: the same skyLight that glosses the
+  // water and the far ridges shades the tanks - the sun side catches a
+  // warm rim, the far side sinks into a directional shade; by night it
+  // goes cool and faint. Caves keep their own baked darkness
+  function drawTankSunShade(t) {
+    if (UNDER || t.dead || !skyLight || skyLight.x < -900) return;
+    const lv = clamp((skyLight.x - t.x) / (Wc * 0.45), -1, 1);
+    if (Math.abs(lv) < 0.12) return;
+    const day = clamp(dayness, 0, 1);
+    const k = (0.3 * (1 - day * 0.3) + 0.26 * day) * clamp(skyLight.a * 2.4, 0, 1);
+    if (k < 0.04) return;
+    const side = lv > 0 ? 1 : -1;
+    const kk = side + '|' + (Math.round(k * 10) / 10) + '|' + Math.round(day * 6);
+    let G = t._sunG;
+    if (!G || G.kk !== kk) {
+      const dk = day > 0.35 ? '14,16,24' : '6,10,24';
+      const hc = day > 0.35 ? '255,238,200' : '196,212,236';
+      // the shade runs from full dark at the ANTI-sun edge to nothing
+      // past the hull centre (the local +x is always the sun side: the
+      // whole thing mirrors with side below)
+      const g = ctx.createLinearGradient(-13, 0, 13, 0);
+      g.addColorStop(0, `rgba(${dk},${k.toFixed(3)})`);
+      g.addColorStop(0.28, `rgba(${dk},${(k * 0.7).toFixed(3)})`);
+      g.addColorStop(1, `rgba(${dk},0)`);
+      const g2 = ctx.createLinearGradient(4, 0, 16, 0);
+      g2.addColorStop(0, `rgba(${hc},0)`);
+      g2.addColorStop(0.55, `rgba(${hc},${(k * 0.42).toFixed(3)})`);
+      g2.addColorStop(1, `rgba(${hc},0)`);
+      G = t._sunG = { kk, g, g2 };
+    }
+    ctx.save();
+    // hull + turret silhouette approximation: the cached sprite box
+    rrectPath(ctx, t.x - 12, t.y - 27, 24, 27, 5);
+    ctx.clip();
+    ctx.translate(t.x, t.y);
+    if (side < 0) ctx.scale(-1, 1);
+    ctx.fillStyle = G.g;
+    ctx.fillRect(-13, -27, 26, 27);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = G.g2;
+    ctx.fillRect(-13, -26, 26, 22);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+  // ============ NIGHT TANK LIGHTS: headlight cone + twin lamp glow ============
+  // Surface nights AND the caves - a lamp is a lamp underground. The cone
   // reuses the cave searchlight recipe (a march to the first surface or
   // water contact, layered fills, a contact glow); intensity ramps with
   // darkness so dusk stays unlit, a full night reads the tanks, and an
   // eclipse wakes them early. Gradients are cached per tank geometry -
   // no per-frame gradient allocations
   function drawTankLights() {
-    if (UNDER) return;
-    const k = clamp((0.35 - dayness) / 0.30, 0, 1) + eclipseF * 0.75;
+    const k = UNDER ? 1 : clamp((0.35 - dayness) / 0.30, 0, 1) + eclipseF * 0.75;
     if (k <= 0.03) return;
     tanks.forEach((t, i) => {
       if (!t || t.dead || t.dying) return;
@@ -9756,7 +10194,13 @@ function drawCaveShade() {
       const bx = dir * Math.cos(aR), by = -Math.sin(aR);
       // turret pivot, kept in sync with drawTurretBody's pivY table
       const pv = t.hull === 'stealth' ? -13 : t.hull === 'heavy' ? -12 : t.hull === 'retro' ? -18 : t.hull === 'howitzer' ? -15 : (t.hull === 'rail' || t.hull === 'bunker') ? -13 : -14;
-      const ox = t.x, oy = t.y + pv;
+      // the lamps ride just BELOW the barrel line, a step past the
+      // turret silhouette: the beam keeps the barrel's axis, but its
+      // source sits clear of the turret face so the hull centre stays
+      // unbleached (twin lamps flank the barrel base)
+      let pdx = -by, pdy = bx;
+      if (pdy < 0) { pdx = -pdx; pdy = -pdy; }
+      const ox = t.x + bx * 15 + pdx * 5.5, oy = t.y + pv + by * 15 + pdy * 5.5;
       if (oy > waterAt(t.x)) return; // a drowned lamp shines no more
       // march the beam to the first surface / water contact; a miss
       // (over a ridge rim or off-screen) just lets the cone die out
@@ -9769,7 +10213,7 @@ function drawCaveShade() {
         if (py >= waterAt(px) && surfaceAt(px) > waterLevel + 2) { hitW = true; break; }
         if (py >= surfaceAt(px) - 1) { hitS = true; break; }
       }
-      const kk = (t.x / 2 | 0) + '|' + (t.y / 2 | 0) + '|' + (hx / 2 | 0) + '|' + (hy / 2 | 0) + '|' + dir + '|' + Math.round(dAng);
+      const kk = (ox / 2 | 0) + '|' + (oy / 2 | 0) + '|' + (hx / 2 | 0) + '|' + (hy / 2 | 0) + '|' + dir + '|' + Math.round(dAng);
       let C = t._hl;
       if (!C || C.kk !== kk) {
         const coneG = (a0, a1) => {
@@ -9788,7 +10232,7 @@ function drawCaveShade() {
         C = t._hl = {
           kk,
           g1: coneG(0.20, 0.06), g2: coneG(0.32, 0.10),
-          head: radG(ox, oy, 9, 0.70), cab: radG(t.x, t.y - 16, 14, 0.42),
+          head: radG(ox, oy, 7, 0.65),
           band: radG(hx, hy, 16, 0.36)
         };
       }
@@ -9809,10 +10253,12 @@ function drawCaveShade() {
       };
       cone(C.g1, 22);
       cone(C.g2, 11);
+      // twin lamps flanking the barrel base - the beam's own source
       ctx.fillStyle = C.head;
-      ctx.beginPath(); ctx.arc(ox, oy, 8, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = C.cab;
-      ctx.beginPath(); ctx.arc(t.x, t.y - 16, 13, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(ox - pdx * 2.6, oy - pdy * 2.6, 4.5, 0, Math.PI * 2);
+      ctx.arc(ox + pdx * 2.6, oy + pdy * 2.6, 4.5, 0, Math.PI * 2);
+      ctx.fill();
       // the contact glow and the lit patch ride the surface contour and
       // show ONLY on a real hit (the cave searchlight's bandGlow
       // recipe); a beam ending mid-air fades to nothing instead
@@ -9868,13 +10314,28 @@ function drawCaveShade() {
     ctx.globalAlpha = 1;
   }
 
+  // irregular puff silhouette: an 8-point polygon with a deterministic
+  // radius wobble - replaces flat circles in smoke-type trails and fx
+  function blobPath(x, y, r, sd) {
+    const rs = sd * 12.7 + r * 0.31;
+    ctx.beginPath();
+    for (let v = 0; v < 8; v++) {
+      const an = v / 8 * Math.PI * 2 + (noise(rs + v * 1.9) - 0.5) * 0.5;
+      const rr = r * (0.66 + noise(rs * 1.9 + v * 3.7) * 0.62);
+      const px = x + Math.cos(an) * rr, py = y + Math.sin(an) * rr * 0.88;
+      if (v) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+    }
+    ctx.closePath();
+  }
   function drawTrail(p) {
     const n = p.trail.length;
     if (!n) return;
     const life = trailLife(p.w);
     const type = p.w.type;
     ctx.save();
-    if (type === 'plasma') ctx.globalCompositeOperation = 'lighter';
+    // FIERY trails glow additively - napalm fire, funky's neon confetti,
+    // the plasma comet; the heavy smoke-throwers stay subtractive paint
+    if (type === 'plasma' || type === 'funky' || type === 'napalm') ctx.globalCompositeOperation = 'lighter';
     for (let i = 0; i < n; i++) {
       const q = p.trail[i];
       const age = clamp((gt - q.t) / life, 0, 1);
@@ -9883,11 +10344,14 @@ function drawCaveShade() {
       if (type === 'death' || type === 'nuke') {
         ctx.globalAlpha = k * 0.45;
         ctx.fillStyle = age < 0.4 ? '#5a5a5f' : '#2c2c30';
-        ctx.beginPath(); ctx.arc(q.x, q.y, 2 + age * 10, 0, Math.PI * 2); ctx.fill();
+        blobPath(q.x, q.y, 2 + age * 10, q.t * 13.7);
+        ctx.fill();
         if (age < 0.12) {
+          ctx.globalCompositeOperation = 'lighter';
           ctx.globalAlpha = k;
           ctx.fillStyle = '#ff9a3a';
           ctx.beginPath(); ctx.arc(q.x, q.y, 2.4, 0, Math.PI * 2); ctx.fill();
+          ctx.globalCompositeOperation = 'source-over';
         }
       } else if (type === 'plasma') {
         ctx.globalAlpha = k * 0.55;
@@ -9915,7 +10379,8 @@ function drawCaveShade() {
       } else if (type === 'roller') {
         ctx.globalAlpha = k * 0.35;
         ctx.fillStyle = '#c2ab86';
-        ctx.beginPath(); ctx.arc(q.x, q.y - age * 4, 1.5 + age * 4, 0, Math.PI * 2); ctx.fill();
+        blobPath(q.x, q.y - age * 4, 1.5 + age * 4, q.t * 13.7);
+        ctx.fill();
       } else if (type === 'digger') {
         ctx.globalAlpha = k * 0.7;
         ctx.fillStyle = i % 2 ? '#8a6a3a' : '#6b4a2c';
@@ -9927,15 +10392,19 @@ function drawCaveShade() {
       } else if (type === 'dirt') {
         ctx.globalAlpha = k * 0.3;
         ctx.fillStyle = '#cbb490';
-        ctx.beginPath(); ctx.arc(q.x, q.y, 2 + age * 6, 0, Math.PI * 2); ctx.fill();
+        blobPath(q.x, q.y, 2 + age * 6, q.t * 13.7);
+        ctx.fill();
       } else {
         ctx.globalAlpha = k * 0.3;
         ctx.fillStyle = age < 0.3 ? '#e8e2d8' : '#b0b4bb';
-        ctx.beginPath(); ctx.arc(q.x, q.y, 1.6 + age * 7, 0, Math.PI * 2); ctx.fill();
+        blobPath(q.x, q.y, 1.6 + age * 7, q.t * 13.7);
+        ctx.fill();
         if (age < 0.18) {
+          ctx.globalCompositeOperation = 'lighter';
           ctx.globalAlpha = k * 0.9;
           ctx.fillStyle = '#ffd88a';
           ctx.beginPath(); ctx.arc(q.x, q.y, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.globalCompositeOperation = 'source-over';
         }
       }
     }
@@ -11780,7 +12249,7 @@ function drawCaveShade() {
       const oi = clamp(Math.round((i * step / kx) / cols.step), 0, cols.length - 1);
       const c = cols[oi];
       nc.push({
-        top: c.top * ky, surf: c.surf, burn: c.burn, melt: c.melt,
+        top: c.top * ky, surf: c.surf, burn: c.burn, melt: c.melt, scorch: c.scorch,
         h0: c.h1 > 0 ? c.h0 * ky : 0, h1: c.h1 > 0 ? c.h1 * ky : 0, sid: c.sid,
         lava: c.lava * ky, lavaT: c.lavaT
       });
