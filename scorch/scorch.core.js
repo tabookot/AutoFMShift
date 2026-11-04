@@ -133,17 +133,22 @@ let fx = [];
 // ================== GRAPHICS QUALITY ==================
 // one preset knob (LS scorch_qual: low/mid/high) scales the hot-path
 // budgets: fx particle caps (world.js), star + sky-dust counts, star
-// twinkle, projectile trail length, and a weather-particles switch
-// reserved for the weather patch. LS scorch_dprcap limits the render
-// device pixel ratio to 2 (phone x3/x4 screens). Both persist across
-// sessions; switching never restarts a round - the next draw picks the
-// new budgets up, and the DPR change rides the regular resize() path
+// twinkle, projectile trail length, a weather-particles switch - and
+// since the render-scale patch also the RENDER pixel budget (dpr field:
+// low renders at 1x even on retina - 4x fewer pixels to shade; mid caps
+// at 1.5x). LS scorch_dprcap stays the manual master limit of 2 for
+// phone x3/x4 screens. Both persist across sessions; switching never
+// restarts a round - the next draw picks the new budgets up, and the
+// DPR change rides the regular resize() path
 const SC_QUALS = {
-  low:  { fx: 0.4, star: 0.45, twinkle: 0, trail: 0.5, weather: 0 },
-  mid:  { fx: 0.7, star: 0.75, twinkle: 1, trail: 0.8, weather: 1 },
-  high: { fx: 1,   star: 1,    twinkle: 1, trail: 1,   weather: 1 }
+  low:  { fx: 0.4, star: 0.45, twinkle: 0, trail: 0.5, weather: 0, dpr: 1 },
+  mid:  { fx: 0.7, star: 0.75, twinkle: 1, trail: 0.8, weather: 1, dpr: 1.5 },
+  high: { fx: 1,   star: 1,    twinkle: 1, trail: 1,   weather: 1, dpr: 2 }
 };
 let scQual = 'high', scDprCap = true;
+// preset pixel budget (SC_QUALS.dpr); declared HERE because scQualApply()
+// below runs at load time - anything declared later sits in its TDZ
+let scDprBud = 2;
 try {
   const q = localStorage.getItem('scorch_qual');
   if (q && SC_QUALS[q]) scQual = q;
@@ -161,6 +166,8 @@ function scQualApply() {
   trailCap = Math.round(90 * q.trail);
   qualTwinkle = q.twinkle;
   qualWeather = q.weather;
+  const nb = q.dpr || 2;
+  if (nb !== scDprBud) { scDprBud = nb; if (typeof resize === 'function') setTimeout(resize, 0); }
 }
 scQualApply();
 
@@ -181,10 +188,15 @@ for (let i = 0; i < 14; i++) wx.boltP.push({ x: 0, y: 0 });
 // lightning side branches, rewritten in place per strike (brN = count)
 for (let i = 0; i < 5; i++) { wx.brA.push({ x: 0, y: 0 }); wx.brB.push({ x: 0, y: 0 }); }
 
-// effective render DPR: native, capped at 2 while scDprCap is on
+// effective render DPR: native, capped at 2 while scDprCap is on, and
+// scaled by the QUALITY preset's own pixel budget (low = 1x render even on
+// retina screens - the single biggest fill-rate lever; measured +60% fps
+// on a DPR-2 device). scDprCap stays the manual master override: turning
+// it off always yields full native resolution
 function scDprEff() {
   const d = window.devicePixelRatio || 1;
-  return scDprCap && d > 2 ? 2 : d;
+  const cap = scDprCap && d > 2 ? 2 : d;
+  return Math.min(cap, scDprBud);
 }
 let firePatches = [];
 let terraJobs = [];

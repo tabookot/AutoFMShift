@@ -1461,8 +1461,10 @@ function eruptVent(v) {
   wave();
 }
 
-function stepTerra(dt) {
-  terraJobs = terraJobs.filter(j => {
+// one easing deformation job per frame; returns true while any column is
+// still in flight (extracted from the old per-frame filter callback so
+// stepTerra can compact the array in place - zero allocations)
+function tjStep(j, dt) {
     j.t += dt;
     j.cols.forEach(c => {
       if (j.t < c.delay) return;
@@ -1487,7 +1489,19 @@ function stepTerra(dt) {
       smoothGround(ja - 2, jb + 2);
     }
     return live;
-  });
+}
+function stepTerra(dt) {
+  // in-place compaction of the live jobs: the old filter() rebuilt the
+  // array every frame while craters eased
+  {
+    const tjN = terraJobs.length;
+    let tjW = 0;
+    for (let tji = 0; tji < tjN; tji++) {
+      const j = terraJobs[tji];
+      if (tjStep(j, dt)) terraJobs[tjW++] = j;
+    }
+    terraJobs.length = tjW;
+  }
   // a live job eases its column tops every frame — the bake must follow
   if (terraJobs.length) terrVer++;
   const ms = M().slope * 1.6;

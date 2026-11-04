@@ -919,11 +919,20 @@ function rrectPath(c, x, y, w, h, r) {
       const bx = mx + moonBite * shimmer;
       const by = my - Math.abs(moonBite) * 0.3;
       const br = moonBiteR * shimmer;
-      const hg = ctx.createRadialGradient(mx, my, Rm * 0.5, mx, my, Rm * 2.1);
-      hg.addColorStop(0, 'rgba(200,215,235,0.28)');
-      hg.addColorStop(1, 'rgba(200,215,235,0)');
+      // halo: one cached unit gradient + transform (was a fresh radial
+      // gradient every frame)
+      const hg = drawSky._mh || (drawSky._mh = (() => {
+        const g = ctx.createRadialGradient(0, 0, 0.5 / 2.1, 0, 0, 1);
+        g.addColorStop(0, 'rgba(200,215,235,0.28)');
+        g.addColorStop(1, 'rgba(200,215,235,0)');
+        return g;
+      })());
+      ctx.save();
+      ctx.translate(mx, my);
+      ctx.scale(Rm * 2.1, Rm * 2.1);
       ctx.fillStyle = hg;
-      ctx.beginPath(); ctx.arc(mx, my, Rm * 2.1, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
       if (!moonCv) { moonCv = document.createElement('canvas'); moonCv.width = 96; moonCv.height = 96; moonCtx = moonCv.getContext('2d'); }
       const MC = 48;
       moonCtx.globalCompositeOperation = 'source-over';
@@ -960,11 +969,21 @@ function rrectPath(c, x, y, w, h, r) {
         const my2 = mo.cy + Math.sin(mo.ang) * mo.ry;
         const rr = mo.rr;
         ctx.globalAlpha = mA;
-        const gr = ctx.createRadialGradient(mx2, my2, rr * 0.4, mx2, my2, rr * 2.2);
-        gr.addColorStop(0, hexA(mo.col, 0.35));
-        gr.addColorStop(1, 'rgba(0,0,0,0)');
+        // moon glow: cached unit gradient per moon (static tint), drawn
+        // through transform - was a fresh radial gradient per moon per
+        // frame (4 moons = 4 allocs/frame)
+        const gr = mo._g || (mo._g = (() => {
+          const g = ctx.createRadialGradient(0, 0, 0.4 / 2.2, 0, 0, 1);
+          g.addColorStop(0, hexA(mo.col, 0.35));
+          g.addColorStop(1, 'rgba(0,0,0,0)');
+          return g;
+        })());
+        ctx.save();
+        ctx.translate(mx2, my2);
+        ctx.scale(rr * 2.2, rr * 2.2);
         ctx.fillStyle = gr;
-        ctx.beginPath(); ctx.arc(mx2, my2, rr * 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
         ctx.fillStyle = mo.col;
         ctx.beginPath(); ctx.arc(mx2, my2, rr, 0, Math.PI * 2); ctx.fill();
         // baked craters
@@ -2576,13 +2595,16 @@ function drawCaveShade() {
     }
     ctx = main;
     terrKV = terrVer; terrKW = Wc; terrKH = Hc; terrKD = dpr;
-    terrKB = biome; terrKS = seed; terrKQ = Math.round(dayness * 48);
+    terrKB = biome; terrKS = seed; terrKQ = UNDER ? 0 : Math.round(dayness * 48);
     // 8th key field: the quantized light azimuth for the relief shadows
     terrKL = UNDER ? 0 : Math.round(cycleT * 47.9);
   }
   function drawTerrain() {
     const N = cols.length;
     const bk = biomeKey();
+    // shared cache of unit radial gradients for the lava-tinted glows
+    // (vents + volcano craters); see the living layers below
+    const vgc = drawTerrain._vgc || (drawTerrain._vgc = {});
     const un = biome.under || { strata: [[biome.sub[1], 26], [biome.sub[2], 54]], wobble: 8, dec: 'root', dep: 'dot', twink: '255,255,255', twN: 0 };
     const dpr = scDprEff();
     const dq = UNDER ? 0 : Math.round(dayness * 48);
@@ -2748,16 +2770,26 @@ function drawCaveShade() {
     if (UNDER && ceil) {
       // fossil vents: dormant = a faint warm seam, erupting = a pulsing
       // furnace mouth in the rock, spent = a dead dark crack
+      // vent mouth glow: shared unit gradient per lava tint + globalAlpha
+      // pulse - was a fresh createRadialGradient per vent per frame
       caveVents.forEach(v => {
         const cx = (v.x0 + v.x1) / 2;
         const cy = ceilAt(cx);
         const L = lav();
         const gl = v.state === 1 ? 0.5 + 0.4 * Math.sin(gt * 18) : v.state === 0 ? 0.16 + 0.1 * Math.sin(gt * 2 + cx) : 0.05;
-        const gr = ctx.createRadialGradient(cx, cy, 1, cx, cy, 26);
-        gr.addColorStop(0, `rgba(${L.glow},${(gl * 0.8).toFixed(3)})`);
-        gr.addColorStop(1, `rgba(${L.glow},0)`);
-        ctx.fillStyle = gr;
-        ctx.beginPath(); ctx.ellipse(cx, cy, (v.x1 - v.x0) / 2, 8, 0, 0, Math.PI * 2); ctx.fill();
+        const VG = vgc[L.glow] || (vgc[L.glow] = (() => {
+          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+          g.addColorStop(0, `rgba(${L.glow},0.8)`);
+          g.addColorStop(1, `rgba(${L.glow},0)`);
+          return g;
+        })());
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale((v.x1 - v.x0) / 2, 8);
+        ctx.globalAlpha = gl;
+        ctx.fillStyle = VG;
+        ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
         ctx.strokeStyle = `rgba(${v.state === 2 ? '20,16,14' : L.hot},${Math.max(0.25, gl).toFixed(3)})`;
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -2771,11 +2803,19 @@ function drawCaveShade() {
       volcano.craters.forEach(cr => {
         if (cr.y > waterAt(cr.x)) return;
         const L = lav();
-        const gg = ctx.createRadialGradient(cr.x, cr.y, 1, cr.x, cr.y, 8);
-        gg.addColorStop(0, `rgba(${L.glow},${(0.25 + volcano.power * 0.2).toFixed(3)})`);
-        gg.addColorStop(1, `rgba(${L.glow},0)`);
-        ctx.fillStyle = gg;
-        ctx.beginPath(); ctx.arc(cr.x, cr.y, 8, 0, Math.PI * 2); ctx.fill();
+        const VG = vgc[L.glow] || (vgc[L.glow] = (() => {
+          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+          g.addColorStop(0, `rgba(${L.glow},0.8)`);
+          g.addColorStop(1, `rgba(${L.glow},0)`);
+          return g;
+        })());
+        ctx.save();
+        ctx.translate(cr.x, cr.y);
+        ctx.scale(8, 8);
+        ctx.globalAlpha = 0.25 + volcano.power * 0.2;
+        ctx.fillStyle = VG;
+        ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
         ctx.fillStyle = `rgb(${L.hot})`;
         ctx.fillRect(cr.x - 2, cr.y - 1, 4, 2);
       });
@@ -2879,20 +2919,34 @@ function drawCaveShade() {
     ctx.save();
     bodyPath();
     ctx.clip();
-    for (let b = 0; b < wBands.length; b++) {
-      const wb = wBands[b];
-      const bw = Math.max(150, Wc * wb.w);
-      const span = Wc + bw;
-      let bx = (gt * wb.sp * 50 + wb.ph * 90) % span;
-      if (bx < 0) bx += span;
-      bx = bx - bw + Math.sin(gt * 0.4 + wb.ph) * 14;
-      const by = waterLevel + wb.d;
-      const bg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
-      bg.addColorStop(0, 'rgba(0,0,0,0)');
-      bg.addColorStop(0.5, `rgba(${Math.min(255, sc[0] + 40)},${Math.min(255, sc[1] + 40)},${Math.min(255, sc[2] + 30)},0.12)`);
-      bg.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = bg;
-      ctx.fillRect(bx, by, bw, 5);
+    // drift bands: a tiny baked streak sprite (re-baked only when the
+    // water tint moves - the 4 Hz tod quantum) blitted per band; the old
+    // path built 22 linear gradients EVERY frame
+    {
+      const sk = (sc[0] >> 3) + ',' + (sc[1] >> 3) + ',' + (sc[2] >> 3);
+      if (drawWater._bsK !== sk || !drawWater._bsCv) {
+        drawWater._bsK = sk;
+        const cvB = drawWater._bsCv || (drawWater._bsCv = document.createElement('canvas'));
+        cvB.width = 64; cvB.height = 4;
+        const bc = cvB.getContext('2d');
+        bc.clearRect(0, 0, 64, 4);
+        const bg = bc.createLinearGradient(0, 0, 64, 0);
+        bg.addColorStop(0, 'rgba(0,0,0,0)');
+        bg.addColorStop(0.5, `rgba(${Math.min(255, sc[0] + 40)},${Math.min(255, sc[1] + 40)},${Math.min(255, sc[2] + 30)},0.12)`);
+        bg.addColorStop(1, 'rgba(0,0,0,0)');
+        bc.fillStyle = bg;
+        bc.fillRect(0, 0, 64, 4);
+      }
+      for (let b = 0; b < wBands.length; b++) {
+        const wb = wBands[b];
+        const bw = Math.max(150, Wc * wb.w);
+        const span = Wc + bw;
+        let bx = (gt * wb.sp * 50 + wb.ph * 90) % span;
+        if (bx < 0) bx += span;
+        bx = bx - bw + Math.sin(gt * 0.4 + wb.ph) * 14;
+        const by = waterLevel + wb.d;
+        ctx.drawImage(drawWater._bsCv, bx, by, bw, 5);
+      }
     }
     ctx.fillStyle = `rgb(${Math.min(255, sc[0] + 30)},${Math.min(255, sc[1] + 30)},${Math.min(255, sc[2] + 20)})`;
     for (let b = 0; b < wBlobs.length; b++) {
@@ -3445,18 +3499,32 @@ function drawCaveShade() {
         if (f.sd === undefined) f.sd = R(0, 100);
         const sd = f.sd;
         const baseA = Math.max(0, 1 - p * 1.15);
+        // fireball blobs: unit gradients cached PER BLAST COLOUR (the
+        // ~10 BLAST_COL tints) and drawn through translate+scale - the old
+        // code built 3 radial gradients PER FIREBALL PER FRAME, which
+        // dominated the frame during napalm burns and lava ignitions
+        const fgc = drawFx._fgc || (drawFx._fgc = {});
+        const fk = (f.nuke ? 'N' : 'R') + (f.col || '');
+        const FG = fgc[fk] || (fgc[fk] = (() => {
+          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+          if (f.nuke) { g.addColorStop(0, '#fff8e0'); g.addColorStop(0.5, '#ffc23a'); g.addColorStop(1, '#b83a10'); }
+          else { g.addColorStop(0, '#ffe8b0'); g.addColorStop(0.55, f.col ? `rgba(${f.col},0.8)` : '#e8802a'); g.addColorStop(1, 'rgba(120,40,10,0)'); }
+          return g;
+        })());
         for (let b = 0; b < 3; b++) {
           const bx = f.x + Math.sin(gt * (8.7 + b * 4.3) + sd + b * 2.7) * r * (0.2 + b * 0.04);
           const by = f.y + Math.cos(gt * (6.9 + b * 3.7) + sd * 1.7 + b * 1.9) * r * 0.14 - b * r * 0.1;
           const br = Math.max(4, r * (0.62 + 0.16 * Math.sin(sd + b * 2.2) - b * 0.1));
-          const g = ctx.createRadialGradient(bx, by, 0, bx, by, br);
-          if (f.nuke) { g.addColorStop(0, '#fff8e0'); g.addColorStop(0.5, '#ffc23a'); g.addColorStop(1, '#b83a10'); }
-          else { g.addColorStop(0, '#ffe8b0'); g.addColorStop(0.55, f.col ? `rgba(${f.col},0.8)` : '#e8802a'); g.addColorStop(1, 'rgba(120,40,10,0)'); }
           ctx.globalAlpha = baseA * (b ? 0.75 : 1);
-          ctx.fillStyle = g;
+          ctx.fillStyle = FG;
+          ctx.save();
+          ctx.translate(bx, by);
+          ctx.rotate(b * 0.7);
+          ctx.scale(br * (1 + flick * 0.5), br * (1 - flick * 0.5));
           ctx.beginPath();
-          ctx.ellipse(bx, by, br * (1 + flick * 0.5), br * (1 - flick * 0.5), b * 0.7, 0, Math.PI * 2);
+          ctx.arc(0, 0, 1, 0, Math.PI * 2);
           ctx.fill();
+          ctx.restore();
         }
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
@@ -4893,7 +4961,7 @@ function drawCaveShade() {
                   <span class="sc-sndlab">ПРИЦЕЛ</span>
                   <b class="sc-sndval" id="scValAs" style="margin-left:auto"></b>
                 </div>
-                <div class="sc-sndrow" id="scRowQl" title="Качество графики: частицы, звёзды, трейлы — применяется сразу">
+                <div class="sc-sndrow" id="scRowQl" title="Качество графики: частицы, звёзды, трейлы + разрешение рендера (НИЗКОЕ = 1×) — применяется сразу">
                   <button class="sc-sndico" id="scBtnQl" type="button"></button>
                   <span class="sc-sndlab">КАЧЕСТВО</span>
                   <b class="sc-sndval" id="scValQl" style="margin-left:auto"></b>
