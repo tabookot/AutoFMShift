@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1793874676785,
+  "exportDate": 1793961241322,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -6900,7 +6900,7 @@
           "deletedAt": null
         },
         {
-          "name": "Новое радио",
+          "name": "Новое Радио",
           "freq": 107.8,
           "isDeleted": false,
           "deletedAt": null
@@ -6948,7 +6948,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио России / ГТРК \"Орёл\"",
+          "name": "Радио России / ГТРК Орёл",
           "freq": 102.3,
           "isDeleted": false,
           "deletedAt": null
@@ -6984,7 +6984,7 @@
           "deletedAt": null
         },
         {
-          "name": "Экспресс Радио (Орёл)",
+          "name": "Экспресс Радио",
           "freq": 100.4,
           "isDeleted": false,
           "deletedAt": null
@@ -7014,7 +7014,7 @@
           "deletedAt": null
         },
         {
-          "name": "Love Radio / ТРК \"Истоки\"",
+          "name": "Love Radio / ТРК Истоки",
           "freq": 103,
           "isDeleted": false,
           "deletedAt": null
@@ -9905,6 +9905,12 @@
     "тверь": {
       "name": "Тверь",
       "stations": [
+        {
+          "name": "24 июля 1994 — 1998",
+          "freq": 88.6,
+          "isDeleted": false,
+          "deletedAt": null
+        },
         {
           "name": "Авторадио",
           "freq": 101.4,
