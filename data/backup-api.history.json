@@ -12424,10 +12424,522 @@
           "reason": "glitch_protect"
         }
       ]
+    },
+    {
+      "timestamp": "2026-11-09T11:08:19.409Z",
+      "status": "success",
+      "requiresAttention": false,
+      "attentionReasons": [],
+      "changes": {
+        "cities": {
+          "new": [],
+          "deleted": [],
+          "renamed": []
+        },
+        "stations": {
+          "new": [
+            {
+              "city": "Краснодар",
+              "name": "? (Вещало на 104,1)"
+            },
+            {
+              "city": "Мурманск",
+              "name": "&#160;"
+            },
+            {
+              "city": "Салехард",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Ханты-Мансийск",
+              "name": "Радио Радио"
+            }
+          ],
+          "deleted": [
+            {
+              "city": "Краснодар",
+              "name": "? (Вещало на 104,1)"
+            },
+            {
+              "city": "Мурманск",
+              "name": "&#160;"
+            },
+            {
+              "city": "Салехард",
+              "name": "Радио Радио"
+            },
+            {
+              "city": "Ханты-Мансийск",
+              "name": "Радио Радио"
+            }
+          ],
+          "renamed": [],
+          "frequency_migrated": []
+        }
+      },
+      "radioBrowser": {
+        "new": 0,
+        "changed": 53,
+        "deleted": 0,
+        "streamsAdded": 21,
+        "streamsRemoved": 60,
+        "changedStations": [
+          {
+            "name": "Авторадио",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Алания FM",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Алиса FM",
+            "changes": [
+              "homepage",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Бизнес FM",
+            "changes": [
+              "favicon",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Владивосток FM",
+            "changes": [
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Дорожное радио",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Европа Плюс",
+            "changes": [
+              "homepage",
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Красноярск Главный",
+            "changes": [
+              "homepage",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Красноярск FM",
+            "changes": [
+              "favicon",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Мега FM",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags"
+            ]
+          },
+          {
+            "name": "Милицейская волна",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (-2)"
+            ]
+          },
+          {
+            "name": "Наше радио",
+            "changes": [
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Пилот Радио",
+            "changes": [
+              "favicon",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Питер FM",
+            "changes": [
+              "homepage",
+              "favicon",
+              "streams (-2)"
+            ]
+          },
+          {
+            "name": "Радио 10",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (-2)"
+            ]
+          },
+          {
+            "name": "Радио 53",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (-2)"
+            ]
+          },
+          {
+            "name": "Радио 7",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Радио для двоих",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио Искатель",
+            "changes": [
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио Китап",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио Мелодия",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Радио Монте-Карло",
+            "changes": [
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио Орфей",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (-3)"
+            ]
+          },
+          {
+            "name": "Радио Прибой",
+            "changes": [
+              "homepage",
+              "favicon"
+            ]
+          },
+          {
+            "name": "Радио Рекорд",
+            "changes": [
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио Родных Дорог",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио России",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Радио Сибирь",
+            "changes": [
+              "favicon"
+            ]
+          },
+          {
+            "name": "Радио Спутник",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Радио Томский Благовест",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио Трансмит",
+            "changes": [
+              "favicon",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио Тэтим",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио Шансон",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Радио Шоколад",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (-2)"
+            ]
+          },
+          {
+            "name": "Радио Эрмитаж",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (-2)"
+            ]
+          },
+          {
+            "name": "Радио Югра",
+            "changes": [
+              "favicon"
+            ]
+          },
+          {
+            "name": "Радио Юлдаш",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио Chocolate",
+            "changes": [
+              "favicon",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио JAZZ",
+            "changes": [
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Радио Maximum",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Радио Monte Carlo",
+            "changes": [
+              "favicon",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Радио Nostalgie",
+            "changes": [
+              "favicon",
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Радио Sputnik",
+            "changes": [
+              "favicon",
+              "streams (+1/-2)"
+            ]
+          },
+          {
+            "name": "Радио Z",
+            "changes": [
+              "homepage",
+              "tags",
+              "streams (+1)"
+            ]
+          },
+          {
+            "name": "Ретро FM",
+            "changes": [
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "Хит FM",
+            "changes": [
+              "favicon",
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Юность",
+            "changes": [
+              "homepage",
+              "tags"
+            ]
+          },
+          {
+            "name": "Business FM",
+            "changes": [
+              "favicon",
+              "tags",
+              "streams (-1)"
+            ]
+          },
+          {
+            "name": "DFM",
+            "changes": [
+              "favicon",
+              "streams (+2/-2)"
+            ]
+          },
+          {
+            "name": "Radio Record",
+            "changes": [
+              "favicon",
+              "tags",
+              "streams (+3/-3)"
+            ]
+          },
+          {
+            "name": "Relax FM",
+            "changes": [
+              "favicon",
+              "tags",
+              "streams (+1/-1)"
+            ]
+          },
+          {
+            "name": "Rock FM",
+            "changes": [
+              "homepage",
+              "favicon",
+              "tags",
+              "streams (+2/-3)"
+            ]
+          },
+          {
+            "name": "Studio 21",
+            "changes": [
+              "streams (-1)"
+            ]
+          }
+        ]
+      },
+      "restored": [
+        {
+          "type": "station",
+          "city": "Владимир",
+          "name": "Маруся ФМ",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Владимир",
+          "name": "план Регион-Медиа",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Тверь",
+          "name": "Пилот Радио\nМ-Радио",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Мурманск",
+          "name": "&#160;",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио 1-й Канал",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Уфа",
+          "name": "Радио КП",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Екатеринбург",
+          "name": "Радиопедия:Черновик/Радио Лето",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Екатеринбург",
+          "name": "Радиопедия:Черновик/Радио Спутник (Екатеринбург)",
+          "reason": "glitch_protect"
+        },
+        {
+          "type": "station",
+          "city": "Тюмень",
+          "name": "Радиопедия:Черновик/Радио Семёрка",
+          "reason": "glitch_protect"
+        }
+      ]
     }
   ],
   "lastRun": {
-    "timestamp": "2026-11-08T10:00:12.474Z",
+    "timestamp": "2026-11-09T11:08:19.409Z",
     "status": "success",
     "recorded": true
   }
