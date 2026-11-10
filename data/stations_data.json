@@ -1222,14 +1222,6 @@
         "tags": ""
       },
       {
-        "name": "Radio 7",
-        "url": "https://radio7server.streamr.ru:8040/radio7256.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "https://radio7.ru/favicon.png",
-        "tags": ""
-      },
-      {
         "name": "Radio 7 Tyumen",
         "url": "http://live.radio7.su:9000/radio7_128",
         "bitrate": 128,
@@ -1247,7 +1239,7 @@
       }
     ],
     "homepage": "https://radio7.ru/",
-    "favicon": "https://radio7.ru/favicon.png",
+    "favicon": "",
     "tags": ""
   },
   {
@@ -2434,27 +2426,7 @@
   },
   {
     "name": "Радио Си",
-    "streams": [
-      {
-        "name": "Радио Си (Екатеринбург)",
-        "url": "https://online.radioc.ru/radioc_aacplus?v=1702736359326",
-        "bitrate": 64,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Радио СИ - 103.7 FM",
-        "url": "https://online.radioc.ru/radioc",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://www.radioc.ru/online/logo.png",
-        "tags": ""
-      }
-    ],
-    "homepage": "https://m.radioc.ru/",
-    "favicon": "https://www.radioc.ru/online/logo.png",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Радио Сибирь",
@@ -2794,7 +2766,7 @@
     ],
     "homepage": "https://maximum.ru/",
     "favicon": "",
-    "tags": "alternative, international music, modern rock, pop rock, rock"
+    "tags": "rock - pop-rock"
   },
   {
     "name": "Радио Monte Carlo",
@@ -2890,19 +2862,7 @@
   },
   {
     "name": "Радио Z",
-    "streams": [
-      {
-        "name": "Z Fm",
-        "url": "https://node0.craftradio.ru:8000/193_CB039DF9",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "null",
-        "tags": "фронтовое радио"
-      }
-    ],
-    "homepage": "https://node0.craftradio.ru:8000/193_CB039DF9",
-    "favicon": "",
-    "tags": "фронтовое радио"
+    "streams": []
   },
   {
     "name": "Радио-3",
@@ -3712,12 +3672,12 @@
         "tags": "jrock"
       },
       {
-        "name": "Acoustic Rock Radio",
-        "url": "http://live-radio.ru:8111/live",
+        "name": "record rock",
+        "url": "https://radiorecord.hostingradio.ru/rock96.aacp",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "http://live-radio.ru/favicon.png",
-        "tags": "accordion, acoustic, acoustic rock, autor-interprete, cantautor"
+        "favicon": "https://www.radiorecord.ru/icons/apple-touch-icon.png",
+        "tags": ""
       }
     ],
     "homepage": "https://www.rockfm.ru/",
