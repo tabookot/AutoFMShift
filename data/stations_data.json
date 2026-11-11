@@ -2426,7 +2426,27 @@
   },
   {
     "name": "Радио Си",
-    "streams": []
+    "streams": [
+      {
+        "name": "Радио Си (Екатеринбург)",
+        "url": "https://online.radioc.ru/radioc_aacplus?v=1702736359326",
+        "bitrate": 64,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "Радио СИ - 103.7 FM",
+        "url": "https://online.radioc.ru/radioc",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "https://www.radioc.ru/online/logo.png",
+        "tags": ""
+      }
+    ],
+    "homepage": "https://m.radioc.ru/",
+    "favicon": "https://www.radioc.ru/online/logo.png",
+    "tags": ""
   },
   {
     "name": "Радио Сибирь",
@@ -3164,7 +3184,7 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://wwv.zvuch.com/radio-online/ulyanovsk-fm",
+    "homepage": "https://ruradio.net/ulyanovsk/ulyanovsk-fm-1042-fm-gFeVDpD3oe",
     "favicon": "https://ruradio.net/api/img/w150/f7/f77c947c874ac7de2aa19b337a758469.jpeg",
     "tags": "поп-музыка"
   },
@@ -3672,12 +3692,12 @@
         "tags": "jrock"
       },
       {
-        "name": "record rock",
-        "url": "https://radiorecord.hostingradio.ru/rock96.aacp",
+        "name": "Acoustic Rock Radio",
+        "url": "http://live-radio.ru:8111/live",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "https://www.radiorecord.ru/icons/apple-touch-icon.png",
-        "tags": ""
+        "favicon": "http://live-radio.ru/favicon.png",
+        "tags": "accordion, acoustic, acoustic rock, autor-interprete, cantautor"
       }
     ],
     "homepage": "https://www.rockfm.ru/",
