@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1794480368005,
+  "exportDate": 1794566538159,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -10760,14 +10760,20 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Шансон",
+          "name": "Радио Шансон / (ПЛАН) Калина Красная",
           "freq": 91.2,
           "isDeleted": false,
           "deletedAt": null
         },
         {
-          "name": "Радио Энерджи (NRG)",
+          "name": "Радио Энерджи (NRG) / (ПЛАН) Новое Радио",
           "freq": 101.3,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Радио mСm",
+          "freq": 88.8,
           "isDeleted": false,
           "deletedAt": null
         },
@@ -10962,12 +10968,6 @@
       "name": "Уфа",
       "stations": [
         {
-          "name": "(ПЛАН) Радио Орфей",
-          "freq": 93.8,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
           "name": "Бизнес FM",
           "freq": 107.5,
           "isDeleted": false,
@@ -11060,6 +11060,12 @@
         {
           "name": "Радио Монте-Карло",
           "freq": 102.5,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Радио Орфей",
+          "freq": 93.8,
           "isDeleted": false,
           "deletedAt": null
         },
@@ -12501,6 +12507,12 @@
       "type": "station",
       "city": "Тюмень",
       "name": "Радиопедия:Черновик/Радио Семёрка",
+      "reason": "glitch_protect"
+    },
+    {
+      "type": "station",
+      "city": "Улан-Удэ",
+      "name": "Радио МСМ",
       "reason": "glitch_protect"
     }
   ]
