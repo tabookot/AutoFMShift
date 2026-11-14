@@ -1072,7 +1072,35 @@
   },
   {
     "name": "Радио 10",
-    "streams": []
+    "streams": [
+      {
+        "name": "Радио 10",
+        "url": "https://ic.radio10.live/stream.mp3",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "https://topradio.me/assets/image/radio/100/10-petrozavodsk.png",
+        "tags": "поп-музыка, чилаут"
+      },
+      {
+        "name": "Radio Record 10's Dance (via Marseille)",
+        "url": "https://ijackkos.duckdns.org/10s-dance",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "https://www.radiorecord.ru/icons/apple-touch-icon.png",
+        "tags": "2010s, dance, electronic, house, pop"
+      },
+      {
+        "name": "Град Петров Санкт Петербург 73.10 УКВ",
+        "url": "http://stream.grad-petrov.ru:8093/mp3",
+        "bitrate": 96,
+        "codec": "MP3",
+        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241228_214012596.jpg?alt=media&token=1844ad26-1a93-4b6a-807a-2dfcebf2d413",
+        "tags": "christian, grad petrov, religious, sankt peterburg"
+      }
+    ],
+    "homepage": "https://topradio.me/10",
+    "favicon": "https://topradio.me/assets/image/radio/100/10-petrozavodsk.png",
+    "tags": "поп-музыка, чилаут"
   },
   {
     "name": "Радио 100",
@@ -1214,14 +1242,6 @@
         "tags": ""
       },
       {
-        "name": "Radio 7",
-        "url": "https://radio7server.streamr.ru:8040/radio7256.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "https://radio7.ru/favicon.png",
-        "tags": ""
-      },
-      {
         "name": "Radio 7 Moscow",
         "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
         "bitrate": 320,
@@ -1239,7 +1259,7 @@
       }
     ],
     "homepage": "https://radio7.ru/",
-    "favicon": "https://radio7.ru/favicon.png",
+    "favicon": "",
     "tags": ""
   },
   {
@@ -2714,7 +2734,51 @@
   },
   {
     "name": "Радио Maximum",
-    "streams": []
+    "streams": [
+      {
+        "name": "Radio Maximum",
+        "url": "http://maximum.hostingradio.ru/maximum96.aacp",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "MAXIMUM!",
+        "url": "https://hls-01-maximum.hostingradio.ru/maximum/playlist.m3u8",
+        "bitrate": 100,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": "alternative, international music, modern rock, pop rock, rock"
+      },
+      {
+        "name": "Radio Maximum",
+        "url": "https://maximum.hostingradio.ru/maximum128.mp3",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "MAXIMUM!",
+        "url": "https://maximum.hostingradio.ru/maximum96.aacp",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": "rock - pop-rock"
+      },
+      {
+        "name": "maximum punk",
+        "url": "https://maximum-punk.hostingradio.ru/maxpunk96.aacp",
+        "bitrate": 96,
+        "codec": "AAC+",
+        "favicon": "",
+        "tags": "classical"
+      }
+    ],
+    "homepage": "https://maximum.ru/",
+    "favicon": "",
+    "tags": "alternative, international music, modern rock, pop rock, rock"
   },
   {
     "name": "Радио Monte Carlo",
@@ -2760,16 +2824,16 @@
         "tags": ""
       },
       {
-        "name": "Luxury Lounge Radio - Lounge Level 1",
-        "url": "http://188.40.109.114:8000/ices1",
-        "bitrate": 192,
-        "codec": "MP3",
-        "favicon": "https://lounge.luxury/img/apple-touch-icon.png",
-        "tags": "chillout, lounge"
+        "name": "RadCap - Punk 1",
+        "url": "http://79.120.77.11:9043/;",
+        "bitrate": 320,
+        "codec": "AAC+",
+        "favicon": "",
+        "tags": "punk, radio caprice"
       }
     ],
     "homepage": "https://live.lofiradio.ru/",
-    "favicon": "https://lounge.luxury/img/apple-touch-icon.png",
+    "favicon": "",
     "tags": ""
   },
   {
@@ -3120,7 +3184,7 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://ruradio.net/ulyanovsk/ulyanovsk-fm-1042-fm-gFeVDpD3oe",
+    "homepage": "https://wwv.zvuch.com/radio-online/ulyanovsk-fm",
     "favicon": "https://ruradio.net/api/img/w150/f7/f77c947c874ac7de2aa19b337a758469.jpeg",
     "tags": "поп-музыка"
   },
@@ -3302,6 +3366,14 @@
         "codec": "AAC",
         "favicon": "",
         "tags": "dfm"
+      },
+      {
+        "name": "DFM",
+        "url": "https://dfm.hostingradio.ru/dfm96.aacp?5c80d70c",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
       },
       {
         "name": "DFM",
@@ -3597,14 +3669,6 @@
     "streams": [
       {
         "name": "Rock FM",
-        "url": "http://nashe2.hostingradio.ru/rock-128.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Rock FM",
         "url": "https://nashe1.hostingradio.ru:80/rock-128.mp3?wcid=10ed2ab6-e2e8-4384-aca0-34a1a6cbbc6e&stationId=rock-main",
         "bitrate": 0,
         "codec": "MP3",
@@ -3612,12 +3676,12 @@
         "tags": ""
       },
       {
-        "name": "J-Rock (Japanese Rock Music)",
-        "url": "http://79.111.119.111:8000/jrock",
+        "name": "Folk Rock",
+        "url": "http://79.111.14.76:8000/folkrock",
         "bitrate": 320,
         "codec": "AAC+",
-        "favicon": "http://radcap.ru/apple-touch-icon.png",
-        "tags": "jrock"
+        "favicon": "",
+        "tags": ""
       },
       {
         "name": "Acoustic Rock Radio",

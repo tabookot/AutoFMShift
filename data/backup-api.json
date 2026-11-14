@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1794566538159,
+  "exportDate": 1794650160760,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -5277,12 +5277,6 @@
           "deletedAt": null
         },
         {
-          "name": "(ПЛАН) Радио Монте-Карло",
-          "freq": 94.3,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
           "name": "Вести FM",
           "freq": 96.5,
           "isDeleted": false,
@@ -5319,7 +5313,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио 7 на Семи Холмах",
+          "name": "Радио 7 на семи холмах",
           "freq": 102.8,
           "isDeleted": false,
           "deletedAt": null
@@ -5333,6 +5327,12 @@
         {
           "name": "Радио Маяк",
           "freq": 104,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Радио Монте-Карло",
+          "freq": 94.3,
           "isDeleted": false,
           "deletedAt": null
         },
