@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1794650160760,
+  "exportDate": 1794738688860,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -10515,6 +10515,12 @@
           "deletedAt": null
         },
         {
+          "name": "Радио Искатель",
+          "freq": 92,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
           "name": "Радио Красная Армия",
           "freq": 104.6,
           "isDeleted": false,
@@ -12507,6 +12513,12 @@
       "type": "station",
       "city": "Тюмень",
       "name": "Радиопедия:Черновик/Радио Семёрка",
+      "reason": "glitch_protect"
+    },
+    {
+      "type": "station",
+      "city": "Тюмень",
+      "name": "Relax FM (Россия)",
       "reason": "glitch_protect"
     },
     {
