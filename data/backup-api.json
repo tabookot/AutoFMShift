@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1794738688860,
+  "exportDate": 1794826075472,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -7878,6 +7878,12 @@
           "deletedAt": null
         },
         {
+          "name": "Маруся FM",
+          "freq": 105.3,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
           "name": "Наше радио",
           "freq": 103,
           "isDeleted": false,
@@ -12483,6 +12489,12 @@
       "type": "station",
       "city": "Мурманск",
       "name": "&#160;",
+      "reason": "glitch_protect"
+    },
+    {
+      "type": "station",
+      "city": "Псков",
+      "name": "Радио Энерджи (NRG)",
       "reason": "glitch_protect"
     },
     {

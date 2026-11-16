@@ -1214,20 +1214,20 @@
         "tags": ""
       },
       {
-        "name": "Radio 7 Tyumen",
-        "url": "http://live.radio7.su:9000/radio7_128",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": "hits, pop"
-      },
-      {
         "name": "Radio 7 Moscow",
         "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
         "bitrate": 320,
         "codec": "MP3",
         "favicon": "",
         "tags": "hits, russian hits"
+      },
+      {
+        "name": "Авторадио 107.7 FM",
+        "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
       }
     ],
     "homepage": "https://radio7.ru/",
@@ -2108,7 +2108,7 @@
         "tags": "folk"
       }
     ],
-    "homepage": "https://www.radiopriboy.ru/",
+    "homepage": "https://vobook.ru/http://77.232.167.247:1007/admin",
     "favicon": "",
     "tags": "folk"
   },
@@ -2164,11 +2164,11 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд Breaks",
-        "url": "http://radiorecord.hostingradio.ru/brks96.aacp",
+        "name": "Радио Рекорд Christmas",
+        "url": "http://radiorecord.hostingradio.ru/christmas96.aacp",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
+        "favicon": "http://radiorecord.ru/local/templates/record/assets/build/favicon-set/apple-touch-icon.png",
         "tags": ""
       },
       {
@@ -2794,7 +2794,27 @@
   },
   {
     "name": "Радио № 1",
-    "streams": []
+    "streams": [
+      {
+        "name": "Lofi-1",
+        "url": "https://live.lofiradio.ru/lofi_mp3_128",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "null",
+        "tags": ""
+      },
+      {
+        "name": "[GTA IV] The Classics 104.1 [GTARadio.net]",
+        "url": "https://audio.gtaradio.net/4/ny_classics",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "https://gtaradio.net/build/app/assets/favicon-S3mFENRp.ico",
+        "tags": "oldschool hiphop, video game music"
+      }
+    ],
+    "homepage": "https://live.lofiradio.ru/",
+    "favicon": "https://gtaradio.net/build/app/assets/favicon-S3mFENRp.ico",
+    "tags": ""
   },
   {
     "name": "Радио Nostalgie",
@@ -3641,6 +3661,14 @@
         "bitrate": 0,
         "codec": "MP3",
         "favicon": "https://www.rockfm.ru/favicons/apple-touch-icon.png",
+        "tags": ""
+      },
+      {
+        "name": "Rock",
+        "url": "http://79.120.77.11:8000/rock",
+        "bitrate": 320,
+        "codec": "AAC+",
+        "favicon": "",
         "tags": ""
       },
       {
