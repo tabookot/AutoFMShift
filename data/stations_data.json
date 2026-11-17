@@ -209,19 +209,7 @@
   },
   {
     "name": "Восток FM",
-    "streams": [
-      {
-        "name": "Восток ФМ",
-        "url": "https://stream.n340.com:8443/18_vostok_28?type=.aac&UID=11A3846BF93ADC0825E11936B6338B7E",
-        "bitrate": 28,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": ""
-      }
-    ],
-    "homepage": "https://vostok.fm/",
-    "favicon": "",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Главное радио",
@@ -576,8 +564,8 @@
     "streams": [
       {
         "name": "КРАСНОЯРСК FM",
-        "url": "https://stream1.krasnoyarskfm.ru/krasnoyarskfm_mp3",
-        "bitrate": 0,
+        "url": "https://stream2.krasnoyarskfm.ru/krasnoyarskfm_mp3",
+        "bitrate": 128,
         "codec": "MP3",
         "favicon": "null",
         "tags": "denc, muzic"
@@ -972,27 +960,7 @@
   },
   {
     "name": "Первое Спортивное радио",
-    "streams": [
-      {
-        "name": "Первое Спортивное Радио",
-        "url": "https://stream2.n340.com/20_sport_64_reg_1?type=.aac&UID=43C30CF98D89B672B691055F77E66123",
-        "bitrate": 28,
-        "codec": "MP3",
-        "favicon": "https://1sportfm.ru/player/img/sport1.png",
-        "tags": "разговорное, спорт"
-      },
-      {
-        "name": "Первое спортивное радио Москва 94.4 FM",
-        "url": "http://microit.n340.com:9000/VgMv0WV17ZVx1uuo_20_sport_64_reg_1",
-        "bitrate": 64,
-        "codec": "AAC",
-        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241222_171040255.jpg?alt=media&token=15289224-a49f-4fd5-8595-d2d3b6719a36",
-        "tags": "first sport radio, moscow, music, pop, sport"
-      }
-    ],
-    "homepage": "https://1sportfm.ru/player.htm",
-    "favicon": "https://1sportfm.ru/player/img/sport1.png",
-    "tags": "разговорное, спорт"
+    "streams": []
   },
   {
     "name": "Первый канал",
@@ -1112,35 +1080,7 @@
   },
   {
     "name": "Радио 107",
-    "streams": [
-      {
-        "name": "Радио 107",
-        "url": "http://62.183.34.109:8000/radio107.mp3?1708780492299",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "http://www.radio107.ru/images/logo.png",
-        "tags": ""
-      },
-      {
-        "name": "Город FM 107.6",
-        "url": "http://radio.gorodfm.ru:8000/gorodfm",
-        "bitrate": 192,
-        "codec": "MP3",
-        "favicon": "https://cdn.webrad.io/images/logos/radio-pp-ru/radio-gorod-fm-107-6.png",
-        "tags": "поп-музыка"
-      },
-      {
-        "name": "Авторадио 107.7 FM",
-        "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
-        "bitrate": 64,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      }
-    ],
-    "homepage": "http://www.radio107.ru/",
-    "favicon": "http://www.radio107.ru/images/logo.png",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Радио 25 регион",
@@ -1214,20 +1154,20 @@
         "tags": ""
       },
       {
+        "name": "Radio 7 Tyumen",
+        "url": "http://live.radio7.su:9000/radio7_128",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "hits, pop"
+      },
+      {
         "name": "Radio 7 Moscow",
         "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
         "bitrate": 320,
         "codec": "MP3",
         "favicon": "",
         "tags": "hits, russian hits"
-      },
-      {
-        "name": "Авторадио 107.7 FM",
-        "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
       }
     ],
     "homepage": "https://radio7.ru/",
@@ -1281,7 +1221,7 @@
     "streams": [
       {
         "name": "радио АЛЬФА",
-        "url": "https://stream2.alfafm.ru/alfa_mp3",
+        "url": "https://stream1.alfafm.ru/alfa_mp3",
         "bitrate": 0,
         "codec": "MP3",
         "favicon": "https://www.alfafm.ru/favicon.ico",
@@ -1492,16 +1432,16 @@
         "tags": ""
       },
       {
-        "name": "радио Дача Новосибирск",
-        "url": "https://stream2.n340.com/12_dacha_28_reg_316?type=.aac&UID=0E7ACB8332B0F838199083C383FB7F40",
-        "bitrate": 28,
+        "name": "Радио Дача Волоколамск 87.6 FM",
+        "url": "http://control1.craftradio.ru:8000/145_8bcdcddd",
+        "bitrate": 0,
         "codec": "MP3",
-        "favicon": "",
-        "tags": ""
+        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241202_225352050.jpg?alt=media&token=279c4ddb-087f-4b52-9142-837d82effb2b",
+        "tags": "dacha, music, pop, region 50, volokolamsk"
       }
     ],
     "homepage": "https://www.radiodacha.ru/player.htm?region=1093",
-    "favicon": "",
+    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20241202_225352050.jpg?alt=media&token=279c4ddb-087f-4b52-9142-837d82effb2b",
     "tags": ""
   },
   {
@@ -1578,19 +1518,7 @@
   },
   {
     "name": "Радио Искатель",
-    "streams": [
-      {
-        "name": "Искатель",
-        "url": "http://iskatel.hostingradio.ru:8015/iskatel-128.mp3",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://upload.wikimedia.org/wikipedia/ru/2/28/Iskatel-logo-colors.png",
-        "tags": ""
-      }
-    ],
-    "homepage": "https://radioiskatel.ru/",
-    "favicon": "https://upload.wikimedia.org/wikipedia/ru/2/28/Iskatel-logo-colors.png",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Радио Кабардино-Балкария",
@@ -2108,7 +2036,7 @@
         "tags": "folk"
       }
     ],
-    "homepage": "https://vobook.ru/http://77.232.167.247:1007/admin",
+    "homepage": "https://www.radiopriboy.ru/",
     "favicon": "",
     "tags": "folk"
   },
@@ -2164,11 +2092,11 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд Christmas",
-        "url": "http://radiorecord.hostingradio.ru/christmas96.aacp",
+        "name": "Радио Рекорд Breaks",
+        "url": "http://radiorecord.hostingradio.ru/brks96.aacp",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "http://radiorecord.ru/local/templates/record/assets/build/favicon-set/apple-touch-icon.png",
+        "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
         "tags": ""
       },
       {
@@ -2325,26 +2253,10 @@
     "streams": [
       {
         "name": "Русский Хит",
-        "url": "http://stream2.ruhit.fm:9000/19_ruhit_128_reg_1",
-        "bitrate": 128,
-        "codec": "AAC",
-        "favicon": "null",
-        "tags": "music, pop, russian"
-      },
-      {
-        "name": "Русский Хит",
         "url": "https://air2.volna.top/RusHit-MSK",
         "bitrate": 128,
         "codec": "MP3",
         "favicon": "https://fm-24.ru/assets/image/radio/180/ruhitnew.jpg",
-        "tags": "поп-музыка"
-      },
-      {
-        "name": "Русский Хит",
-        "url": "https://stream2.n340.com/19_ruhit_24_reg_1?type=.aac&UID=CF32CF867382134A8C278C56C3CC282E",
-        "bitrate": 28,
-        "codec": "MP3",
-        "favicon": "https://top-radio.ru/assets/image/radio/180/ruhitnew.png",
         "tags": "поп-музыка"
       }
     ],
@@ -2394,27 +2306,7 @@
   },
   {
     "name": "Радио Си",
-    "streams": [
-      {
-        "name": "Радио Си (Екатеринбург)",
-        "url": "https://online.radioc.ru/radioc_aacplus?v=1702736359326",
-        "bitrate": 64,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Радио СИ - 103.7 FM",
-        "url": "https://online.radioc.ru/radioc",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://www.radioc.ru/online/logo.png",
-        "tags": ""
-      }
-    ],
-    "homepage": "https://m.radioc.ru/",
-    "favicon": "https://www.radioc.ru/online/logo.png",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Радио Сибирь",
@@ -2794,27 +2686,7 @@
   },
   {
     "name": "Радио № 1",
-    "streams": [
-      {
-        "name": "Lofi-1",
-        "url": "https://live.lofiradio.ru/lofi_mp3_128",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "null",
-        "tags": ""
-      },
-      {
-        "name": "[GTA IV] The Classics 104.1 [GTARadio.net]",
-        "url": "https://audio.gtaradio.net/4/ny_classics",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://gtaradio.net/build/app/assets/favicon-S3mFENRp.ico",
-        "tags": "oldschool hiphop, video game music"
-      }
-    ],
-    "homepage": "https://live.lofiradio.ru/",
-    "favicon": "https://gtaradio.net/build/app/assets/favicon-S3mFENRp.ico",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Радио Nostalgie",
@@ -2874,7 +2746,19 @@
   },
   {
     "name": "Радио Z",
-    "streams": []
+    "streams": [
+      {
+        "name": "Z Fm",
+        "url": "https://node0.craftradio.ru:8000/193_CB039DF9",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "null",
+        "tags": "фронтовое радио"
+      }
+    ],
+    "homepage": "https://node0.craftradio.ru:8000/193_CB039DF9",
+    "favicon": "",
+    "tags": "фронтовое радио"
   },
   {
     "name": "Радио-3",
@@ -3436,32 +3320,32 @@
         "tags": "love radio, music, pop, tuapse"
       },
       {
-        "name": "Love Radio Брянск 107.6 FM",
-        "url": "http://microit.n340.com:9000/VgMv0WV17ZVx1uuo_12_love_128_reg_80933",
-        "bitrate": 128,
-        "codec": "AAC",
-        "favicon": "null",
-        "tags": "107_6 fm, bryansk, love radio, music, pop"
+        "name": "Love Radio Симферополь 88.6 FM",
+        "url": "https://radio.promedia.ru/love-simf",
+        "bitrate": 256,
+        "codec": "MP3",
+        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20250125_114437214.jpg?alt=media&token=5803a766-8c4c-4232-8d8a-fdcacd131373",
+        "tags": "88_6, krym, love radio, music, pop"
       },
       {
-        "name": "Love Radio Вологда 96.4 FM",
-        "url": "http://microit.n340.com:9000/VgMv0WV17ZVx1uuo_12_love_128_reg_90266",
-        "bitrate": 128,
-        "codec": "AAC",
-        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20240625_151332217.jpg?alt=media&token=66658f9f-269a-465e-9185-9634760e6586",
-        "tags": "music"
-      },
-      {
-        "name": "Love Radio Москва 106.6 FM",
-        "url": "http://microit.n340.com:9000/VgMv0WV17ZVx1uuo_12_love_28_reg_44",
+        "name": "Radio Caprice - LOVE SONGS",
+        "url": "http://213.141.131.10:8002/lovesongs",
         "bitrate": 48,
-        "codec": "AAC",
-        "favicon": "null",
-        "tags": "177, 197, 77, love radio, moscow"
+        "codec": "AAC+",
+        "favicon": "http://radcap.ru/graf2/radcaplogo.png",
+        "tags": "love songs"
+      },
+      {
+        "name": "Love City 3D",
+        "url": "http://radio.lovecity3d.com:4100/stream",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "http://www.lovecity3d.com/App_Themes/LoveCity3D/images/logo.png",
+        "tags": ""
       }
     ],
     "homepage": "https://www.loveradio.ru/",
-    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20240625_151332217.jpg?alt=media&token=66658f9f-269a-465e-9185-9634760e6586",
+    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20250125_114437214.jpg?alt=media&token=5803a766-8c4c-4232-8d8a-fdcacd131373",
     "tags": "classical"
   },
   {
@@ -3503,7 +3387,7 @@
         "name": "Power Hit Radio",
         "url": "http://radio.dline-media.com/powerhit128",
         "bitrate": 128,
-        "codec": "AAC+",
+        "codec": "AAC",
         "favicon": "",
         "tags": "classic hits, dance, hits, top100"
       },
@@ -3511,7 +3395,7 @@
         "name": "Power Hit (Мурманск)",
         "url": "https://radio.dline-media.com/powerhit128",
         "bitrate": 128,
-        "codec": "AAC+",
+        "codec": "AAC",
         "favicon": "https://phr.ru/templates/PHR/images/logo.png",
         "tags": ""
       }
@@ -3664,20 +3548,12 @@
         "tags": ""
       },
       {
-        "name": "Rock",
-        "url": "http://79.120.77.11:8000/rock",
+        "name": "Folk Rock",
+        "url": "http://79.111.14.76:8000/folkrock",
         "bitrate": 320,
         "codec": "AAC+",
         "favicon": "",
         "tags": ""
-      },
-      {
-        "name": "J-Rock (Japanese Rock Music)",
-        "url": "http://79.111.119.111:8000/jrock",
-        "bitrate": 320,
-        "codec": "AAC+",
-        "favicon": "http://radcap.ru/apple-touch-icon.png",
-        "tags": "jrock"
       },
       {
         "name": "Acoustic Rock Radio",

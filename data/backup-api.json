@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1794826075472,
+  "exportDate": 1794915349833,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -3656,12 +3656,6 @@
       "name": "Калуга",
       "stations": [
         {
-          "name": "(ПЛАН) Пи FM",
-          "freq": 99.7,
-          "isDeleted": false,
-          "deletedAt": null
-        },
-        {
           "name": "(ПЛАН) Радио Вера",
           "freq": 97.9,
           "isDeleted": false,
@@ -3706,6 +3700,12 @@
         {
           "name": "Новое радио",
           "freq": 107.6,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Пи FM",
+          "freq": 99.7,
           "isDeleted": false,
           "deletedAt": null
         },
