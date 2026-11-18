@@ -1154,12 +1154,12 @@
         "tags": ""
       },
       {
-        "name": "Radio 7 Tyumen",
-        "url": "http://live.radio7.su:9000/radio7_128",
-        "bitrate": 128,
+        "name": "Radio 7",
+        "url": "https://radio7server.streamr.ru:8040/radio7256.mp3",
+        "bitrate": 0,
         "codec": "MP3",
-        "favicon": "",
-        "tags": "hits, pop"
+        "favicon": "https://radio7.ru/favicon.png",
+        "tags": ""
       },
       {
         "name": "Radio 7 Moscow",
@@ -1168,10 +1168,18 @@
         "codec": "MP3",
         "favicon": "",
         "tags": "hits, russian hits"
+      },
+      {
+        "name": "Авторадио 107.7 FM",
+        "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
       }
     ],
     "homepage": "https://radio7.ru/",
-    "favicon": "",
+    "favicon": "https://radio7.ru/favicon.png",
     "tags": ""
   },
   {
@@ -1518,7 +1526,19 @@
   },
   {
     "name": "Радио Искатель",
-    "streams": []
+    "streams": [
+      {
+        "name": "Искатель",
+        "url": "http://iskatel.hostingradio.ru:8015/iskatel-128.mp3",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "https://upload.wikimedia.org/wikipedia/ru/2/28/Iskatel-logo-colors.png",
+        "tags": ""
+      }
+    ],
+    "homepage": "https://radioiskatel.ru/",
+    "favicon": "https://upload.wikimedia.org/wikipedia/ru/2/28/Iskatel-logo-colors.png",
+    "tags": ""
   },
   {
     "name": "Радио Кабардино-Балкария",
@@ -2306,7 +2326,19 @@
   },
   {
     "name": "Радио Си",
-    "streams": []
+    "streams": [
+      {
+        "name": "Радио Си (Екатеринбург)",
+        "url": "https://online.radioc.ru/radioc_aacplus?v=1702736359326",
+        "bitrate": 64,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
+      }
+    ],
+    "homepage": "https://m.radioc.ru/",
+    "favicon": "",
+    "tags": ""
   },
   {
     "name": "Радио Сибирь",
@@ -3048,7 +3080,7 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://ruradio.net/ulyanovsk/ulyanovsk-fm-1042-fm-gFeVDpD3oe",
+    "homepage": "https://wwv.zvuch.com/radio-online/ulyanovsk-fm",
     "favicon": "https://ruradio.net/api/img/w150/f7/f77c947c874ac7de2aa19b337a758469.jpeg",
     "tags": "поп-музыка"
   },
@@ -3545,6 +3577,14 @@
         "bitrate": 0,
         "codec": "MP3",
         "favicon": "https://www.rockfm.ru/favicons/apple-touch-icon.png",
+        "tags": ""
+      },
+      {
+        "name": "Rock",
+        "url": "http://79.120.77.11:8000/rock",
+        "bitrate": 320,
+        "codec": "AAC+",
+        "favicon": "",
         "tags": ""
       },
       {
