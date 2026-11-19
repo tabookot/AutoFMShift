@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1795000776842,
+  "exportDate": 1795087097391,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -438,7 +438,7 @@
           "deletedAt": null
         },
         {
-          "name": "Радио Родных Дорог",
+          "name": "Радио Родных Дорог / (ПЛАН) Like FM",
           "freq": 106,
           "isDeleted": false,
           "deletedAt": null

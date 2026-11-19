@@ -3080,7 +3080,7 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://wwv.zvuch.com/radio-online/ulyanovsk-fm",
+    "homepage": "https://ruradio.net/ulyanovsk/ulyanovsk-fm-1042-fm-gFeVDpD3oe",
     "favicon": "https://ruradio.net/api/img/w150/f7/f77c947c874ac7de2aa19b337a758469.jpeg",
     "tags": "поп-музыка"
   },
@@ -3564,6 +3564,14 @@
     "name": "Rock FM",
     "streams": [
       {
+        "name": "ROCK FM",
+        "url": "http://nashe1.hostingradio.ru/rock-128.mp3",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "https://lh3.googleusercontent.com/D3taObR7tfyhwDFY40VS8DIVri7iif5RuzI9C-mXxRwF41vGZ_dO_n6MWM57P-mZczFC=w300",
+        "tags": ""
+      },
+      {
         "name": "Rock FM",
         "url": "http://nashe2.hostingradio.ru/rock-128.mp3",
         "bitrate": 0,
@@ -3580,20 +3588,12 @@
         "tags": ""
       },
       {
-        "name": "Rock",
-        "url": "http://79.120.77.11:8000/rock",
+        "name": "Glam Rock / Metal - Caprice Radio",
+        "url": "http://79.120.39.202:8000/glam",
         "bitrate": 320,
         "codec": "AAC+",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Folk Rock",
-        "url": "http://79.111.14.76:8000/folkrock",
-        "bitrate": 320,
-        "codec": "AAC+",
-        "favicon": "",
-        "tags": ""
+        "favicon": "http://radcap.ru/graf2/radcaplogo.png",
+        "tags": "glam metal, glam rock"
       },
       {
         "name": "Acoustic Rock Radio",
@@ -3604,8 +3604,8 @@
         "tags": "accordion, acoustic, acoustic rock, autor-interprete, cantautor"
       }
     ],
-    "homepage": "https://www.rockfm.ru/",
-    "favicon": "https://www.rockfm.ru/favicons/apple-touch-icon.png",
+    "homepage": "http://www.rockfm.ru/",
+    "favicon": "https://lh3.googleusercontent.com/D3taObR7tfyhwDFY40VS8DIVri7iif5RuzI9C-mXxRwF41vGZ_dO_n6MWM57P-mZczFC=w300",
     "tags": ""
   },
   {
