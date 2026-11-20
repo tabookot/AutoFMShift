@@ -1162,20 +1162,20 @@
         "tags": ""
       },
       {
+        "name": "Radio 7 Tyumen",
+        "url": "http://live.radio7.su:9000/radio7_128",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "hits, pop"
+      },
+      {
         "name": "Radio 7 Moscow",
         "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
         "bitrate": 320,
         "codec": "MP3",
         "favicon": "",
         "tags": "hits, russian hits"
-      },
-      {
-        "name": "Авторадио 107.7 FM",
-        "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
       }
     ],
     "homepage": "https://radio7.ru/",
@@ -2334,10 +2334,18 @@
         "codec": "AAC",
         "favicon": "",
         "tags": ""
+      },
+      {
+        "name": "Радио СИ - 103.7 FM",
+        "url": "https://online.radioc.ru/radioc",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "https://www.radioc.ru/online/logo.png",
+        "tags": ""
       }
     ],
     "homepage": "https://m.radioc.ru/",
-    "favicon": "",
+    "favicon": "https://www.radioc.ru/online/logo.png",
     "tags": ""
   },
   {
@@ -2682,7 +2690,7 @@
     ],
     "homepage": "https://maximum.ru/",
     "favicon": "",
-    "tags": "rock - pop-rock"
+    "tags": "alternative, international music, modern rock, pop rock, rock"
   },
   {
     "name": "Радио Monte Carlo",
@@ -2718,7 +2726,27 @@
   },
   {
     "name": "Радио № 1",
-    "streams": []
+    "streams": [
+      {
+        "name": "Lofi-1",
+        "url": "https://live.lofiradio.ru/lofi_mp3_128",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "null",
+        "tags": ""
+      },
+      {
+        "name": "JAZZ 89.1 FM",
+        "url": "https://nashe1.hostingradio.ru:80/jazz-128.mp3",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "https://radiojazzfm.ru/img/logo-jazz.png",
+        "tags": "jazz"
+      }
+    ],
+    "homepage": "https://live.lofiradio.ru/",
+    "favicon": "https://radiojazzfm.ru/img/logo-jazz.png",
+    "tags": ""
   },
   {
     "name": "Радио Nostalgie",
@@ -3564,14 +3592,6 @@
     "name": "Rock FM",
     "streams": [
       {
-        "name": "ROCK FM",
-        "url": "http://nashe1.hostingradio.ru/rock-128.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "https://lh3.googleusercontent.com/D3taObR7tfyhwDFY40VS8DIVri7iif5RuzI9C-mXxRwF41vGZ_dO_n6MWM57P-mZczFC=w300",
-        "tags": ""
-      },
-      {
         "name": "Rock FM",
         "url": "http://nashe2.hostingradio.ru/rock-128.mp3",
         "bitrate": 0,
@@ -3588,12 +3608,12 @@
         "tags": ""
       },
       {
-        "name": "Glam Rock / Metal - Caprice Radio",
-        "url": "http://79.120.39.202:8000/glam",
+        "name": "Folk Rock",
+        "url": "http://79.111.14.76:8000/folkrock",
         "bitrate": 320,
         "codec": "AAC+",
-        "favicon": "http://radcap.ru/graf2/radcaplogo.png",
-        "tags": "glam metal, glam rock"
+        "favicon": "",
+        "tags": ""
       },
       {
         "name": "Acoustic Rock Radio",
@@ -3604,8 +3624,8 @@
         "tags": "accordion, acoustic, acoustic rock, autor-interprete, cantautor"
       }
     ],
-    "homepage": "http://www.rockfm.ru/",
-    "favicon": "https://lh3.googleusercontent.com/D3taObR7tfyhwDFY40VS8DIVri7iif5RuzI9C-mXxRwF41vGZ_dO_n6MWM57P-mZczFC=w300",
+    "homepage": "https://www.rockfm.ru/",
+    "favicon": "https://www.rockfm.ru/favicons/apple-touch-icon.png",
     "tags": ""
   },
   {

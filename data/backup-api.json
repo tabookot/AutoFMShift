@@ -1,7 +1,7 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1795087097391,
+  "exportDate": 1795172635170,
   "totalCities": 80,
   "source": "AutoFMShift API Backup",
   "cities": {
@@ -494,6 +494,12 @@
         {
           "name": "Юмор FM",
           "freq": 105,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Like FM",
+          "freq": 106,
           "isDeleted": false,
           "deletedAt": null
         },
@@ -12495,6 +12501,12 @@
       "type": "station",
       "city": "Псков",
       "name": "Радио Энерджи (NRG)",
+      "reason": "glitch_protect"
+    },
+    {
+      "type": "station",
+      "city": "Астрахань",
+      "name": "Радио Родных Дорог / (ПЛАН) Like FM",
       "reason": "glitch_protect"
     },
     {
