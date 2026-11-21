@@ -1154,14 +1154,6 @@
         "tags": ""
       },
       {
-        "name": "Radio 7",
-        "url": "https://radio7server.streamr.ru:8040/radio7256.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "https://radio7.ru/favicon.png",
-        "tags": ""
-      },
-      {
         "name": "Radio 7 Tyumen",
         "url": "http://live.radio7.su:9000/radio7_128",
         "bitrate": 128,
@@ -1179,7 +1171,7 @@
       }
     ],
     "homepage": "https://radio7.ru/",
-    "favicon": "https://radio7.ru/favicon.png",
+    "favicon": "",
     "tags": ""
   },
   {
@@ -2112,8 +2104,8 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд Breaks",
-        "url": "http://radiorecord.hostingradio.ru/brks96.aacp",
+        "name": "Радио Рекорд 2step",
+        "url": "http://radiorecord.hostingradio.ru/2step96.aacp",
         "bitrate": 0,
         "codec": "AAC",
         "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
@@ -2726,27 +2718,7 @@
   },
   {
     "name": "Радио № 1",
-    "streams": [
-      {
-        "name": "Lofi-1",
-        "url": "https://live.lofiradio.ru/lofi_mp3_128",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "null",
-        "tags": ""
-      },
-      {
-        "name": "JAZZ 89.1 FM",
-        "url": "https://nashe1.hostingradio.ru:80/jazz-128.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "https://radiojazzfm.ru/img/logo-jazz.png",
-        "tags": "jazz"
-      }
-    ],
-    "homepage": "https://live.lofiradio.ru/",
-    "favicon": "https://radiojazzfm.ru/img/logo-jazz.png",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Радио Nostalgie",
@@ -2806,19 +2778,7 @@
   },
   {
     "name": "Радио Z",
-    "streams": [
-      {
-        "name": "Z Fm",
-        "url": "https://node0.craftradio.ru:8000/193_CB039DF9",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "null",
-        "tags": "фронтовое радио"
-      }
-    ],
-    "homepage": "https://node0.craftradio.ru:8000/193_CB039DF9",
-    "favicon": "",
-    "tags": "фронтовое радио"
+    "streams": []
   },
   {
     "name": "Радио-3",
@@ -3108,7 +3068,7 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://ruradio.net/ulyanovsk/ulyanovsk-fm-1042-fm-gFeVDpD3oe",
+    "homepage": "https://wwv.zvuch.com/radio-online/ulyanovsk-fm",
     "favicon": "https://ruradio.net/api/img/w150/f7/f77c947c874ac7de2aa19b337a758469.jpeg",
     "tags": "поп-музыка"
   },
@@ -3592,6 +3552,14 @@
     "name": "Rock FM",
     "streams": [
       {
+        "name": "ROCK FM",
+        "url": "http://nashe1.hostingradio.ru/rock-128.mp3",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "https://lh3.googleusercontent.com/D3taObR7tfyhwDFY40VS8DIVri7iif5RuzI9C-mXxRwF41vGZ_dO_n6MWM57P-mZczFC=w300",
+        "tags": ""
+      },
+      {
         "name": "Rock FM",
         "url": "http://nashe2.hostingradio.ru/rock-128.mp3",
         "bitrate": 0,
@@ -3608,24 +3576,24 @@
         "tags": ""
       },
       {
-        "name": "Folk Rock",
-        "url": "http://79.111.14.76:8000/folkrock",
+        "name": "Rock",
+        "url": "http://79.120.77.11:8000/rock",
         "bitrate": 320,
         "codec": "AAC+",
         "favicon": "",
         "tags": ""
       },
       {
-        "name": "Acoustic Rock Radio",
-        "url": "http://live-radio.ru:8111/live",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "http://live-radio.ru/favicon.png",
-        "tags": "accordion, acoustic, acoustic rock, autor-interprete, cantautor"
+        "name": "Glam Rock / Metal - Caprice Radio",
+        "url": "http://79.120.39.202:8000/glam",
+        "bitrate": 320,
+        "codec": "AAC+",
+        "favicon": "http://radcap.ru/graf2/radcaplogo.png",
+        "tags": "glam metal, glam rock"
       }
     ],
-    "homepage": "https://www.rockfm.ru/",
-    "favicon": "https://www.rockfm.ru/favicons/apple-touch-icon.png",
+    "homepage": "http://www.rockfm.ru/",
+    "favicon": "https://lh3.googleusercontent.com/D3taObR7tfyhwDFY40VS8DIVri7iif5RuzI9C-mXxRwF41vGZ_dO_n6MWM57P-mZczFC=w300",
     "tags": ""
   },
   {
