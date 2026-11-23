@@ -2104,20 +2104,20 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд Breaks",
-        "url": "http://radiorecord.hostingradio.ru/brks96.aacp",
+        "name": "Радио Рекорд 2step",
+        "url": "http://radiorecord.hostingradio.ru/2step96.aacp",
         "bitrate": 0,
         "codec": "AAC",
         "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
         "tags": ""
       },
       {
-        "name": "РАДИО РЕКОРД 256k",
-        "url": "http://radiorecord.hostingradio.ru/rr_spb",
-        "bitrate": 320,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": "rap"
+        "name": "Радио Рекорд Breaks",
+        "url": "http://radiorecord.hostingradio.ru/brks96.aacp",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
+        "tags": ""
       }
     ],
     "homepage": "http://radiorecord.ru/",
@@ -2220,9 +2220,9 @@
         "tags": ""
       }
     ],
-    "homepage": "https://radiorus.ru/",
+    "homepage": "http://www.radiorus.ru/",
     "favicon": "https://vestiorel.ru/favicon.png",
-    "tags": "news, talk"
+    "tags": "music, news, talk"
   },
   {
     "name": "Радио Русские песни",
@@ -2318,27 +2318,7 @@
   },
   {
     "name": "Радио Си",
-    "streams": [
-      {
-        "name": "Радио Си (Екатеринбург)",
-        "url": "https://online.radioc.ru/radioc_aacplus?v=1702736359326",
-        "bitrate": 64,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Радио СИ - 103.7 FM",
-        "url": "https://online.radioc.ru/radioc",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://www.radioc.ru/online/logo.png",
-        "tags": ""
-      }
-    ],
-    "homepage": "https://m.radioc.ru/",
-    "favicon": "https://www.radioc.ru/online/logo.png",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Радио Сибирь",
@@ -2682,7 +2662,7 @@
     ],
     "homepage": "https://maximum.ru/",
     "favicon": "",
-    "tags": "rock - pop-rock"
+    "tags": "alternative, international music, modern rock, pop rock, rock"
   },
   {
     "name": "Радио Monte Carlo",
@@ -2718,7 +2698,27 @@
   },
   {
     "name": "Радио № 1",
-    "streams": []
+    "streams": [
+      {
+        "name": "Lofi-1",
+        "url": "https://live.lofiradio.ru/lofi_mp3_128",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "null",
+        "tags": ""
+      },
+      {
+        "name": "Авторадио Калуга 101.1 FM",
+        "url": "http://online2.gkvr.ru:8000/avtoradio_klg_64.aac",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20240916_223329561.jpg?alt=media&token=3ba25d10-3ef4-4df1-af24-28a2b12bd090",
+        "tags": "music, pop"
+      }
+    ],
+    "homepage": "https://live.lofiradio.ru/",
+    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20240916_223329561.jpg?alt=media&token=3ba25d10-3ef4-4df1-af24-28a2b12bd090",
+    "tags": ""
   },
   {
     "name": "Радио Nostalgie",
@@ -3068,7 +3068,7 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://wwv.zvuch.com/radio-online/ulyanovsk-fm",
+    "homepage": "https://ruradio.net/ulyanovsk/ulyanovsk-fm-1042-fm-gFeVDpD3oe",
     "favicon": "https://ruradio.net/api/img/w150/f7/f77c947c874ac7de2aa19b337a758469.jpeg",
     "tags": "поп-музыка"
   },
@@ -3553,22 +3553,6 @@
     "streams": [
       {
         "name": "Rock FM",
-        "url": "http://nashe.streamr.ru/rock-128.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "https://cdn.onlineradiobox.com/img/apple-touch-icon-120x120.png",
-        "tags": "russian rock"
-      },
-      {
-        "name": "ROCK FM",
-        "url": "http://nashe1.hostingradio.ru/rock-128.mp3",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "https://lh3.googleusercontent.com/D3taObR7tfyhwDFY40VS8DIVri7iif5RuzI9C-mXxRwF41vGZ_dO_n6MWM57P-mZczFC=w300",
-        "tags": ""
-      },
-      {
-        "name": "Rock FM",
         "url": "http://nashe2.hostingradio.ru/rock-128.mp3",
         "bitrate": 0,
         "codec": "MP3",
@@ -3584,17 +3568,25 @@
         "tags": ""
       },
       {
-        "name": "Rock",
-        "url": "http://79.120.77.11:8000/rock",
+        "name": "Folk Rock",
+        "url": "http://79.111.14.76:8000/folkrock",
         "bitrate": 320,
         "codec": "AAC+",
         "favicon": "",
         "tags": ""
+      },
+      {
+        "name": "Acoustic Rock Radio",
+        "url": "http://live-radio.ru:8111/live",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "http://live-radio.ru/favicon.png",
+        "tags": "accordion, acoustic, acoustic rock, autor-interprete, cantautor"
       }
     ],
-    "homepage": "http://www.rockfm.ru/",
-    "favicon": "https://cdn.onlineradiobox.com/img/apple-touch-icon-120x120.png",
-    "tags": "russian rock"
+    "homepage": "https://www.rockfm.ru/",
+    "favicon": "https://www.rockfm.ru/favicons/apple-touch-icon.png",
+    "tags": ""
   },
   {
     "name": "Royal Radio",
