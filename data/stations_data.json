@@ -1154,20 +1154,20 @@
         "tags": ""
       },
       {
+        "name": "Radio 7 Tyumen",
+        "url": "http://live.radio7.su:9000/radio7_128",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "hits, pop"
+      },
+      {
         "name": "Radio 7 Moscow",
         "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
         "bitrate": 320,
         "codec": "MP3",
         "favicon": "",
         "tags": "hits, russian hits"
-      },
-      {
-        "name": "Авторадио 107.7 FM",
-        "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
       }
     ],
     "homepage": "https://radio7.ru/",
@@ -1286,19 +1286,7 @@
   },
   {
     "name": "Радио Болид",
-    "streams": [
-      {
-        "name": "Радио Болид",
-        "url": "https://icecast-bulteam.cdnvideo.ru/bolid128",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://bolid.fm/wp-content/uploads/2025/01/cropped-logo17-180x180.png",
-        "tags": ""
-      }
-    ],
-    "homepage": "https://bolid.fm/",
-    "favicon": "https://bolid.fm/wp-content/uploads/2025/01/cropped-logo17-180x180.png",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Радио Ваня",
@@ -2104,20 +2092,20 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд 2step",
-        "url": "http://radiorecord.hostingradio.ru/2step96.aacp",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
-        "tags": ""
-      },
-      {
         "name": "Радио Рекорд Breaks",
         "url": "http://radiorecord.hostingradio.ru/brks96.aacp",
         "bitrate": 0,
         "codec": "AAC",
         "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
         "tags": ""
+      },
+      {
+        "name": "РАДИО РЕКОРД 256k",
+        "url": "http://radiorecord.hostingradio.ru/rr_spb",
+        "bitrate": 320,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "rap"
       }
     ],
     "homepage": "http://radiorecord.ru/",
@@ -2318,7 +2306,27 @@
   },
   {
     "name": "Радио Си",
-    "streams": []
+    "streams": [
+      {
+        "name": "Радио Си (Екатеринбург)",
+        "url": "https://online.radioc.ru/radioc_aacplus?v=1702736359326",
+        "bitrate": 64,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
+      },
+      {
+        "name": "Радио СИ - 103.7 FM",
+        "url": "https://online.radioc.ru/radioc",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "https://www.radioc.ru/online/logo.png",
+        "tags": ""
+      }
+    ],
+    "homepage": "https://m.radioc.ru/",
+    "favicon": "https://www.radioc.ru/online/logo.png",
+    "tags": ""
   },
   {
     "name": "Радио Сибирь",
@@ -2662,7 +2670,7 @@
     ],
     "homepage": "https://maximum.ru/",
     "favicon": "",
-    "tags": "alternative, international music, modern rock, pop rock, rock"
+    "tags": "rock - pop-rock"
   },
   {
     "name": "Радио Monte Carlo",
@@ -2698,27 +2706,7 @@
   },
   {
     "name": "Радио № 1",
-    "streams": [
-      {
-        "name": "Lofi-1",
-        "url": "https://live.lofiradio.ru/lofi_mp3_128",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "null",
-        "tags": ""
-      },
-      {
-        "name": "Авторадио Калуга 101.1 FM",
-        "url": "http://online2.gkvr.ru:8000/avtoradio_klg_64.aac",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20240916_223329561.jpg?alt=media&token=3ba25d10-3ef4-4df1-af24-28a2b12bd090",
-        "tags": "music, pop"
-      }
-    ],
-    "homepage": "https://live.lofiradio.ru/",
-    "favicon": "https://firebasestorage.googleapis.com/v0/b/radiogalaxy-580f4.appspot.com/o/images%2FIMG_20240916_223329561.jpg?alt=media&token=3ba25d10-3ef4-4df1-af24-28a2b12bd090",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Радио Nostalgie",
@@ -2778,7 +2766,19 @@
   },
   {
     "name": "Радио Z",
-    "streams": []
+    "streams": [
+      {
+        "name": "Z Fm",
+        "url": "https://node0.craftradio.ru:8000/193_CB039DF9",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "null",
+        "tags": "фронтовое радио"
+      }
+    ],
+    "homepage": "https://node0.craftradio.ru:8000/193_CB039DF9",
+    "favicon": "",
+    "tags": "фронтовое радио"
   },
   {
     "name": "Радио-3",
@@ -3188,9 +3188,9 @@
         "tags": "ретро"
       }
     ],
-    "homepage": "http://radiounost.ru/",
+    "homepage": "https://top-radio.ru/web/yunost",
     "favicon": "https://top-radio.ru/assets/image/radio/180/radiounost.png",
-    "tags": "70s, 80s, retro"
+    "tags": "ретро"
   },
   {
     "name": "Business FM",
@@ -3568,12 +3568,12 @@
         "tags": ""
       },
       {
-        "name": "Folk Rock",
-        "url": "http://79.111.14.76:8000/folkrock",
+        "name": "J-Rock (Japanese Rock Music)",
+        "url": "http://79.111.119.111:8000/jrock",
         "bitrate": 320,
         "codec": "AAC+",
-        "favicon": "",
-        "tags": ""
+        "favicon": "http://radcap.ru/apple-touch-icon.png",
+        "tags": "jrock"
       },
       {
         "name": "Acoustic Rock Radio",
