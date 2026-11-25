@@ -1122,7 +1122,7 @@
   },
   {
     "mainName": "Радио Орфей",
-    "count": 20,
+    "count": 25,
     "variants": [
       "Радио Орфей",
       "Орфей"
@@ -1512,7 +1512,7 @@
   },
   {
     "mainName": "Ретро FM",
-    "count": 74,
+    "count": 75,
     "variants": [
       "Ретро FM"
     ]
@@ -1759,7 +1759,7 @@
   },
   {
     "mainName": "Like FM",
-    "count": 27,
+    "count": 28,
     "variants": [
       "Like FM"
     ]

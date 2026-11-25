@@ -1154,20 +1154,20 @@
         "tags": ""
       },
       {
-        "name": "Radio 7 Tyumen",
-        "url": "http://live.radio7.su:9000/radio7_128",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "",
-        "tags": "hits, pop"
-      },
-      {
         "name": "Radio 7 Moscow",
         "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
         "bitrate": 320,
         "codec": "MP3",
         "favicon": "",
         "tags": "hits, russian hits"
+      },
+      {
+        "name": "Авторадио 107.7 FM",
+        "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
+        "bitrate": 0,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": ""
       }
     ],
     "homepage": "https://radio7.ru/",
@@ -1282,11 +1282,35 @@
   },
   {
     "name": "Радио Болгар",
-    "streams": []
+    "streams": [
+      {
+        "name": "Болгар Радиосы",
+        "url": "https://online.bolgarradio.com/radio/stream/radio.m3u8",
+        "bitrate": 100,
+        "codec": "AAC",
+        "favicon": "",
+        "tags": "regional music"
+      }
+    ],
+    "homepage": "https://bolgarradio.com/",
+    "favicon": "",
+    "tags": "regional music"
   },
   {
     "name": "Радио Болид",
-    "streams": []
+    "streams": [
+      {
+        "name": "Радио Болид",
+        "url": "https://icecast-bulteam.cdnvideo.ru/bolid128",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "https://bolid.fm/wp-content/uploads/2025/01/cropped-logo17-180x180.png",
+        "tags": ""
+      }
+    ],
+    "homepage": "https://bolid.fm/",
+    "favicon": "https://bolid.fm/wp-content/uploads/2025/01/cropped-logo17-180x180.png",
+    "tags": ""
   },
   {
     "name": "Радио Ваня",
@@ -2092,8 +2116,8 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд Breaks",
-        "url": "http://radiorecord.hostingradio.ru/brks96.aacp",
+        "name": "Радио Рекорд 2step",
+        "url": "http://radiorecord.hostingradio.ru/2step96.aacp",
         "bitrate": 0,
         "codec": "AAC",
         "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
@@ -2208,9 +2232,9 @@
         "tags": ""
       }
     ],
-    "homepage": "http://www.radiorus.ru/",
+    "homepage": "https://radiorus.ru/",
     "favicon": "https://vestiorel.ru/favicon.png",
-    "tags": "music, news, talk"
+    "tags": "news, talk"
   },
   {
     "name": "Радио Русские песни",
@@ -2766,19 +2790,7 @@
   },
   {
     "name": "Радио Z",
-    "streams": [
-      {
-        "name": "Z Fm",
-        "url": "https://node0.craftradio.ru:8000/193_CB039DF9",
-        "bitrate": 0,
-        "codec": "MP3",
-        "favicon": "null",
-        "tags": "фронтовое радио"
-      }
-    ],
-    "homepage": "https://node0.craftradio.ru:8000/193_CB039DF9",
-    "favicon": "",
-    "tags": "фронтовое радио"
+    "streams": []
   },
   {
     "name": "Радио-3",
@@ -3068,7 +3080,7 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://ruradio.net/ulyanovsk/ulyanovsk-fm-1042-fm-gFeVDpD3oe",
+    "homepage": "https://wwv.zvuch.com/radio-online/ulyanovsk-fm",
     "favicon": "https://ruradio.net/api/img/w150/f7/f77c947c874ac7de2aa19b337a758469.jpeg",
     "tags": "поп-музыка"
   },
@@ -3188,9 +3200,9 @@
         "tags": "ретро"
       }
     ],
-    "homepage": "https://top-radio.ru/web/yunost",
+    "homepage": "http://radiounost.ru/",
     "favicon": "https://top-radio.ru/assets/image/radio/180/radiounost.png",
-    "tags": "ретро"
+    "tags": "70s, 80s, retro"
   },
   {
     "name": "Business FM",
@@ -3568,12 +3580,12 @@
         "tags": ""
       },
       {
-        "name": "J-Rock (Japanese Rock Music)",
-        "url": "http://79.111.119.111:8000/jrock",
+        "name": "Folk Rock",
+        "url": "http://79.111.14.76:8000/folkrock",
         "bitrate": 320,
         "codec": "AAC+",
-        "favicon": "http://radcap.ru/apple-touch-icon.png",
-        "tags": "jrock"
+        "favicon": "",
+        "tags": ""
       },
       {
         "name": "Acoustic Rock Radio",
