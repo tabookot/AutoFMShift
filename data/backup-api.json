@@ -1,8 +1,8 @@
 {
   "type": "api-cache",
   "appVersion": "github-action",
-  "exportDate": 1795609169250,
-  "totalCities": 80,
+  "exportDate": 1795694545257,
+  "totalCities": 81,
   "source": "AutoFMShift API Backup",
   "cities": {
     "абакан": {
@@ -6293,6 +6293,47 @@
         }
       ]
     },
+    "нарьян_мар": {
+      "name": "Нарьян-Мар",
+      "stations": [
+        {
+          "name": "Нарьян-Мар FM / Дорожное радио",
+          "freq": 102.5,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Наше радио",
+          "freq": 104.4,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Радио Маяк",
+          "freq": 102,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Радио России / ГТРК Заполярье",
+          "freq": 101.6,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Русское радио",
+          "freq": 103,
+          "isDeleted": false,
+          "deletedAt": null
+        },
+        {
+          "name": "Север FM",
+          "freq": 103.5,
+          "isDeleted": false,
+          "deletedAt": null
+        }
+      ]
+    },
     "нижний_новгород": {
       "name": "Нижний Новгород",
       "stations": [
@@ -12531,6 +12572,12 @@
       "type": "station",
       "city": "Тверь",
       "name": "Пилот Радио\nМ-Радио",
+      "reason": "glitch_protect"
+    },
+    {
+      "type": "station",
+      "city": "Мурманск",
+      "name": "(ПЛАН) Like FM",
       "reason": "glitch_protect"
     },
     {

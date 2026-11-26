@@ -803,6 +803,10 @@
     "streams": []
   },
   {
+    "name": "Нарьян-Мар FM",
+    "streams": []
+  },
+  {
     "name": "Национальное радио Чувашии - Чăваш Ен",
     "streams": []
   },
@@ -1154,20 +1158,20 @@
         "tags": ""
       },
       {
+        "name": "Radio 7 Tyumen",
+        "url": "http://live.radio7.su:9000/radio7_128",
+        "bitrate": 128,
+        "codec": "MP3",
+        "favicon": "",
+        "tags": "hits, pop"
+      },
+      {
         "name": "Radio 7 Moscow",
         "url": "https://emgregion.hostingradio.ru:8064/moscow.radio7.mp3",
         "bitrate": 320,
         "codec": "MP3",
         "favicon": "",
         "tags": "hits, russian hits"
-      },
-      {
-        "name": "Авторадио 107.7 FM",
-        "url": "https://online2.gkvr.ru:8001/avtoradio_mzd_64.aac",
-        "bitrate": 0,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
       }
     ],
     "homepage": "https://radio7.ru/",
@@ -2116,11 +2120,11 @@
         "tags": ""
       },
       {
-        "name": "Радио Рекорд 2step",
-        "url": "http://radiorecord.hostingradio.ru/2step96.aacp",
+        "name": "Радио Рекорд Christmas",
+        "url": "http://radiorecord.hostingradio.ru/christmas96.aacp",
         "bitrate": 0,
         "codec": "AAC",
-        "favicon": "http://radiorecord.ru/icons/apple-touch-icon.png",
+        "favicon": "http://radiorecord.ru/local/templates/record/assets/build/favicon-set/apple-touch-icon.png",
         "tags": ""
       },
       {
@@ -2232,9 +2236,9 @@
         "tags": ""
       }
     ],
-    "homepage": "https://radiorus.ru/",
+    "homepage": "http://www.radiorus.ru/",
     "favicon": "https://vestiorel.ru/favicon.png",
-    "tags": "news, talk"
+    "tags": "music, news, talk"
   },
   {
     "name": "Радио Русские песни",
@@ -2330,27 +2334,7 @@
   },
   {
     "name": "Радио Си",
-    "streams": [
-      {
-        "name": "Радио Си (Екатеринбург)",
-        "url": "https://online.radioc.ru/radioc_aacplus?v=1702736359326",
-        "bitrate": 64,
-        "codec": "AAC",
-        "favicon": "",
-        "tags": ""
-      },
-      {
-        "name": "Радио СИ - 103.7 FM",
-        "url": "https://online.radioc.ru/radioc",
-        "bitrate": 128,
-        "codec": "MP3",
-        "favicon": "https://www.radioc.ru/online/logo.png",
-        "tags": ""
-      }
-    ],
-    "homepage": "https://m.radioc.ru/",
-    "favicon": "https://www.radioc.ru/online/logo.png",
-    "tags": ""
+    "streams": []
   },
   {
     "name": "Радио Сибирь",
@@ -2790,7 +2774,19 @@
   },
   {
     "name": "Радио Z",
-    "streams": []
+    "streams": [
+      {
+        "name": "Z Fm",
+        "url": "https://node0.craftradio.ru:8000/193_CB039DF9",
+        "bitrate": 0,
+        "codec": "MP3",
+        "favicon": "null",
+        "tags": "фронтовое радио"
+      }
+    ],
+    "homepage": "https://node0.craftradio.ru:8000/193_CB039DF9",
+    "favicon": "",
+    "tags": "фронтовое радио"
   },
   {
     "name": "Радио-3",
@@ -2961,6 +2957,10 @@
     "tags": "music, rock"
   },
   {
+    "name": "Север FM",
+    "streams": []
+  },
+  {
     "name": "Серебряная ладья",
     "streams": []
   },
@@ -3080,7 +3080,7 @@
         "tags": "поп-музыка"
       }
     ],
-    "homepage": "https://wwv.zvuch.com/radio-online/ulyanovsk-fm",
+    "homepage": "https://ruradio.net/ulyanovsk/ulyanovsk-fm-1042-fm-gFeVDpD3oe",
     "favicon": "https://ruradio.net/api/img/w150/f7/f77c947c874ac7de2aa19b337a758469.jpeg",
     "tags": "поп-музыка"
   },
@@ -3200,9 +3200,9 @@
         "tags": "ретро"
       }
     ],
-    "homepage": "http://radiounost.ru/",
+    "homepage": "https://top-radio.ru/web/yunost",
     "favicon": "https://top-radio.ru/assets/image/radio/180/radiounost.png",
-    "tags": "70s, 80s, retro"
+    "tags": "ретро"
   },
   {
     "name": "Business FM",
@@ -3580,12 +3580,12 @@
         "tags": ""
       },
       {
-        "name": "Folk Rock",
-        "url": "http://79.111.14.76:8000/folkrock",
+        "name": "J-Rock (Japanese Rock Music)",
+        "url": "http://79.111.119.111:8000/jrock",
         "bitrate": 320,
         "codec": "AAC+",
-        "favicon": "",
-        "tags": ""
+        "favicon": "http://radcap.ru/apple-touch-icon.png",
+        "tags": "jrock"
       },
       {
         "name": "Acoustic Rock Radio",
